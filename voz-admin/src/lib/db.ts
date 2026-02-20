@@ -48,7 +48,8 @@ if (fs.existsSync(dbPath)) {
         campaigns: [],
         employees: [],
         logs: [],
-        moderator_productivity: []
+        moderator_productivity: [],
+        videos: []
     };
     fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2));
 }
