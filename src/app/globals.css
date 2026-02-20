@@ -1,0 +1,137 @@
+:root {
+  --cex-red: #e60000;
+  --cex-red-hover: #cc0000;
+  --cex-dark: #333333;
+  --cex-grey: #f2f2f2;
+  --cex-border: #e0e0e0;
+  --cex-text: #333333;
+  --cex-text-light: #666666;
+  --white: #ffffff;
+
+  --font-family: 'Inter', Arial, sans-serif;
+
+  --container-width: 1200px;
+  --header-height: 140px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  color: var(--cex-text);
+  background: var(--white);
+  font-family: var(--font-family);
+  overflow-x: hidden;
+  min-width: 320px;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.container {
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background-color: var(--cex-red);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background-color: var(--cex-red-hover);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 2px solid var(--cex-red);
+  color: var(--cex-red);
+}
+
+.btn-outline:hover {
+  background-color: var(--cex-red);
+  color: var(--white);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  :root {
+    --header-height: auto;
+  }
+
+  .container {
+    padding: 0 15px;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 12px 16px;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 10px;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+}

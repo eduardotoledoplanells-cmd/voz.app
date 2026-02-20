@@ -1,0 +1,164 @@
+// INSTRUCCIONES: Añadir este código al archivo Footer.tsx
+
+// 1. Añadir este estado en la línea 12 (después de showPrivacyModal):
+const [showSupportModal, setShowSupportModal] = useState(false);
+
+// 2. Reemplazar la línea que dice <li><a href="#">Soporte</a></li> con:
+<li>
+    <a href="#" onClick={(e) => { e.preventDefault(); setShowSupportModal(true); }}>
+        Soporte
+    </a>
+</li>
+
+// 3. Añadir este modal ANTES de la línea que dice </> (línea 617):
+
+            {/* Support Modal */}
+            {showSupportModal && (
+                <div
+                    className={styles.modalOverlay}
+                    onClick={() => setShowSupportModal(false)}
+                >
+                    <div
+                        className={styles.modalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            className={styles.modalClose}
+                            onClick={() => setShowSupportModal(false)}
+                        >
+                            ×
+                        </button>
+                        <h2>📧 Contacta con Soporte</h2>
+                        <p style={{ marginBottom: '20px', color: '#666' }}>
+                            ¿Tienes alguna pregunta o necesitas ayuda? Envíanos un mensaje y te responderemos lo antes posible.
+                        </p>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const form = e.target as HTMLFormElement;
+                                const formData = new FormData(form);
+                                
+                                const subject = encodeURIComponent(formData.get('subject') as string);
+                                const message = encodeURIComponent(formData.get('message') as string);
+                                const email = formData.get('email') as string;
+                                const name = formData.get('name') as string;
+                                
+                                const body = `Nombre: ${name}%0D%0AEmail: ${email}%0D%0A%0D%0A${message}`;
+                                
+                                window.location.href = `mailto:revoluxbit.rob@gmail.com?subject=${subject}&body=${body}`;
+                                setShowSupportModal(false);
+                            }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
+                        >
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Nombre *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Email *
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Asunto *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="subject"
+                                    required
+                                    placeholder="Ej: Consulta sobre mi pedido #123"
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Mensaje *
+                                </label>
+                                <textarea
+                                    name="message"
+                                    required
+                                    rows={6}
+                                    placeholder="Describe tu consulta o problema..."
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        fontSize: '1rem',
+                                        fontFamily: 'inherit',
+                                        resize: 'vertical'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ 
+                                padding: '15px', 
+                                background: '#f0f8ff', 
+                                borderRadius: '4px', 
+                                borderLeft: '4px solid #2196F3',
+                                fontSize: '0.9rem'
+                            }}>
+                                <strong>📬 Email de contacto:</strong> revoluxbit.rob@gmail.com
+                                <p style={{ margin: '5px 0 0 0', color: '#666' }}>
+                                    Al enviar este formulario, se abrirá tu cliente de correo con el mensaje prellenado.
+                                </p>
+                            </div>
+
+                            <button
+                                type="submit"
+                                style={{
+                                    padding: '12px 24px',
+                                    background: 'var(--cex-red, #e31837)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#c01530'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'var(--cex-red, #e31837)'}
+                            >
+                                Enviar Mensaje
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}

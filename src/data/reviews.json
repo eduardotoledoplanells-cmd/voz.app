@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1",
+    "productId": "1",
+    "userName": "Juan Pérez",
+    "rating": 5,
+    "comment": "Excelente teléfono, llegó muy rápido y en perfecto estado.",
+    "date": "2025-12-03T21:42:11.401Z",
+    "approved": true
+  },
+  {
+    "id": "2",
+    "productId": "1",
+    "userName": "María García",
+    "rating": 4,
+    "comment": "Buen producto, aunque la batería podría durar un poco más.",
+    "date": "2025-12-02T21:42:11.401Z",
+    "approved": true
+  },
+  {
+    "id": "3",
+    "productId": "2",
+    "userName": "Carlos Ruiz",
+    "rating": 5,
+    "comment": "La PS5 es increíble, gráficos espectaculares.",
+    "date": "2025-12-01T21:42:11.401Z",
+    "approved": true
+  },
+  {
+    "productId": "9",
+    "userName": "Javier S.",
+    "rating": 5,
+    "comment": "Me encanta, es justo lo que buscaba. El servicio de atención al cliente fue muy amable.",
+    "date": "2025-12-03T21:57:17.069Z",
+    "id": "1764799037083",
+    "approved": true
+  }
+]

@@ -1,0 +1,371 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: var(--cex-dark);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--cex-red);
+    margin-bottom: 40px;
+    text-decoration: none;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.navItem {
+    padding: 12px 15px;
+    border-radius: 6px;
+    color: #ccc;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.navItem:hover,
+.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.main {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+.header {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cex-dark);
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+/* Low Stock Dropdown Styles */
+.lowStockDropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.lowStockItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.lowStockItem:last-child {
+    border-bottom: none;
+}
+
+.lowStockItem:hover {
+    background: #f8f8f8;
+}
+
+/* Table Styles */
+.tableContainer {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.table th {
+    padding: 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--cex-dark);
+    border-bottom: 2px solid #eee;
+    background: #fcfcfc;
+}
+
+.table td {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.tableRow {
+    transition: background 0.2s;
+}
+
+.tableRow:hover {
+    background: #fafafa;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    text-transform: capitalize;
+}
+
+.statusPending {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.statusProcessing {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.statusShipped {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.statusDelivered {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.statusCancelled {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+/* Action Buttons */
+.actionGroup {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btnPrimary {
+    background: var(--cex-red);
+    color: white;
+}
+
+.btnPrimary:hover {
+    background: #cc0000;
+}
+
+.btnSecondary {
+    background: transparent;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+.btnSecondary:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.btnSuccess {
+    background: #4caf50;
+    color: white;
+}
+
+.btnSuccess:hover {
+    background: #43a047;
+}
+
+.btnDanger {
+    background: white;
+    border: 1px solid #d32f2f;
+    color: #d32f2f;
+}
+
+.btnDanger:hover {
+    background: #ffebee;
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    color: #666;
+}
+
+.iconButton:hover {
+    background: #eee;
+    color: #333;
+}
+
+/* Expanded Order Details */
+.expandedRow {
+    background: #fafafa;
+}
+
+.orderDetails {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+.detailSection h3 {
+    margin-bottom: 16px;
+    font-size: 1.1rem;
+    color: var(--cex-dark);
+}
+
+.infoCard {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.infoLabel {
+    color: #666;
+    font-weight: 500;
+}
+
+.infoValue {
+    color: #333;
+    font-weight: 600;
+}
+
+/* Form Elements */
+.select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    min-width: 130px;
+    cursor: pointer;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    transition: border 0.2s;
+}
+
+.input:focus {
+    border-color: var(--cex-red);
+    outline: none;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modalContent {
+    background: white;
+    padding: 32px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modalTitle {
+    margin: 0 0 16px 0;
+    color: var(--cex-dark);
+    font-size: 1.5rem;
+}
+
+.highlightBox {
+    background: #fff5f5;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #ffebee;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.trackingDisplay {
+    font-family: monospace;
+    font-size: 1.25rem;
+    color: var(--cex-red);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}

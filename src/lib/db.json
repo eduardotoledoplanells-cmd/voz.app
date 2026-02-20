@@ -1,0 +1,215 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "reference": "REF-12345678",
+      "title": "iPhone 13 128GB Midnight Unlocked",
+      "price": 450,
+      "images": [
+        "https://placehold.co/300x400/png?text=iPhone+13"
+      ],
+      "category": "Móviles",
+      "grade": "A",
+      "type": "console"
+    },
+    {
+      "id": "2",
+      "reference": "REF-87654321",
+      "title": "PlayStation 5 Disc Edition",
+      "price": 420,
+      "images": [
+        "https://placehold.co/300x400/png?text=PS5"
+      ],
+      "category": "Juegos",
+      "grade": "B",
+      "type": "console"
+    },
+    {
+      "id": "1765189820330",
+      "reference": "REF-2025-12-08-330",
+      "title": "game coy consola",
+      "price": 100,
+      "category": "gameboy-consolas",
+      "description": "Añade \"game coy consola\" a tu setup retro.\r\n\r\nEste artículo se encuentra en buen estado de conservación y es el complemento perfecto para tu colección. Ha sido verificado para garantizar su funcionalidad.\r\n\r\n¡Aprovecha esta oportunidad antes de que se agote!",
+      "grade": "A",
+      "images": [
+        "/uploads/images/1765145193787-consola_game_boy.jpg"
+      ],
+      "isOnSale": false,
+      "isFeatured": true,
+      "stock": 1,
+      "buyPrice": 50,
+      "sellerId": "admin-2",
+      "limitOnePerCustomer": false
+    },
+    {
+      "id": "1765225259082",
+      "reference": "REF-2025-12-08-082",
+      "title": "consola super nintendo",
+      "price": 120,
+      "category": "snes-consolas",
+      "description": "¡Revive la historia con esta consola super nintendo!\r\n\r\nUna oportunidad única para hacerte con este sistema legendario. La consola ha sido revisada internamente, limpiada y testeada para asegurar que carga tus juegos favoritos sin problemas.\r\n\r\nIncluye el cableado necesario para empezar a jugar. ¡Lista para enchufar y disfrutar!",
+      "grade": "A",
+      "images": [
+        "/uploads/images/1765145383453-Consola_Super_Nintendo.jpg"
+      ],
+      "isOnSale": false,
+      "isFeatured": false,
+      "stock": 1,
+      "buyPrice": 50,
+      "sellerId": "admin-2",
+      "limitOnePerCustomer": false
+    },
+    {
+      "id": "1765227085332",
+      "reference": "REF-2025-12-08-332",
+      "title": "consola sega mega drive",
+      "price": 100,
+      "category": "mega-drive-consolas",
+      "description": "¡Revive la historia con esta consola sega mega drive!\r\n\r\nUna oportunidad única para hacerte con este sistema legendario. La consola ha sido revisada internamente, limpiada y testeada para asegurar que carga tus juegos favoritos sin problemas.\r\n\r\nIncluye el cableado necesario para empezar a jugar. ¡Lista para enchufar y disfrutar!",
+      "grade": "A",
+      "images": [
+        "/uploads/images/1765149756481-Mega_Drive.avif"
+      ],
+      "isOnSale": false,
+      "isFeatured": true,
+      "stock": 1,
+      "buyPrice": 45,
+      "sellerId": "admin-2",
+      "limitOnePerCustomer": false
+    }
+  ],
+  "app_users": [
+    {
+      "id": "u1",
+      "name": "@Edu_VOZ",
+      "email": "edu@voz.app",
+      "status": "verified",
+      "reputation": 0,
+      "walletBalance": 0,
+      "joinedAt": "2024-01-01"
+    },
+    {
+      "id": "u2",
+      "name": "@usuario_nuevo",
+      "email": "test@voz.app",
+      "status": "active",
+      "reputation": 10,
+      "walletBalance": 0,
+      "joinedAt": "2024-02-15"
+    },
+    {
+      "id": "u3",
+      "name": "@troll_banned",
+      "email": "troll@voz.app",
+      "status": "banned",
+      "reputation": -100,
+      "walletBalance": 0,
+      "joinedAt": "2024-03-10"
+    }
+  ],
+  "companies": [
+    {
+      "id": "c1",
+      "name": "Sony Music",
+      "legalName": "Sony Music Entertainment Spain S.A.",
+      "taxId": "A12345678",
+      "address": "Calle de los Artistas 42",
+      "city": "Madrid",
+      "zip": "28001",
+      "country": "España",
+      "phone": "+34 912 345 678",
+      "contactEmail": "billing@sony.com",
+      "balance": 1500,
+      "joinedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": "c-coca-cola",
+      "name": "Coca-Cola Spain",
+      "legalName": "Compañía de Bebidas Coca-Cola S.L.",
+      "taxId": "B87654321",
+      "address": "Calle de la Chispa 10",
+      "city": "Madrid",
+      "zip": "28002",
+      "country": "España",
+      "phone": "+34 918 765 432",
+      "contactEmail": "ads@cocacola.es",
+      "balance": 5000,
+      "joinedAt": "2023-11-20T09:00:00Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "camp-coke-summer",
+      "companyId": "c-coca-cola",
+      "name": "Siente el Sabor - Verano 2024",
+      "budget": 2500,
+      "status": "completed",
+      "type": "video",
+      "videoUrl": "https://assets.mixkit.co/videos/preview/mixkit-pouring-soda-into-a-glass-with-ice-43093-large.mp4",
+      "startDate": "2024-06-01",
+      "endDate": "2024-08-31",
+      "forceView": true,
+      "target": "all",
+      "impressions": 48256,
+      "createdAt": "2024-05-15T14:20:00Z"
+    }
+  ],
+  "employees": [
+    {
+      "id": "1",
+      "username": "admin",
+      "password": "123",
+      "role": 1,
+      "lastLogin": "Nunca",
+      "active": true
+    },
+    {
+      "id": "edu-1",
+      "username": "Eduardo Toledo",
+      "password": "329407",
+      "role": 1,
+      "lastLogin": "Nunca",
+      "active": true
+    }
+  ],
+  "logs": [],
+  "moderation_queue": [
+    {
+      "id": "mod-1",
+      "type": "video",
+      "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "userHandle": "@viral_king",
+      "reportReason": "Contenido inapropiado / Violencia",
+      "timestamp": "2025-12-31T10:00:00Z",
+      "status": "pending"
+    },
+    {
+      "id": "mod-2",
+      "type": "audio",
+      "url": "https://www.w3schools.com/html/horse.mp3",
+      "userHandle": "@echo_voice",
+      "reportReason": "Spam / Publicidad no deseada",
+      "timestamp": "2025-12-31T10:05:00Z",
+      "status": "pending"
+    },
+    {
+      "id": "mod-3",
+      "type": "video",
+      "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "userHandle": "@nature_lover",
+      "reportReason": "Derechos de autor (Copyright)",
+      "timestamp": "2025-12-31T10:10:00Z",
+      "status": "pending"
+    },
+    {
+      "id": "mod-4",
+      "type": "audio",
+      "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+      "userHandle": "@dino_fan",
+      "reportReason": "Acoso / Lenguaje de odio",
+      "timestamp": "2025-12-31T10:15:00Z",
+      "status": "pending"
+    }
+  ]
+}

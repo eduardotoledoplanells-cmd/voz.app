@@ -1,0 +1,126 @@
+.desktop {
+    background-color: #008080;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Pixelated MS Sans Serif', Arial, sans-serif;
+    overflow: hidden;
+}
+
+.screenArea {
+    flex: 1;
+    position: relative;
+    padding: 10px;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.taskbar {
+    height: 35px;
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    box-shadow: inset 1px 0 #fff;
+    z-index: 9999;
+}
+
+.startButton {
+    font-weight: bold;
+    min-width: 80px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 5px;
+}
+
+.startMenu {
+    position: absolute;
+    bottom: 35px;
+    left: 2px;
+    width: 200px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 1px 1px 0 #000;
+    z-index: 10000;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.startMenuItem {
+    display: block;
+    padding: 5px 10px;
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.startMenuItem:hover {
+    background-color: #000080;
+    color: #fff;
+}
+
+.windowWrapper {
+    width: 60%;
+    max-width: 1200px;
+    height: 85%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.windowWrapper.maximized {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - 35px);
+    max-width: none;
+    z-index: 9000;
+}
+
+.windowWrapper.minimized {
+    display: none;
+}
+
+.clock {
+    margin-left: auto;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    margin-right: 2px;
+}
+
+/* Override 98.css window for full height content */
+.maximizedWindow {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.windowBody {
+    flex: 1;
+    overflow: auto;
+}
+.activeWindowTab {
+    background: #e0e0e0 !important;
+    border-style: inset !important;
+    font-weight: bold;
+    margin-left: 5px;
+    padding: 0 10px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    font-size: 0.85rem;
+}
+

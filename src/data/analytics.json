@@ -1,0 +1,95 @@
+{
+  "totalViews": 64,
+  "productViews": {
+    "1": {
+      "count": 11,
+      "title": "iPhone 13 128GB Midnight Unlocked",
+      "category": "Móviles",
+      "lastViewed": "2025-12-08T10:08:16.119Z"
+    },
+    "2": {
+      "count": 4,
+      "title": "PlayStation 5 Disc Edition",
+      "category": "Juegos",
+      "lastViewed": "2025-12-07T19:47:43.519Z"
+    },
+    "3": {
+      "count": 3,
+      "title": "Mando Inalambrico Negro Xbox 360 Original",
+      "category": "Xbox 360 - Accesorios",
+      "lastViewed": "2025-12-08T00:18:24.833Z"
+    },
+    "4": {
+      "count": 3,
+      "title": "MacBook Air M1 8GB 256GB",
+      "category": "Juegos",
+      "lastViewed": "2025-12-08T09:42:06.282Z"
+    },
+    "15": {
+      "count": 7,
+      "title": "PlayStation 5 Digital Edition",
+      "category": "PlayStation 5",
+      "lastViewed": "2025-12-07T17:36:14.726Z"
+    },
+    "20": {
+      "count": 16,
+      "title": "Xbox Series S 512GB",
+      "category": "Xbox Series",
+      "lastViewed": "2025-12-05T21:48:08.492Z"
+    },
+    "23": {
+      "count": 5,
+      "title": "Game Boy Advance SP",
+      "category": "Nintendo Game Boy",
+      "lastViewed": "2025-12-08T09:43:25.012Z"
+    },
+    "1764770899167": {
+      "count": 1,
+      "title": "tehgerhy",
+      "category": "Juegos - Retro",
+      "lastViewed": "2025-12-04T10:12:08.001Z"
+    },
+    "retro-snes-1": {
+      "count": 1,
+      "title": "Consola Super Nintendo Clásica",
+      "category": "Retro Nintendo",
+      "lastViewed": "2025-12-07T19:41:57.429Z"
+    },
+    "19-acc": {
+      "count": 2,
+      "title": "Xbox One Controller",
+      "category": "Xbox One",
+      "lastViewed": "2025-12-08T09:30:17.496Z"
+    },
+    "1765227085332": {
+      "count": 1,
+      "title": "consola sega mega drive",
+      "category": "mega-drive-consolas",
+      "lastViewed": "2025-12-08T21:20:28.595Z"
+    },
+    "1765225259082": {
+      "count": 2,
+      "title": "consola super nintendo",
+      "category": "snes-consolas",
+      "lastViewed": "2025-12-08T22:14:46.474Z"
+    },
+    "1765321059611": {
+      "count": 5,
+      "title": "Silent Hill: Shattered Memories",
+      "category": "psp-juegos",
+      "lastViewed": "2025-12-10T19:56:31.221Z"
+    },
+    "1765399422432": {
+      "count": 1,
+      "title": "Teenage Mutant Ninja Turtles",
+      "category": "ps2-juegos",
+      "lastViewed": "2025-12-10T20:43:49.660Z"
+    },
+    "1765403643090": {
+      "count": 2,
+      "title": "Sonic Adventure 2 10th Anniversary Limited Edition Sega Dreamcast Japan",
+      "category": "dreamcast-accesorios",
+      "lastViewed": "2025-12-10T21:54:27.613Z"
+    }
+  }
+}

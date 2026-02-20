@@ -1,0 +1,57 @@
+[
+  {
+    "id": "admin-1",
+    "name": "Xisco",
+    "email": "revoluxbit.rob01@gmail.com",
+    "password": "$2b$10$c.0tw5rqCBPK58D8.mex3OxCMLtUOSsLXjkKlMwMeWs22PY8XPWnG",
+    "marketingConsent": false,
+    "registeredAt": "2025-12-04T12:00:00.000Z",
+    "orders": [],
+    "role": "admin",
+    "address": {
+      "street": "",
+      "city": "",
+      "postalCode": "",
+      "country": "",
+      "phone": ""
+    },
+    "favorites": [
+      "15"
+    ]
+  },
+  {
+    "id": "admin-2",
+    "name": "Eduardo",
+    "email": "revoluxbit.rob02@gmail.com",
+    "password": "$2b$10$OBT4yd5mkE1bRFLuaDgsxO4E2EuOUjYtYou03TLKjrNV7Gr2qiGJS",
+    "marketingConsent": false,
+    "registeredAt": "2025-12-05T12:00:00.000Z",
+    "orders": [],
+    "role": "admin",
+    "address": {
+      "street": "",
+      "city": "",
+      "postalCode": "",
+      "country": "",
+      "phone": ""
+    },
+    "favorites": [],
+    "points": 248,
+    "lastRobCoinEarned": 1765474112929
+  },
+  {
+    "id": "1765186367455",
+    "name": "password123Test Admin",
+    "email": "testadmin@example.com",
+    "password": "$2b$10$R/SwxTYXUDwjm6Vix5Ty7u2Cuu0Df3hNKMwnZaPLTGto6/k1mf1AK",
+    "marketingConsent": false,
+    "registeredAt": "2025-12-08T09:32:47.455Z",
+    "orders": [],
+    "verified": true,
+    "role": "admin",
+    "verificationToken": "e4fd9a52-5625-4536-8cf2-3d0afde45328",
+    "verificationTokenExpiry": 1765272767455,
+    "points": 321,
+    "lastRobCoinEarned": 1765491202431
+  }
+]

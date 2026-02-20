@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="eng">
+
+<head>
+  <meta charset="utf-8">
+  <title>HTML5 Space Invaders</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- We use canvas to draw stuff on the screen. -->
+  <canvas id="game-canvas" width="672" height="768">
+    Your browser does not support HTML5 canvas.
+  </canvas>
+  <audio id="background-music" loop>
+    <source src="edm-gaming-music-335408.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="shoot-sound">
+    <source src="Selec.wav" type="audio/wav">
+  </audio>
+  <audio id="alien-kill-sound">
+    <source src="Begin.wav" type="audio/wav">
+  </audio>
+  <audio id="player-death-sound">
+    <source src="LaL01.wav" type="audio/wav">
+  </audio>
+  <script src="game.js"></script>
+  <script>
+    var spaceInvaders = new SpaceInvaders.Game();
+    spaceInvaders.start();
+
+    // Play background music
+    var bgMusic = document.getElementById('background-music');
+    if (bgMusic) {
+      bgMusic.volume = 0.3; // Set volume to 30%
+      bgMusic.play().catch(function (error) {
+        console.log('Audio autoplay prevented:', error);
+        // Try to play on first user interaction
+        document.addEventListener('click', function () {
+          bgMusic.play();
+        }, { once: true });
+      });
+    }
+
+    // Play shoot sound on spacebar press
+    var shootSound = document.getElementById('shoot-sound');
+    if (shootSound) {
+      shootSound.volume = 0.5; // Set volume to 50%
+      document.addEventListener('keydown', function (event) {
+        if (event.keyCode === 32) { // Spacebar
+          shootSound.currentTime = 0; // Reset to start
+          shootSound.play().catch(function (error) {
+            console.log('Shoot sound error:', error);
+          });
+        }
+      });
+    }
+
+    // Global function to play alien kill sound
+    window.playAlienKillSound = function () {
+      var alienKillSound = document.getElementById('alien-kill-sound');
+      if (alienKillSound) {
+        alienKillSound.volume = 0.4; // Set volume to 40%
+        alienKillSound.currentTime = 0; // Reset to start
+        alienKillSound.play().catch(function (error) {
+          console.log('Alien kill sound error:', error);
+        });
+      }
+    };
+
+    // Global function to play player death sound
+    window.playPlayerDeathSound = function () {
+      var playerDeathSound = document.getElementById('player-death-sound');
+      if (playerDeathSound) {
+        playerDeathSound.volume = 0.5; // Set volume to 50%
+        playerDeathSound.currentTime = 0; // Reset to start
+        playerDeathSound.play().catch(function (error) {
+          console.log('Player death sound error:', error);
+        });
+      }
+    };
+  </script>
+</body>
+
+</html>

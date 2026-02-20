@@ -1,0 +1,51 @@
+.hero {
+    background: linear-gradient(135deg, #e60000 0%, #b30000 100%);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    opacity: 0.9;
+}
+
+.ctaButtons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.btnHero {
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s;
+}
+
+.btnHero:hover {
+    transform: scale(1.05);
+}
+
+.btnBuy {
+    background: white;
+    color: var(--cex-red);
+}
+
+.btnSell {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+}

@@ -1,0 +1,37 @@
+.arcadeMachine {
+    position: relative;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    aspect-ratio: 0.65;
+    transform: scale(1.3);
+    transform-origin: top center;
+    margin-top: -400px;
+    margin-bottom: 40px;
+}
+
+/* Móvil - Hacer la máquina EXTRA grande para máxima visibilidad */
+@media (max-width: 968px) {
+    .arcadeMachine {
+        transform: scale(1.8);
+        margin-top: -400px;
+        max-width: 100%;
+        margin-bottom: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .arcadeMachine {
+        transform: scale(1.9);
+        margin-top: -350px;
+        margin-bottom: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .arcadeMachine {
+        transform: scale(1.7);
+        margin-top: -250px;
+        margin-bottom: 200px;
+    }
+}

@@ -1,0 +1,242 @@
+.heroContainer {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.slider {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.active {
+    opacity: 1;
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.controls {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+    z-index: 10;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+.controlButton {
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+.controlButton:hover {
+    background: rgba(255, 0, 128, 0.8);
+    border-color: #fff;
+    transform: scale(1.1);
+}
+
+.dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dotActive {
+    background: #00ffff;
+    box-shadow: 0 0 8px #00ffff;
+    transform: scale(1.2);
+}
+
+.infoBox {
+    position: relative;
+    height: 350px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff0080 0%, #7928ca 50%, #00d4ff 100%);
+    padding: 2px;
+    overflow: hidden;
+}
+
+.infoContent {
+    height: 100%;
+    background: #0f0f1e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+}
+
+.infoTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ff0000;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.infoText {
+    color: #e0e0e0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.infoList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.infoList li {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.infoButtons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    width: 100%;
+}
+
+.btnPrimary,
+.btnSecondary {
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    text-align: center;
+    flex: 1;
+}
+
+.btnPrimary {
+    background: #ff0000;
+    color: white;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(255, 0, 0, 0.4);
+    background: #cc0000;
+}
+
+.btnSecondary {
+    background: #ff0000;
+    color: white;
+    border: 2px solid #ff0000;
+}
+
+.btnSecondary:hover {
+    background: #cc0000;
+    border-color: #cc0000;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 968px) {
+    .heroContainer {
+        grid-template-columns: 1fr;
+    }
+
+    .slider,
+    .infoBox {
+        height: 300px;
+    }
+
+    .infoTitle {
+        font-size: 1.5rem;
+    }
+
+    .infoContent {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .slider,
+    .infoBox {
+        height: 250px;
+    }
+
+    .infoTitle {
+        font-size: 1.25rem;
+    }
+
+    .infoText {
+        font-size: 0.9rem;
+    }
+
+    .infoList li {
+        font-size: 0.85rem;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}

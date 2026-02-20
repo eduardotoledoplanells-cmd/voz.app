@@ -1,0 +1,29 @@
+{
+    "name": "RevoluxBit - Tienda de Videojuegos Retro",
+    "short_name": "RevoluxBit",
+    "description": "Compra y vende videojuegos y consolas retro",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#e60000",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/logo/logo-short.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo/logo-short.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "shopping",
+        "entertainment"
+    ],
+    "screenshots": []
+}
