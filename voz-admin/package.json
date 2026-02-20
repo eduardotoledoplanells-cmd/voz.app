@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "98.css": "^0.1.21",
-        "next": "16.0.6",
+        "next": "15.1.7",
         "react": "19.2.0",
         "react-dom": "19.2.0",
         "stripe": "^17.6.0",
@@ -22,7 +22,7 @@
         "@types/react-dom": "^19",
         "@types/uuid": "^10.0.0",
         "eslint": "^9",
-        "eslint-config-next": "16.0.6",
+        "eslint-config-next": "15.1.7",
         "typescript": "^5"
     }
 }
