@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
         // Leer archivo de ofertas existente
         const fs = require('fs');
-        let offersData = { offers: [] };
+        let offersData: { offers: any[] } = { offers: [] };
 
         if (existsSync(OFFERS_FILE)) {
             const data = fs.readFileSync(OFFERS_FILE, 'utf8');

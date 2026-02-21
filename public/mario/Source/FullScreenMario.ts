@@ -6,7 +6,7 @@
 // @endif
 
 // @include ../Source/FullScreenMario.d.ts
-
+export { };
 module FullScreenMario {
     "use strict";
 

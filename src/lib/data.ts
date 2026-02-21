@@ -7,6 +7,7 @@ export const products: Product[] = [
         title: 'iPhone 13 128GB Midnight Unlocked',
         price: 450,
         images: ['https://placehold.co/300x400/png?text=iPhone+13'],
+        stock: 10,
         category: 'Móviles',
         grade: 'A',
         type: 'console' // Treat phones as consoles for simplicity or ignore
@@ -17,6 +18,7 @@ export const products: Product[] = [
         title: 'PlayStation 5 Disc Edition',
         price: 420,
         images: ['https://placehold.co/300x400/png?text=PS5'],
+        stock: 10,
         category: 'Juegos',
         grade: 'B',
         type: 'console'
@@ -27,6 +29,7 @@ export const products: Product[] = [
         title: 'Super Mario Odyssey (Switch)',
         price: 35,
         images: ['https://placehold.co/300x400/png?text=Mario+Odyssey'],
+        stock: 10,
         category: 'Juegos',
         type: 'game'
     },
@@ -36,6 +39,7 @@ export const products: Product[] = [
         title: 'MacBook Air M1 8GB 256GB',
         price: 650,
         images: ['https://placehold.co/300x400/png?text=MacBook+Air'],
+        stock: 10,
         category: 'Informática',
         grade: 'B'
     },
@@ -45,6 +49,7 @@ export const products: Product[] = [
         title: 'Xbox Series X 1TB',
         price: 380,
         images: ['https://placehold.co/300x400/png?text=Xbox+Series+X'],
+        stock: 10,
         category: 'Juegos',
         grade: 'A',
         type: 'console'
@@ -55,6 +60,7 @@ export const products: Product[] = [
         title: 'Samsung Galaxy S21 5G 128GB',
         price: 280,
         images: ['https://placehold.co/300x400/png?text=Galaxy+S21'],
+        stock: 10,
         category: 'Móviles',
         grade: 'C'
     },
@@ -66,6 +72,7 @@ export const products: Product[] = [
         title: 'Nintendo 3DS XL Blue',
         price: 120,
         images: ['https://placehold.co/300x400/png?text=3DS+XL'],
+        stock: 10,
         category: '3DS',
         grade: 'B',
         type: 'console'
@@ -76,6 +83,7 @@ export const products: Product[] = [
         title: 'Mario Kart 7 (3DS)',
         price: 25,
         images: ['https://placehold.co/300x400/png?text=Mario+Kart+7'],
+        stock: 10,
         category: '3DS',
         type: 'game'
     },
@@ -85,6 +93,7 @@ export const products: Product[] = [
         title: 'Cargador Nintendo 3DS',
         price: 10,
         images: ['https://placehold.co/300x400/png?text=Cargador+3DS'],
+        stock: 10,
         category: '3DS',
         type: 'accessory'
     },
@@ -95,6 +104,7 @@ export const products: Product[] = [
         title: 'Nintendo DS Lite White',
         price: 50,
         images: ['https://placehold.co/300x400/png?text=DS+Lite'],
+        stock: 10,
         category: 'DS',
         type: 'console'
     },
@@ -104,6 +114,7 @@ export const products: Product[] = [
         title: 'Pokemon Diamond (DS)',
         price: 45,
         images: ['https://placehold.co/300x400/png?text=Pokemon+Diamond'],
+        stock: 10,
         category: 'DS',
         type: 'game'
     },
@@ -113,6 +124,7 @@ export const products: Product[] = [
         title: 'Funda Nintendo DS',
         price: 8,
         images: ['https://placehold.co/300x400/png?text=Funda+DS'],
+        stock: 10,
         category: 'DS',
         type: 'accessory'
     },
@@ -123,6 +135,7 @@ export const products: Product[] = [
         title: 'Nintendo Switch OLED White',
         price: 280,
         images: ['https://placehold.co/300x400/png?text=Switch+OLED'],
+        stock: 10,
         category: 'Switch',
         grade: 'A',
         type: 'console'
@@ -133,6 +146,7 @@ export const products: Product[] = [
         title: 'Zelda: Breath of the Wild (Switch)',
         price: 40,
         images: ['https://placehold.co/300x400/png?text=Zelda+BOTW'],
+        stock: 10,
         category: 'Switch',
         type: 'game'
     },
@@ -142,6 +156,7 @@ export const products: Product[] = [
         title: 'Funda de Viaje Switch',
         price: 15,
         images: ['https://placehold.co/300x400/png?text=Funda+Switch'],
+        stock: 10,
         category: 'Switch',
         type: 'accessory'
     },
@@ -152,6 +167,7 @@ export const products: Product[] = [
         title: 'Nintendo Wii Console White',
         price: 40,
         images: ['https://placehold.co/300x400/png?text=Wii+Console'],
+        stock: 10,
         category: 'Wii',
         type: 'console'
     },
@@ -161,6 +177,7 @@ export const products: Product[] = [
         title: 'Wii Sports (Wii)',
         price: 15,
         images: ['https://placehold.co/300x400/png?text=Wii+Sports'],
+        stock: 10,
         category: 'Wii',
         type: 'game'
     },
@@ -170,6 +187,7 @@ export const products: Product[] = [
         title: 'Wii Remote Plus',
         price: 20,
         images: ['https://placehold.co/300x400/png?text=Wii+Remote'],
+        stock: 10,
         category: 'Wii',
         type: 'accessory'
     },
@@ -180,6 +198,7 @@ export const products: Product[] = [
         title: 'Nintendo Wii U Premium 32GB',
         price: 100,
         images: ['https://placehold.co/300x400/png?text=Wii+U'],
+        stock: 10,
         category: 'Wii U',
         type: 'console'
     },
@@ -189,6 +208,7 @@ export const products: Product[] = [
         title: 'Zelda Wind Waker HD (Wii U)',
         price: 40,
         images: ['https://placehold.co/300x400/png?text=Zelda+WW'],
+        stock: 10,
         category: 'Wii U',
         type: 'game'
     },
@@ -198,6 +218,7 @@ export const products: Product[] = [
         title: 'Wii U Pro Controller',
         price: 30,
         images: ['https://placehold.co/300x400/png?text=Pro+Controller'],
+        stock: 10,
         category: 'Wii U',
         type: 'accessory'
     },
@@ -208,6 +229,7 @@ export const products: Product[] = [
         title: 'PlayStation 2 Slim',
         price: 50,
         images: ['https://placehold.co/300x400/png?text=PS2+Slim'],
+        stock: 10,
         category: 'PlayStation 2',
         type: 'console'
     },
@@ -217,6 +239,7 @@ export const products: Product[] = [
         title: 'GTA San Andreas (PS2)',
         price: 12,
         images: ['https://placehold.co/300x400/png?text=GTA+SA'],
+        stock: 10,
         category: 'PlayStation 2',
         type: 'game'
     },
@@ -226,6 +249,7 @@ export const products: Product[] = [
         title: 'Memory Card 8MB PS2',
         price: 5,
         images: ['https://placehold.co/300x400/png?text=Memory+Card'],
+        stock: 10,
         category: 'PlayStation 2',
         type: 'accessory'
     },
@@ -236,6 +260,7 @@ export const products: Product[] = [
         title: 'PlayStation 3 Slim 160GB',
         price: 70,
         images: ['https://placehold.co/300x400/png?text=PS3+Slim'],
+        stock: 10,
         category: 'PlayStation 3',
         type: 'console'
     },
@@ -245,6 +270,7 @@ export const products: Product[] = [
         title: 'The Last of Us (PS3)',
         price: 15,
         images: ['https://placehold.co/300x400/png?text=TLOU+PS3'],
+        stock: 10,
         category: 'PlayStation 3',
         type: 'game'
     },
@@ -254,6 +280,7 @@ export const products: Product[] = [
         title: 'DualShock 3 Controller',
         price: 20,
         images: ['https://placehold.co/300x400/png?text=DualShock+3'],
+        stock: 10,
         category: 'PlayStation 3',
         type: 'accessory'
     },
@@ -264,6 +291,7 @@ export const products: Product[] = [
         title: 'PlayStation 4 Slim 500GB',
         price: 150,
         images: ['https://placehold.co/300x400/png?text=PS4+Slim'],
+        stock: 10,
         category: 'PlayStation 4',
         type: 'console'
     },
@@ -273,6 +301,7 @@ export const products: Product[] = [
         title: 'God of War (PS4)',
         price: 18,
         images: ['https://placehold.co/300x400/png?text=GOW+PS4'],
+        stock: 10,
         category: 'PlayStation 4',
         type: 'game'
     },
@@ -282,6 +311,7 @@ export const products: Product[] = [
         title: 'DualShock 4 Controller',
         price: 35,
         images: ['https://placehold.co/300x400/png?text=DualShock+4'],
+        stock: 10,
         category: 'PlayStation 4',
         type: 'accessory'
     },
@@ -292,6 +322,7 @@ export const products: Product[] = [
         title: 'PlayStation 5 Digital Edition',
         price: 380,
         images: ['https://placehold.co/300x400/png?text=PS5+Digital'],
+        stock: 10,
         category: 'PlayStation 5',
         type: 'console'
     },
@@ -301,6 +332,7 @@ export const products: Product[] = [
         title: 'Spider-Man 2 (PS5)',
         price: 55,
         images: ['https://placehold.co/300x400/png?text=Spider-Man+2'],
+        stock: 10,
         category: 'PlayStation 5',
         type: 'game'
     },
@@ -310,6 +342,7 @@ export const products: Product[] = [
         title: 'DualSense Charging Station',
         price: 25,
         images: ['https://placehold.co/300x400/png?text=Charging+Station'],
+        stock: 10,
         category: 'PlayStation 5',
         type: 'accessory'
     },
@@ -320,6 +353,7 @@ export const products: Product[] = [
         title: 'PS Vita OLED Model',
         price: 120,
         images: ['https://placehold.co/300x400/png?text=PS+Vita'],
+        stock: 10,
         category: 'PS Vita',
         type: 'console'
     },
@@ -329,6 +363,7 @@ export const products: Product[] = [
         title: 'Persona 4 Golden (PS Vita)',
         price: 45,
         images: ['https://placehold.co/300x400/png?text=P4G'],
+        stock: 10,
         category: 'PS Vita',
         type: 'game'
     },
@@ -338,6 +373,7 @@ export const products: Product[] = [
         title: 'Memory Card 16GB PS Vita',
         price: 30,
         images: ['https://placehold.co/300x400/png?text=Vita+Memory'],
+        stock: 10,
         category: 'PS Vita',
         type: 'accessory'
     },
@@ -348,6 +384,7 @@ export const products: Product[] = [
         title: 'PSP 3000 Black',
         price: 60,
         images: ['https://placehold.co/300x400/png?text=PSP+3000'],
+        stock: 10,
         category: 'PSP',
         type: 'console'
     },
@@ -357,6 +394,7 @@ export const products: Product[] = [
         title: 'God of War: Chains of Olympus (PSP)',
         price: 25,
         images: ['https://placehold.co/300x400/png?text=GOW+PSP'],
+        stock: 10,
         category: 'PSP',
         type: 'game'
     },
@@ -366,6 +404,7 @@ export const products: Product[] = [
         title: 'Funda PSP',
         price: 10,
         images: ['https://placehold.co/300x400/png?text=Funda+PSP'],
+        stock: 10,
         category: 'PSP',
         type: 'accessory'
     },
@@ -376,6 +415,7 @@ export const products: Product[] = [
         title: 'Xbox 360 Slim 250GB',
         price: 60,
         images: ['https://placehold.co/300x400/png?text=Xbox+360'],
+        stock: 10,
         category: 'Xbox 360',
         type: 'console'
     },
@@ -385,6 +425,7 @@ export const products: Product[] = [
         title: 'Halo 3 (Xbox 360)',
         price: 10,
         images: ['https://placehold.co/300x400/png?text=Halo+3'],
+        stock: 10,
         category: 'Xbox 360',
         type: 'game'
     },
@@ -394,6 +435,7 @@ export const products: Product[] = [
         title: 'Xbox 360 Wireless Controller',
         price: 20,
         images: ['https://placehold.co/300x400/png?text=360+Controller'],
+        stock: 10,
         category: 'Xbox 360',
         type: 'accessory'
     },
@@ -404,6 +446,7 @@ export const products: Product[] = [
         title: 'Xbox One S 1TB',
         price: 140,
         images: ['https://placehold.co/300x400/png?text=Xbox+One+S'],
+        stock: 10,
         category: 'Xbox One',
         type: 'console'
     },
@@ -413,6 +456,7 @@ export const products: Product[] = [
         title: 'Forza Horizon 4 (Xbox One)',
         price: 25,
         images: ['https://placehold.co/300x400/png?text=Forza+4'],
+        stock: 10,
         category: 'Xbox One',
         type: 'game'
     },
@@ -422,6 +466,7 @@ export const products: Product[] = [
         title: 'Xbox One Controller',
         price: 35,
         images: ['https://placehold.co/300x400/png?text=One+Controller'],
+        stock: 10,
         category: 'Xbox One',
         type: 'accessory'
     },
@@ -432,6 +477,7 @@ export const products: Product[] = [
         title: 'Xbox Series S 512GB',
         price: 220,
         images: ['https://placehold.co/300x400/png?text=Series+S'],
+        stock: 10,
         category: 'Xbox Series',
         type: 'console'
     },
@@ -441,6 +487,7 @@ export const products: Product[] = [
         title: 'Starfield (Xbox Series)',
         price: 45,
         images: ['https://placehold.co/300x400/png?text=Starfield'],
+        stock: 10,
         category: 'Xbox Series',
         type: 'game'
     },
@@ -450,6 +497,7 @@ export const products: Product[] = [
         title: 'Xbox Wireless Headset',
         price: 80,
         images: ['https://placehold.co/300x400/png?text=Xbox+Headset'],
+        stock: 10,
         category: 'Xbox Series',
         type: 'accessory'
     },
@@ -460,6 +508,7 @@ export const products: Product[] = [
         title: 'Gaming PC RTX 3060',
         price: 800,
         images: ['https://placehold.co/300x400/png?text=Gaming+PC'],
+        stock: 10,
         category: 'PC Juegos',
         type: 'console' // Treating PC as console for structure
     },
@@ -469,6 +518,7 @@ export const products: Product[] = [
         title: 'Cyberpunk 2077 (PC)',
         price: 30,
         images: ['https://placehold.co/300x400/png?text=Cyberpunk'],
+        stock: 10,
         category: 'PC Juegos',
         type: 'accessory'
     },
