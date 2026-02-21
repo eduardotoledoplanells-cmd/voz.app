@@ -36,7 +36,7 @@ if (fs.existsSync(dbPath)) {
             videos: []
         };
         // Force write to fix corrupted file
-        fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2));
+        try { fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2)); } catch (e) { }
     }
 } else {
     // If DB doesn't exist, create it with initial data
@@ -50,12 +50,16 @@ if (fs.existsSync(dbPath)) {
         transactions: [],
         videos: []
     };
-    fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2));
+    try { fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2)); } catch (e) { }
 }
 
 export function getProducts(): Product[] {
-    const data = fs.readFileSync(dbPath, 'utf-8');
-    return JSON.parse(data).products;
+    try {
+        const data = fs.readFileSync(dbPath, 'utf-8');
+        return JSON.parse(data).products;
+    } catch (e) {
+        return dbData.products || [];
+    }
 }
 
 export function getProductById(id: string): Product | undefined {
@@ -77,7 +81,7 @@ export function updateProduct(id: string, updates: Partial<Product>): Product | 
     if (index === -1) return null;
 
     data.products[index] = { ...data.products[index], ...updates };
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    saveDB(data);
     return data.products[index];
 }
 
@@ -88,7 +92,7 @@ export function deleteProduct(id: string): boolean {
 
     if (data.products.length === initialLength) return false;
 
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    saveDB(data);
     return true;
 }
 
@@ -99,7 +103,7 @@ export function deleteProducts(ids: string[]): boolean {
 
     if (data.products.length === initialLength) return false;
 
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    saveDB(data);
     return true;
 }
 
@@ -193,12 +197,20 @@ export interface VideoPost {
 
 // Helper to get DB data cleanly
 export function getDB() {
-    return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+    try {
+        return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+    } catch (e) {
+        return dbData || {};
+    }
 }
 
 // Helper to save DB data
 export function saveDB(data: any) {
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    try {
+        fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Warning: Unabled to write to db.json (Read-Only file system in Vercel)', error);
+    }
 }
 
 export function getAppUsers(): AppUser[] {
