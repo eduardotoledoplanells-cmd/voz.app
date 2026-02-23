@@ -19,6 +19,10 @@ export interface AppUser {
     reputation: number;
     walletBalance?: number;
     joinedAt: string;
+    name?: string;
+    bio?: string;
+    profileImage?: string;
+    isCreator?: boolean;
 }
 
 export async function getAppUsers(): Promise<AppUser[]> {
@@ -39,7 +43,11 @@ export async function getAppUsers(): Promise<AppUser[]> {
         status: u.status,
         reputation: u.reputation,
         walletBalance: parseFloat(u.wallet_balance),
-        joinedAt: u.joined_at
+        joinedAt: u.joined_at,
+        name: u.name,
+        bio: u.bio,
+        profileImage: u.profile_image,
+        isCreator: u.is_creator
     }));
 }
 
@@ -79,6 +87,14 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.joinedAt !== undefined) {
         dbUpdates.joined_at = updates.joinedAt;
         delete dbUpdates.joinedAt;
+    }
+    if (updates.profileImage !== undefined) {
+        dbUpdates.profile_image = updates.profileImage;
+        delete dbUpdates.profileImage;
+    }
+    if (updates.isCreator !== undefined) {
+        dbUpdates.is_creator = updates.isCreator;
+        delete dbUpdates.isCreator;
     }
 
     const { data, error } = await supabase

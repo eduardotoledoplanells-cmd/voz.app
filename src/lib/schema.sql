@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS app_users (
     status TEXT DEFAULT 'active',
     reputation INTEGER DEFAULT 10,
     wallet_balance DECIMAL DEFAULT 0,
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    name TEXT,
+    bio TEXT,
+    profile_image TEXT,
+    is_creator BOOLEAN DEFAULT FALSE
 );
 
 -- 2. Vídeos
