@@ -10,13 +10,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing creatorId or type' }, { status: 400 });
         }
 
-        const updatedCreator = addCreatorCoinInteraction(creatorId, type, employeeName);
+        const updatedCreator = await addCreatorCoinInteraction(creatorId, type, employeeName);
         if (!updatedCreator) {
             return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
         }
 
         return NextResponse.json({ success: true, creator: updatedCreator });
     } catch (error) {
+        console.error('Error in creators/interact:', error);
         return NextResponse.json({ error: 'Failed to process interaction' }, { status: 500 });
     }
 }

@@ -3,7 +3,7 @@ import { getTransactions } from '@/lib/db';
 
 export async function GET() {
     try {
-        const transactions = getTransactions();
+        const transactions = await getTransactions();
 
         const totalTips = transactions
             .filter(t => t.type === 'gift')

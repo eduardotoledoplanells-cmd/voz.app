@@ -7,12 +7,12 @@ export async function GET(request: Request) {
         const employeeName = searchParams.get('employeeName');
 
         if (employeeName) {
-            const history = getModerationHistoryByEmployee(employeeName);
+            const history = await getModerationHistoryByEmployee(employeeName);
             return NextResponse.json(history);
         }
 
         // Si no hay nombre, devolver estadísticas generales de moderadores
-        const allItems = getModerationQueue();
+        const allItems = await getModerationQueue();
         const statsMap: Record<string, { employeeName: string, total: number }> = {};
 
         allItems.forEach((item: ModerationItem) => {
@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json(Object.values(statsMap));
     } catch (error) {
+        console.error('Error fetching moderation stats:', error);
         return NextResponse.json({ error: 'Failed to fetch moderation stats' }, { status: 500 });
     }
 }

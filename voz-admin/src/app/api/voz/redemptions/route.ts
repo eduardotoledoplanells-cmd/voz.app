@@ -23,7 +23,7 @@ function corsHeaders(response: NextResponse) {
 
 export async function GET() {
     try {
-        const requests = getRedemptionRequests();
+        const requests = await getRedemptionRequests();
         return corsHeaders(NextResponse.json(requests));
     } catch (error) {
         return corsHeaders(NextResponse.json({ error: 'Failed to fetch redemptions' }, { status: 500 }));
@@ -43,22 +43,23 @@ export async function POST(request: Request) {
             return corsHeaders(NextResponse.json({ error: 'Minimum redemption amount is 50 coins' }, { status: 400 }));
         }
 
-        const creators = getCreators();
-        const creator = creators.find(c => c.id === creatorId);
+        const creators = await getCreators();
+        const creator = creators.find(c => c.id === creatorId || c.handle === creatorId);
 
         if (!creator) {
             return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));
         }
 
-        if (creator.withdrawableCoins < amountCoins) {
+        // Using walletBalance as coins
+        const coins = creator.walletBalance || 0;
+        if (coins < amountCoins) {
             return corsHeaders(NextResponse.json({ error: 'Insufficient funds' }, { status: 400 }));
         }
 
-        const newRequest = addRedemptionRequest({
-            id: `red-${Date.now()}`,
-            creatorId,
+        const newRequest = await addRedemptionRequest({
+            creatorId: creator.handle,
             amountCoins,
-            amountEuro: amountCoins * 1, // 1 Coin = 1 Euro (Simplified)
+            amountEuro: amountCoins * 0.05, // Updated to match actual conversion logic
             status: 'pending',
             requestedAt: new Date().toISOString()
         });
@@ -78,7 +79,7 @@ export async function PATCH(request: Request) {
             return corsHeaders(NextResponse.json({ error: 'Missing id or status' }, { status: 400 }));
         }
 
-        const updated = updateRedemptionStatus(id, status, employeeName);
+        const updated = await updateRedemptionStatus(id, status, employeeName);
         if (!updated) {
             return corsHeaders(NextResponse.json({ error: 'Redemption request not found' }, { status: 404 }));
         }

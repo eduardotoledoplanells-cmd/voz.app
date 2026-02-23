@@ -4,9 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
     try {
-        const data = getCompanies();
+        const data = await getCompanies();
         return NextResponse.json(data);
     } catch (error) {
+        console.error('Error fetching companies:', error);
         return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
     }
 }
@@ -15,7 +16,6 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { employeeName = 'Admin', ...companyData } = body;
-        // Basic validation could go here
 
         const newCompany: Company = {
             id: uuidv4(),
@@ -32,31 +32,23 @@ export async function POST(request: Request) {
             joinedAt: new Date().toISOString()
         };
 
-        const result = addCompany(newCompany, employeeName);
+        const result = await addCompany(newCompany, employeeName);
 
         // --- SYNC WITH APP PROFILE (CREATOR) ---
-        // Create a corresponding profile for the company
         const handle = `@${companyData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-        const newCreator: Creator = {
+        const newCreator: any = {
             id: `cr-${newCompany.id}`,
-            userHandle: handle,
-            realName: newCompany.name,
-            totalCoins: 0,
-            withdrawableCoins: 0,
-            earnedEuro: 0,
-            stats: {
-                totalGifts: 0,
-                totalPMs: 0,
-                earnedFromGifts: 0,
-                earnedFromPMs: 0
-            },
+            handle: handle,
             status: 'active',
+            reputation: 10,
+            walletBalance: 0,
             joinedAt: newCompany.joinedAt
         };
-        addCreator(newCreator, employeeName);
+        await addCreator(newCreator, employeeName);
 
         return NextResponse.json(result);
     } catch (error) {
+        console.error('Error creating company:', error);
         return NextResponse.json({ error: 'Failed to create company' }, { status: 500 });
     }
 }
@@ -69,11 +61,12 @@ export async function DELETE(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-        const success = deleteCompany(id, employeeName);
+        const success = await deleteCompany(id, employeeName);
         if (!success) return NextResponse.json({ error: 'Company not found' }, { status: 404 });
 
         return NextResponse.json({ success: true });
     } catch (error) {
+        console.error('Error deleting company:', error);
         return NextResponse.json({ error: 'Failed to delete company' }, { status: 500 });
     }
 }

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
     try {
-        const videos = getVideos();
+        const videos = await getVideos();
         return NextResponse.json(videos);
     } catch (error) {
         console.error("Error fetching videos:", error);
@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
             videoUrl,
             user,
             description: description || "",
-            transcription: transcription || [],
-            language: "es",
+            // transcription: transcription || [], // Note: schema.sql doesn't have transcription yet, ignoring for now or adding as json
             likes: 0,
             shares: 0,
             commentsCount: 0,
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date().toISOString()
         };
 
-        const savedVideo = addVideo(newVideo);
+        const savedVideo = await addVideo(newVideo);
 
         return NextResponse.json({
             success: true,

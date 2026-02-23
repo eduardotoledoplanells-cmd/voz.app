@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
     try {
-        const campaigns = getCampaigns();
-        const companies = getCompanies();
+        const [campaigns, companies] = await Promise.all([
+            getCampaigns(),
+            getCompanies()
+        ]);
 
         // Join campaigns with company info (name and derived handle)
         const enrichedCampaigns = campaigns.map(camp => {
@@ -19,6 +21,7 @@ export async function GET() {
 
         return NextResponse.json(enrichedCampaigns);
     } catch (error) {
+        console.error('Error fetching enriched campaigns:', error);
         return NextResponse.json({ error: 'Failed to fetch enriched campaigns' }, { status: 500 });
     }
 }
@@ -41,13 +44,13 @@ export async function POST(request: Request) {
             forceView: campaignData.forceView || false,
             target: campaignData.target || 'all',
             impressions: 0,
-            investment: Number(campaignData.investment) || 0,
             createdAt: new Date().toISOString()
         };
 
-        const result = addCampaign(newCampaign, employeeName);
+        const result = await addCampaign(newCampaign, employeeName);
         return NextResponse.json(result);
     } catch (error) {
+        console.error('Error creating campaign:', error);
         return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
     }
 }
@@ -59,13 +62,14 @@ export async function PATCH(request: Request) {
         const action = searchParams.get('action');
 
         if (id && action === 'impression') {
-            const success = incrementCampaignImpressions(id);
+            const success = await incrementCampaignImpressions(id);
             if (!success) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
             return NextResponse.json({ success: true });
         }
 
         return NextResponse.json({ error: 'Invalid action or missing ID' }, { status: 400 });
     } catch (error) {
+        console.error('Error updating campaign:', error);
         return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 });
     }
 }
@@ -78,11 +82,12 @@ export async function DELETE(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-        const success = deleteCampaign(id, employeeName);
+        const success = await deleteCampaign(id, employeeName);
         if (!success) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
         return NextResponse.json({ success: true });
     } catch (error) {
+        console.error('Error deleting campaign:', error);
         return NextResponse.json({ error: 'Failed to delete campaign' }, { status: 500 });
     }
 }

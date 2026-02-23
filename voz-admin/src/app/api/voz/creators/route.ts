@@ -23,7 +23,7 @@ function corsHeaders(response: NextResponse) {
 
 export async function GET() {
     try {
-        const creators = getCreators();
+        const creators = await getCreators();
         return corsHeaders(NextResponse.json(creators));
     } catch (error) {
         return corsHeaders(NextResponse.json({ error: 'Failed to fetch creators' }, { status: 500 }));
@@ -42,14 +42,14 @@ export async function PATCH(request: Request) {
         }
 
         if (updates.status === 'deleted') {
-            const deleted = deleteCreatorCompletely(id, employeeName);
+            const deleted = await deleteCreatorCompletely(id, employeeName);
             if (!deleted) {
                 return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));
             }
             return corsHeaders(NextResponse.json({ status: 'deleted', id }));
         }
 
-        const updated = updateCreator(id, updates, employeeName);
+        const updated = await updateCreator(id, updates, employeeName);
         if (!updated) {
             console.error("PATCH /api/voz/creators - Creator not found with ID:", id);
             return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
         console.log("POST /api/voz/creators - Creating Creator:", body.userHandle);
 
-        const created = addCreator(body, "App User (Self-Activation)");
+        const created = await addCreator(body, "App User (Self-Activation)");
         return corsHeaders(NextResponse.json(created));
     } catch (error) {
         console.error("POST /api/voz/creators - ERROR:", error);

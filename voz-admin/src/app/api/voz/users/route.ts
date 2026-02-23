@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, addAppUser, updateAppUser, deleteAppUser, addCreator } from '@/lib/db';
+import { getAppUsers, addAppUser, updateAppUser, deleteAppUser, getVideosByUser } from '@/lib/db';
 
 export async function GET(request: Request) {
     try {
@@ -7,11 +7,11 @@ export async function GET(request: Request) {
         const handle = searchParams.get('handle');
 
         if (handle) {
-            const { getVideosByUser } = require('@/lib/db');
-            return NextResponse.json(getVideosByUser(handle));
+            const videos = await getVideosByUser(handle);
+            return NextResponse.json(videos);
         }
 
-        const users = getAppUsers();
+        const users = await getAppUsers();
         return NextResponse.json(users);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
         const body = await request.json();
 
         // Check for duplicates
-        const existingUsers = getAppUsers();
+        const existingUsers = await getAppUsers();
         if (existingUsers.some(u => u.handle === body.handle)) {
             return NextResponse.json({ error: 'El nombre de usuario ya está en uso' }, { status: 400 });
         }
@@ -31,14 +31,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El email ya está registrado' }, { status: 400 });
         }
 
-        const newUser = addAppUser({
+        const newUser = await addAppUser({
             ...body,
             id: Date.now().toString(),
             joinedAt: new Date().toISOString()
         });
-
-        // REMOVED: Automatic creation of Creator profile. 
-        // Now handled by 'Activate Monetization' in App.js via POST /api/voz/creators
 
         return NextResponse.json(newUser);
     } catch (error) {
@@ -56,7 +53,7 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
-        const updated = updateAppUser(id, updates, employeeName);
+        const updated = await updateAppUser(id, updates);
         if (!updated) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
@@ -71,11 +68,10 @@ export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
-        const employeeName = searchParams.get('employeeName') || 'Admin';
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-        const success = deleteAppUser(id, employeeName);
+        const success = await deleteAppUser(id);
         if (!success) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
         return NextResponse.json({ success: true });

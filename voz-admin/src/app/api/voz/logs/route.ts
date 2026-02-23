@@ -4,12 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
     try {
-        const logs = getLogs();
-        // Return logs sorted by timestamp descending
-        const sortedLogs = [...logs].sort((a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-        return NextResponse.json(sortedLogs);
+        const logs = await getLogs();
+        // Logs are already ordered by timestamp descending in getLogs()
+        return NextResponse.json(logs);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
     }
@@ -24,7 +21,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing employeeName or action' }, { status: 400 });
         }
 
-        const newLog = addLog({
+        const newLog = await addLog({
             id: uuidv4(),
             employeeName,
             action,

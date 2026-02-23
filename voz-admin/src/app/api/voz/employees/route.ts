@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDB, saveDB, Employee, addLog } from '@/lib/db';
+import { getEmployees, addEmployee, updateEmployee, addLog, Employee } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-
-// Helper to get employees
-function getEmployees() {
-    const db = getDB();
-    return db.employees || [];
-}
 
 export async function GET() {
     try {
-        return NextResponse.json(getEmployees());
+        const employees = await getEmployees();
+        return NextResponse.json(employees);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
     }
@@ -25,12 +20,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing username or role' }, { status: 400 });
         }
 
-        const data = getDB();
-        if (!data.employees) data.employees = [];
+        const employees = await getEmployees();
 
         // AUTO-GENERATE workerNumber with Gap Filling
         let nextNum = 1;
-        const sortedNums = data.employees
+        const sortedNums = employees
             .map((e: any) => parseInt(e.workerNumber))
             .filter((n: any) => !isNaN(n))
             .sort((a: number, b: number) => a - b);
@@ -44,7 +38,7 @@ export async function POST(request: Request) {
         }
         const nextNumber = nextNum.toString().padStart(3, '0');
 
-        const newEmployee: Employee = {
+        const newEmployee: any = {
             id: uuidv4(),
             username,
             workerNumber: nextNumber,
@@ -54,11 +48,13 @@ export async function POST(request: Request) {
             active: true
         };
 
-        data.employees.push(newEmployee);
-        saveDB(data);
+        const created = await addEmployee(newEmployee);
+        if (!created) {
+            return NextResponse.json({ error: 'Failed to create employee' }, { status: 500 });
+        }
 
         // Register Log
-        addLog({
+        await addLog({
             id: 'log-' + Date.now(),
             employeeName: 'Sistema HR',
             action: `Nuevo Empleado: ${username}`,
@@ -66,40 +62,9 @@ export async function POST(request: Request) {
             details: `Asignado número: ${nextNumber}, Rol: ${role}`
         });
 
-        return NextResponse.json(newEmployee);
+        return NextResponse.json(created);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to create employee' }, { status: 500 });
-    }
-}
-
-export async function DELETE(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const id = searchParams.get('id');
-
-        if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
-
-        const data = getDB();
-        const employee = (data.employees || []).find((e: any) => e.id === id);
-
-        if (employee) {
-            // Register Log BEFORE deleting
-            addLog({
-                id: 'log-' + Date.now(),
-                employeeName: 'Sistema HR',
-                action: `Eliminación de Empleado: ${employee.username}`,
-                timestamp: new Date().toISOString(),
-                details: `Número de empleado liberado: ${employee.workerNumber}. Motivo: Baja del sistema.`
-            });
-
-            data.employees = data.employees.filter((e: any) => e.id !== id);
-            saveDB(data);
-            return NextResponse.json({ success: true });
-        }
-
-        return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
     }
 }
 
@@ -110,26 +75,21 @@ export async function PATCH(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
-        const data = getDB();
-        const index = (data.employees || []).findIndex((e: any) => e.id === id);
-        if (index === -1) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-
-        data.employees[index] = { ...data.employees[index], ...updates };
+        const updated = await updateEmployee(id, updates);
+        if (!updated) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
         // Log Logout
         if (updates.lastLogout) {
-            addLog({
+            await addLog({
                 id: 'log-' + Date.now(),
-                employeeName: data.employees[index].username,
+                employeeName: updated.username,
                 action: 'Cierre de Sesión',
                 timestamp: new Date().toISOString(),
                 details: `Fin de jornada laboral. Hora: ${new Date().toLocaleTimeString()}`
             });
         }
 
-        saveDB(data);
-
-        return NextResponse.json(data.employees[index]);
+        return NextResponse.json(updated);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
     }

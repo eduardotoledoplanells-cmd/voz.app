@@ -21,7 +21,7 @@ function corsHeaders(response: NextResponse) {
 }
 
 export async function GET() {
-    const queue = getModerationQueue().filter(item => item.status === 'pending');
+    const queue = (await getModerationQueue()).filter(item => item.status === 'pending');
     return corsHeaders(NextResponse.json(queue));
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
             status: 'pending'
         };
 
-        const result = addModerationItem(newItem);
+        const result = await addModerationItem(newItem);
         return corsHeaders(NextResponse.json(result));
     } catch (error) {
         return corsHeaders(NextResponse.json({ error: 'Failed to create moderation item' }, { status: 500 }));
@@ -56,7 +56,7 @@ export async function PATCH(request: Request) {
         const { id, status, employeeName, cycleVideos, totalVideos, inactivityAlert, skipPenalty } = body;
 
         if (inactivityAlert && employeeName) {
-            addInactivityLog(employeeName);
+            await addInactivityLog(employeeName);
             return corsHeaders(NextResponse.json({ success: true, message: 'Inactivity logged' }));
         }
 
@@ -64,7 +64,7 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Missing ID or status' }, { status: 400 });
         }
 
-        const updated = updateModerationItem(id, {
+        const updated = await updateModerationItem(id, {
             status,
             moderatedBy: employeeName || 'Moderador'
         });
@@ -72,14 +72,14 @@ export async function PATCH(request: Request) {
         if (updated) {
             // Si el status es 'rejected' y no se pide omitir la penalización
             if (status === 'rejected' && !skipPenalty) {
-                addPenaltyToUser(updated.userHandle, {
+                await addPenaltyToUser(updated.userHandle, {
                     url: updated.url,
                     reason: updated.reportReason || 'Contenido inapropiado'
                 });
             }
 
             // Log the action
-            addLog({
+            await addLog({
                 id: Date.now().toString(),
                 employeeName: employeeName || 'Moderador',
                 action: `${status.toUpperCase()} MODERACIÓN`,
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
 
             // Log productivity
             if (employeeName && cycleVideos !== undefined && totalVideos !== undefined) {
-                addProductivityLog(employeeName, cycleVideos, totalVideos);
+                await addProductivityLog(employeeName, cycleVideos, totalVideos);
             }
 
             return corsHeaders(NextResponse.json(updated));

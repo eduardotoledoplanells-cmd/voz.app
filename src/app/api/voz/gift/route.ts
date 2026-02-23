@@ -9,35 +9,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. (Optional) Verify sender balance on server if possible
-        // For now, we trust the optimistic update from App.js but record it accurately.
-
-        // 2. Add Transaction to Global Log
-        const transaction = {
-            id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            senderId: senderHandle,
-            receiverId: receiverHandle,
+        // 1. Add Transaction to Supabase
+        await addTransaction({
+            senderHandle,
+            receiverHandle,
             amount: Number(amount),
-            type: 'gift' as const,
-            timestamp: new Date().toISOString(),
+            type: 'gift',
             videoId
-        };
+        });
 
-        addTransaction(transaction);
-
-        // 3. Update Receiver Balance (if they are a creator in our DB)
-        // Find receiver user by handle
-        const users = getAppUsers();
+        // 2. Update Receiver Balance
+        const users = await getAppUsers();
         const receiver = users.find(u => u.handle === receiverHandle);
 
         if (receiver) {
-            updateAppUser(receiver.id, {
+            await updateAppUser(receiver.id, {
                 walletBalance: (receiver.walletBalance || 0) + Number(amount)
             });
         } else {
-            // Auto-create user if it doesn't exist (e.g. Alex_Voz) so coins go somewhere
-            addAppUser({
-                id: `u_${Date.now()}`,
+            // Auto-create user if it doesn't exist
+            await addAppUser({
+                id: crypto.randomUUID(),
                 handle: receiverHandle,
                 email: 'temp@voz.app',
                 status: 'active',
@@ -47,7 +39,7 @@ export async function POST(request: Request) {
             });
         }
 
-        return NextResponse.json({ success: true, transaction });
+        return NextResponse.json({ success: true });
 
     } catch (error) {
         console.error('Error processing gift:', error);

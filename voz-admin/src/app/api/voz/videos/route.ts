@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
     try {
-        const videos = getVideos();
+        const videos = await getVideos();
         return NextResponse.json(videos);
     } catch (error) {
         console.error("Error fetching videos:", error);
@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
             videoUrl,
             user,
             description: description || "",
-            transcription: transcription || [],
             likes: 0,
             shares: 0,
             commentsCount: 0,
@@ -35,9 +34,9 @@ export async function POST(request: NextRequest) {
             music: music || ""
         };
 
-        addVideo(newVideo);
+        const result = await addVideo(newVideo);
 
-        return NextResponse.json({ success: true, video: newVideo });
+        return NextResponse.json({ success: true, video: result || newVideo });
 
     } catch (error) {
         console.error("Error creating video post:", error);

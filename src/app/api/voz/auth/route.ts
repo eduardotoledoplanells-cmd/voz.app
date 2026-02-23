@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, addAppUser, AppUser } from "@/lib/db";
+import { getAppUsers, addAppUser, updateAppUser, AppUser } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { action, email, password, username } = body;
 
-        const users = getAppUsers();
+        const users = await getAppUsers();
 
         if (action === 'register') {
             if (!email || !password || !username) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
                 joinedAt: new Date().toISOString()
             };
 
-            addAppUser(newUser);
+            await addAppUser(newUser);
 
             const { password: _, ...userWithoutPassword } = newUser;
             return NextResponse.json({ success: true, user: userWithoutPassword });
@@ -46,38 +46,25 @@ export async function POST(request: NextRequest) {
         } else if (action === 'forgot_password') {
             const user = users.find(u => u.email === email);
             if (!user) {
-                // Por seguridad no se debe revelar que no existe, pero para debug lo mandamos
                 return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
             }
 
-            // Simulación de envío de correo/token. Como pediste hacerlo funcional: 
-            // generamos un PIN aleatorio
+            // Simulación de envío de correo/token
             const resetPin = Math.floor(1000 + Math.random() * 9000).toString();
-
-            // En un sistema real lo guardamos temporalmente en la DB. Aquí lo añadimos simulado en el objeto user temporal o forzamos un log.
-            // Mandaremos el PIN en la respuesta para que la App pueda autovalidarlo y loguear el flujo
             console.log(`[PASSWORD RESET PIN] Sent to ${email}: ${resetPin}`);
 
             return NextResponse.json({ success: true, message: "Recuperación iniciada", simuladoToken: resetPin });
 
         } else if (action === 'reset_password') {
             const { newPassword } = body;
-            const userIndex = users.findIndex(u => u.email === email);
+            const user = users.find(u => u.email === email);
 
-            if (userIndex === -1) {
+            if (!user) {
                 return NextResponse.json({ error: "Invalid user" }, { status: 400 });
             }
 
-            // Actualizamos en memoria (y en el archivo JSON mediante lib/db.ts)
-            const updatedUser = { ...users[userIndex], password: newPassword };
-            // asumiendo updateAppUser existiera. Lo actualizamos así:
-            users[userIndex] = updatedUser;
-
-            // Llamada al método exportado para guardar BD:
-            const { saveDB, getDB } = require('@/lib/db');
-            const data = getDB();
-            data.app_users = users;
-            saveDB(data);
+            // Actualizamos en Supabase
+            await updateAppUser(user.id, { password: newPassword });
 
             return NextResponse.json({ success: true, message: "Contraseña actualizada con éxito" });
         }

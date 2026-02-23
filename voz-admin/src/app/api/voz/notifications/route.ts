@@ -6,9 +6,10 @@ export async function GET(request: Request) {
     const recipientId = searchParams.get('recipientId');
 
     try {
-        const notifications = getNotifications(recipientId || undefined);
+        const notifications = await getNotifications(recipientId || undefined);
         return NextResponse.json(notifications);
     } catch (error) {
+        console.error('Error fetching notifications:', error);
         return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 }
@@ -32,9 +33,10 @@ export async function POST(request: Request) {
             readStatus: false
         };
 
-        const savedNotification = addNotification(newNotification);
+        const savedNotification = await addNotification(newNotification);
         return NextResponse.json(savedNotification);
     } catch (error) {
+        console.error('Error creating notification:', error);
         return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
     }
 }

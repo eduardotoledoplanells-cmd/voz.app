@@ -1,191 +1,115 @@
-import fs from 'fs';
-import path from 'path';
-import { Product } from '@/types';
-import { products as initialProducts } from './data';
+import { createClient } from '@supabase/supabase-js';
 
-const dbPath = path.join(process.cwd(), 'src', 'lib', 'db.json');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Initialize DB if it doesn't exist
-let dbData = {
-    products: [] as Product[],
-    app_users: [] as any[],
-    companies: [] as any[],
-    campaigns: [] as any[],
-    employees: [
-        { id: '1', username: 'admin', password: '123', role: 1, lastLogin: 'Nunca', active: true }
-    ] as any[],
-    logs: [] as any[],
-    transactions: [] as any[], // Nueva tabla para transacciones
-    videos: [] as any[] // Nueva tabla para vídeos sociales
-};
-
-if (fs.existsSync(dbPath)) {
-    try {
-        dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    } catch (error) {
-        console.error('Error reading db.json:', error);
-        // If error, fallback to initial products
-        dbData = {
-            products: [...initialProducts],
-            app_users: [],
-            companies: [],
-            campaigns: [],
-            employees: [],
-            logs: [],
-            transactions: [],
-            videos: []
-        };
-        // Force write to fix corrupted file
-        try { fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2)); } catch (e) { }
-    }
-} else {
-    // If DB doesn't exist, create it with initial data
-    dbData = {
-        products: [...initialProducts],
-        app_users: [],
-        companies: [],
-        campaigns: [],
-        employees: [],
-        logs: [],
-        transactions: [],
-        videos: []
-    };
-    try { fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2)); } catch (e) { }
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase credentials missing in environment variables');
 }
 
-export function getProducts(): Product[] {
-    try {
-        const data = fs.readFileSync(dbPath, 'utf-8');
-        return JSON.parse(data).products;
-    } catch (e) {
-        return dbData.products || [];
-    }
-}
-
-export function getProductById(id: string): Product | undefined {
-    const products = getProducts();
-    return products.find(p => p.id === id);
-}
-
-export function addProduct(product: Product): Product {
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    data.products.push(product);
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-    return product;
-}
-
-export function updateProduct(id: string, updates: Partial<Product>): Product | null {
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    const index = data.products.findIndex((p: Product) => p.id === id);
-
-    if (index === -1) return null;
-
-    data.products[index] = { ...data.products[index], ...updates };
-    saveDB(data);
-    return data.products[index];
-}
-
-export function deleteProduct(id: string): boolean {
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    const initialLength = data.products.length;
-    data.products = data.products.filter((p: Product) => p.id !== id);
-
-    if (data.products.length === initialLength) return false;
-
-    saveDB(data);
-    return true;
-}
-
-export function deleteProducts(ids: string[]): boolean {
-    const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    const initialLength = data.products.length;
-    data.products = data.products.filter((p: Product) => !ids.includes(p.id));
-
-    if (data.products.length === initialLength) return false;
-
-    saveDB(data);
-    return true;
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // --- App Users Logic (VOZ) ---
 export interface AppUser {
     id: string;
     handle: string;
-    email: string; // Internal use
-    password?: string; // Salteado/Hashed
+    email: string;
+    password?: string;
     status: 'active' | 'banned' | 'verified';
     reputation: number;
-    walletBalance?: number; // Added for monetization
+    walletBalance?: number;
     joinedAt: string;
 }
 
-// --- Enterprise Logic (VOZ Admin) ---
-export interface Company {
-    id: string;
-    name: string;
-    legalName: string;
-    taxId: string;
-    address: string;
-    city: string;
-    zip: string;
-    country: string;
-    phone: string;
-    contactEmail: string;
-    balance: number;
-    joinedAt: string;
+export async function getAppUsers(): Promise<AppUser[]> {
+    const { data, error } = await supabase
+        .from('app_users')
+        .select('*');
+
+    if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+    }
+
+    return data.map(u => ({
+        id: u.id,
+        handle: u.handle,
+        email: u.email,
+        password: u.password,
+        status: u.status,
+        reputation: u.reputation,
+        walletBalance: parseFloat(u.wallet_balance),
+        joinedAt: u.joined_at
+    }));
 }
 
-export interface Campaign {
-    id: string;
-    companyId: string;
-    name: string;
-    budget: number;
-    status: 'draft' | 'active' | 'paused' | 'completed';
-    type: 'video' | 'banner';
-    videoUrl?: string; // URL for the campaign video
-    startDate?: string; // ISO date
-    endDate?: string; // ISO date
-    forceView: boolean; // Cannot be paused or skipped
-    target: string;
-    impressions: number; // Tracker for how many times the ad was shown
-    createdAt: string;
+export async function addAppUser(user: AppUser): Promise<AppUser | null> {
+    const { data, error } = await supabase
+        .from('app_users')
+        .insert([{
+            id: user.id,
+            handle: user.handle,
+            email: user.email,
+            password: user.password,
+            status: user.status,
+            reputation: user.reputation,
+            wallet_balance: user.walletBalance || 0,
+            joined_at: user.joinedAt
+        }])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding user:', error);
+        return null;
+    }
+
+    return {
+        ...user,
+        walletBalance: parseFloat(data.wallet_balance)
+    };
 }
 
-export interface Employee {
-    id: string;
-    username: string;
-    password?: string;
-    role: 1 | 2 | 3 | 4 | 5 | 6; // 1: Director, 2: Admin...
-    lastLogin: string;
-    active: boolean;
+export async function updateAppUser(id: string, updates: Partial<AppUser>): Promise<AppUser | null> {
+    const dbUpdates: any = { ...updates };
+    if (updates.walletBalance !== undefined) {
+        dbUpdates.wallet_balance = updates.walletBalance;
+        delete dbUpdates.walletBalance;
+    }
+    if (updates.joinedAt !== undefined) {
+        dbUpdates.joined_at = updates.joinedAt;
+        delete dbUpdates.joinedAt;
+    }
+
+    const { data, error } = await supabase
+        .from('app_users')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating user:', error);
+        return null;
+    }
+
+    return {
+        id: data.id,
+        handle: data.handle,
+        email: data.email,
+        status: data.status,
+        reputation: data.reputation,
+        walletBalance: parseFloat(data.wallet_balance),
+        joinedAt: data.joined_at
+    };
 }
 
-export interface AppLog {
-    id: string;
-    employeeName: string;
-    action: string;
-    timestamp: string;
-    details?: string;
-}
-
-export interface ModerationItem {
-    id: string;
-    type: 'video' | 'audio' | 'text' | 'image';
-    url: string;
-    userHandle: string;
-    content?: string;
-    reportReason?: string;
-    timestamp: string;
-    status: 'pending' | 'approved' | 'rejected';
-}
-
+// --- Videos Logic ---
 export interface VideoPost {
     id: string;
     videoUrl: string;
     user: string;
     description: string;
-    transcription?: any[];
-    language?: string;
     likes: number;
     shares: number;
     commentsCount: number;
@@ -195,216 +119,181 @@ export interface VideoPost {
     isAd?: boolean;
 }
 
-// Helper to get DB data cleanly
-export function getDB() {
-    try {
-        return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    } catch (e) {
-        return dbData || {};
+export async function getVideos(): Promise<VideoPost[]> {
+    const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching videos:', error);
+        return [];
     }
+
+    return data.map(v => ({
+        id: v.id,
+        videoUrl: v.video_url,
+        user: v.user_handle,
+        description: v.description,
+        likes: v.likes,
+        shares: v.shares,
+        commentsCount: v.comments_count,
+        views: v.views,
+        createdAt: v.created_at,
+        music: v.music,
+        isAd: v.is_ad
+    }));
 }
 
-// Helper to save DB data
-export function saveDB(data: any) {
-    try {
-        fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Warning: Unabled to write to db.json (Read-Only file system in Vercel)', error);
+export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
+    const { data, error } = await supabase
+        .from('videos')
+        .insert([{
+            video_url: video.videoUrl,
+            user_handle: video.user,
+            description: video.description,
+            music: video.music,
+            likes: video.likes,
+            shares: video.shares,
+            comments_count: video.commentsCount,
+            views: video.views,
+            is_ad: video.isAd || false
+        }])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding video:', error);
+        return null;
     }
+
+    return {
+        id: data.id,
+        videoUrl: data.video_url,
+        user: data.user_handle,
+        description: data.description,
+        likes: data.likes,
+        shares: data.shares,
+        commentsCount: data.comments_count,
+        views: data.views,
+        createdAt: data.created_at,
+        music: data.music,
+        isAd: data.is_ad
+    };
 }
 
-export function getAppUsers(): AppUser[] {
-    const data = getDB();
-    return data.app_users || [];
-}
-
-export function updateAppUser(id: string, updates: Partial<AppUser>): AppUser | null {
-    const data = getDB();
-    if (!data.app_users) data.app_users = [];
-
-    const index = data.app_users.findIndex((u: AppUser) => u.id === id);
-    if (index === -1) return null;
-
-    data.app_users[index] = { ...data.app_users[index], ...updates };
-    saveDB(data);
-    return data.app_users[index];
-}
-
-export function addAppUser(user: AppUser): AppUser {
-    const data = getDB();
-    if (!data.app_users) data.app_users = [];
-    data.app_users.push(user);
-    saveDB(data);
-    return user;
-}
-
-export function deleteAppUser(id: string): boolean {
-    const data = getDB();
-    const initialLength = (data.app_users || []).length;
-    data.app_users = (data.app_users || []).filter((u: any) => u.id !== id);
-    if (data.app_users.length === initialLength) return false;
-    saveDB(data);
-    return true;
-}
-
-// --- Companies ---
-export function getCompanies(): Company[] {
-    return getDB().companies || [];
-}
-export function addCompany(company: Company): Company {
-    const data = getDB();
-    if (!data.companies) data.companies = [];
-    data.companies.push(company);
-    saveDB(data);
-    return company;
-}
-
-export function deleteCompany(id: string): boolean {
-    const data = getDB();
-    const initialLength = (data.companies || []).length;
-    data.companies = (data.companies || []).filter((c: any) => c.id !== id);
-    if (data.companies.length === initialLength) return false;
-    saveDB(data);
-    return true;
-}
-
-// --- Campaigns ---
-export function getCampaigns(): Campaign[] {
-    return getDB().campaigns || [];
-}
-export function addCampaign(campaign: Campaign): Campaign {
-    const data = getDB();
-    if (!data.campaigns) data.campaigns = [];
-    data.campaigns.push(campaign);
-    saveDB(data);
-    return campaign;
-}
-
-export function deleteCampaign(id: string): boolean {
-    const data = getDB();
-    const initialLength = (data.campaigns || []).length;
-    data.campaigns = (data.campaigns || []).filter((c: any) => c.id !== id);
-    if (data.campaigns.length === initialLength) return false;
-    saveDB(data);
-    return true;
-}
-
-export function incrementCampaignImpressions(id: string): boolean {
-    const data = getDB();
-    if (!data.campaigns) data.campaigns = [];
-    const index = data.campaigns.findIndex((c: Campaign) => c.id === id);
-    if (index === -1) return false;
-
-    if (typeof data.campaigns[index].impressions !== 'number') {
-        data.campaigns[index].impressions = 0;
-    }
-    data.campaigns[index].impressions += 1;
-    saveDB(data);
-    return true;
-}
-
-// --- Employees ---
-export function getEmployees(): Employee[] {
-    return getDB().employees || [];
-}
-export function addEmployee(employee: Employee): Employee {
-    const data = getDB();
-    if (!data.employees) data.employees = [];
-    data.employees.push(employee);
-    saveDB(data);
-    return employee;
-}
-
-export function updateEmployee(id: string, updates: Partial<Employee>): Employee | null {
-    const data = getDB();
-    if (!data.employees) data.employees = [];
-    const index = data.employees.findIndex((e: Employee) => e.id === id);
-    if (index === -1) return null;
-    data.employees[index] = { ...data.employees[index], ...updates };
-    saveDB(data);
-    return data.employees[index];
-}
-
-export function deleteEmployee(id: string): boolean {
-    const data = getDB();
-    const initialLength = (data.employees || []).length;
-    data.employees = (data.employees || []).filter((e: any) => e.id !== id);
-    if (data.employees.length === initialLength) return false;
-    saveDB(data);
-    return true;
-}
-
-// --- Logs ---
-export function getLogs(): AppLog[] {
-    return getDB().logs || [];
-}
-
-export function addLog(log: AppLog): AppLog {
-    const data = getDB();
-    if (!data.logs) data.logs = [];
-    data.logs.push(log);
-    saveDB(data);
-    return log;
-}
-
-// --- Moderation ---
-export function getModerationQueue(): ModerationItem[] {
-    const data = getDB();
-    return data.moderation_queue || [];
-}
-
-export function updateModerationItem(id: string, updates: Partial<ModerationItem>): ModerationItem | null {
-    const data = getDB();
-    if (!data.moderation_queue) data.moderation_queue = [];
-    const index = data.moderation_queue.findIndex((m: ModerationItem) => m.id === id);
-    if (index === -1) return null;
-    data.moderation_queue[index] = { ...data.moderation_queue[index], ...updates };
-    saveDB(data);
-    return data.moderation_queue[index];
-}
-// --- Transactions / Income ---
-export interface Transaction {
+// --- Moderation Queue ---
+export interface ModerationItem {
     id: string;
-    senderId: string;
-    receiverId: string; // "platform" for coin purchases, or user handle for gifts
-    amount: number;
-    type: 'gift' | 'purchase' | 'fee';
+    type: string;
+    url: string;
+    userHandle: string;
+    content?: string;
+    reportReason?: string;
+    status: 'pending' | 'approved' | 'rejected';
     timestamp: string;
-    videoId?: string;
 }
 
-export function addTransaction(tx: Transaction): Transaction {
-    const data = getDB();
-    if (!data.transactions) data.transactions = [];
-    data.transactions.push(tx);
-    saveDB(data);
-    return tx;
+export async function getModerationQueue(): Promise<ModerationItem[]> {
+    const { data, error } = await supabase
+        .from('moderation_queue')
+        .select('*')
+        .eq('status', 'pending');
+
+    if (error) {
+        console.error('Error fetching moderation queue:', error);
+        return [];
+    }
+
+    return data.map(m => ({
+        id: m.id,
+        type: m.type,
+        url: m.url,
+        userHandle: m.user_handle,
+        content: m.content,
+        reportReason: m.report_reason,
+        status: m.status,
+        timestamp: m.timestamp
+    }));
 }
 
-export function getTransactions(): Transaction[] {
-    return getDB().transactions || [];
+export async function updateModerationItem(id: string, updates: Partial<ModerationItem>): Promise<ModerationItem | null> {
+    const { data, error } = await supabase
+        .from('moderation_queue')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating moderation item:', error);
+        return null;
+    }
+
+    return {
+        id: data.id,
+        type: data.type,
+        url: data.url,
+        userHandle: data.user_handle,
+        content: data.content,
+        reportReason: data.report_reason,
+        status: data.status,
+        timestamp: data.timestamp
+    };
 }
 
-// --- Videos ---
-export function getVideos(): VideoPost[] {
-    const data = getDB();
-    return data.videos || [];
+// --- Transactions ---
+export async function addTransaction(tx: any) {
+    const { error } = await supabase
+        .from('transactions')
+        .insert([{
+            sender_handle: tx.senderHandle || tx.senderId,
+            receiver_handle: tx.receiverHandle || tx.receiverId,
+            amount: tx.amount,
+            type: tx.type,
+            video_id: tx.videoId || null
+        }]);
+
+    if (error) {
+        console.error('Error adding transaction:', error);
+    }
 }
 
-export function addVideo(video: VideoPost): VideoPost {
-    const data = getDB();
-    if (!data.videos) data.videos = [];
-    data.videos.unshift(video); // Newest first
-    saveDB(data);
-    return video;
+export async function getTransactions(): Promise<any[]> {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching transactions:', error);
+        return [];
+    }
+
+    return data.map(t => ({
+        id: t.id,
+        senderId: t.sender_handle,
+        receiverId: t.receiver_handle,
+        amount: parseFloat(t.amount),
+        type: t.type,
+        timestamp: t.timestamp,
+        videoId: t.video_id
+    }));
 }
 
-export function updateVideo(id: string, updates: Partial<VideoPost>): VideoPost | null {
-    const data = getDB();
-    if (!data.videos) data.videos = [];
-    const index = data.videos.findIndex((v: VideoPost) => v.id === id);
-    if (index === -1) return null;
-    data.videos[index] = { ...data.videos[index], ...updates };
-    saveDB(data);
-    return data.videos[index];
+export async function addCoinSale(sale: any) {
+    const { error } = await supabase
+        .from('coin_sales')
+        .insert([{
+            user_handle: sale.userHandle,
+            pack_type: sale.packType,
+            price: sale.price,
+            coins: sale.coins,
+            stripe_payment_intent_id: sale.stripePaymentIntentId,
+            status: sale.status || 'succeeded'
+        }]);
+
+    if (error) {
+        console.error('Error adding coin sale:', error);
+    }
 }
