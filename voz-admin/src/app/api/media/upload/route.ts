@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { supabase } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
@@ -20,19 +19,30 @@ export async function POST(request: Request) {
         if (file.type.startsWith('video/')) subDir = 'videos';
         else if (file.type.startsWith('audio/')) subDir = 'audio';
 
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', subDir);
+        // Upload to Supabase Storage
+        const { data, error: uploadError } = await supabase.storage
+            .from('media')
+            .upload(filename, buffer, {
+                contentType: file.type,
+                cacheControl: '3600',
+                upsert: false
+            });
 
-        try {
-            await mkdir(uploadDir, { recursive: true });
-        } catch (e) { }
+        if (uploadError) {
+            console.error('Supabase storage error:', uploadError);
+            return NextResponse.json({ error: 'Failed to upload to storage' }, { status: 500 });
+        }
 
-        const filePath = path.join(uploadDir, filename);
-        await writeFile(filePath, buffer);
+        const { data: { publicUrl } } = supabase.storage
+            .from('media')
+            .getPublicUrl(filename);
 
         return NextResponse.json({
             success: true,
-            url: `/uploads/${subDir}/${filename}`,
-            filename
+            url: publicUrl,
+            filename: filename,
+            type: subDir,
+            size: file.size
         });
     } catch (error) {
         console.error('Error uploading file:', error);
