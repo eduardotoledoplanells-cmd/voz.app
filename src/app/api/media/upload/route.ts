@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { createClient } from '@supabase/supabase-js';
+
+// Use Service Role Key for server-side uploads to bypass RLS policies
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -47,7 +53,7 @@ export async function POST(request: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const { data, error: uploadError } = await supabase.storage
+        const { data, error: uploadError } = await supabaseAdmin.storage
             .from('media')
             .upload(fileName, buffer, {
                 contentType: file.type,
@@ -66,7 +72,7 @@ export async function POST(request: Request) {
         }
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseAdmin.storage
             .from('media')
             .getPublicUrl(fileName);
 
