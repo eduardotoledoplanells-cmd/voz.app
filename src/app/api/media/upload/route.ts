@@ -5,6 +5,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+const ALLOWED_AUDIO_TYPES = ['audio/m4a', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a'];
 
 export async function POST(request: Request) {
     try {
@@ -23,15 +24,19 @@ export async function POST(request: Request) {
         // Validate file type
         const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
         const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+        const isAudio = ALLOWED_AUDIO_TYPES.includes(file.type);
 
-        if (!isImage && !isVideo) {
+        if (!isImage && !isVideo && !isAudio) {
             return NextResponse.json({
-                error: 'Invalid file type. Allowed: JPG, PNG, GIF, WebP, MP4, WebM'
+                error: 'Invalid file type. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, M4A, MP3'
             }, { status: 400 });
         }
 
         // Determine subdirectory (folder in bucket)
-        const subDir = isImage ? 'images' : 'videos';
+        let subDir = 'other';
+        if (isImage) subDir = 'images';
+        else if (isVideo) subDir = 'videos';
+        else if (isAudio) subDir = 'audio';
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -52,7 +57,12 @@ export async function POST(request: Request) {
 
         if (uploadError) {
             console.error('Supabase storage error:', uploadError);
-            return NextResponse.json({ error: 'Failed to upload to storage' }, { status: 500 });
+            return NextResponse.json({
+                error: 'Failed to upload to storage',
+                message: uploadError.message,
+                fileName,
+                fileType: file.type
+            }, { status: 500 });
         }
 
         // Get public URL

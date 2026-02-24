@@ -133,6 +133,7 @@ export interface VideoPost {
     createdAt: string;
     music?: string;
     isAd?: boolean;
+    thumbnailUrl?: string;
 }
 
 export async function getVideos(): Promise<VideoPost[]> {
@@ -157,7 +158,8 @@ export async function getVideos(): Promise<VideoPost[]> {
         views: v.views,
         createdAt: v.created_at,
         music: v.music,
-        isAd: v.is_ad
+        isAd: v.is_ad,
+        thumbnailUrl: v.thumbnail_url
     }));
 }
 
@@ -173,7 +175,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             shares: video.shares,
             comments_count: video.commentsCount,
             views: video.views,
-            is_ad: video.isAd || false
+            is_ad: video.isAd || false,
+            thumbnail_url: video.thumbnailUrl
         }])
         .select()
         .single();
@@ -194,7 +197,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
         views: data.views,
         createdAt: data.created_at,
         music: data.music,
-        isAd: data.is_ad
+        isAd: data.is_ad,
+        thumbnailUrl: data.thumbnail_url
     };
 }
 
@@ -208,6 +212,48 @@ export interface ModerationItem {
     reportReason?: string;
     status: 'pending' | 'approved' | 'rejected';
     timestamp: string;
+}
+
+// --- Voice Comments Logic ---
+export interface VoiceComment {
+    id: string;
+    video_id: string;
+    user_handle: string;
+    avatar_url?: string;
+    audio_url: string;
+    duration: string;
+    likes: number;
+    created_at: string;
+}
+
+export async function getVoiceComments(videoId: string): Promise<VoiceComment[]> {
+    const { data, error } = await supabase
+        .from('voice_comments')
+        .select('*')
+        .eq('video_id', videoId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching voice comments:', error);
+        return [];
+    }
+
+    return data;
+}
+
+export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
+    const { data, error } = await supabase
+        .from('voice_comments')
+        .insert([comment])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding voice comment:', error);
+        return null;
+    }
+
+    return data;
 }
 
 export async function getModerationQueue(): Promise<ModerationItem[]> {

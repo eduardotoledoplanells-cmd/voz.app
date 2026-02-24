@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS videos (
     comments_count INTEGER DEFAULT 0,
     views INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    is_ad BOOLEAN DEFAULT FALSE
+    is_ad BOOLEAN DEFAULT FALSE,
+    thumbnail_url TEXT
 );
 
 -- 3. Cola de Moderación
@@ -148,6 +149,18 @@ CREATE TABLE IF NOT EXISTS redemptions (
     method TEXT, -- 'paypal', 'bank_transfer', etc.
     details TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 12. Comentarios de Voz
+CREATE TABLE IF NOT EXISTS voice_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    video_id UUID NOT NULL, -- schema.sql uses UUID for videos.id
+    user_handle TEXT NOT NULL,
+    avatar_url TEXT,
+    audio_url TEXT NOT NULL,
+    duration TEXT,
+    likes INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insertar empleado administrador inicial (password: 123)

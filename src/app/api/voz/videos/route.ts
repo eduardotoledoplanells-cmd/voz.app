@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { videoUrl, user, description, transcription, music } = body;
+        const { videoUrl, user, description, transcription, music, thumbnailUrl } = body;
 
         if (!videoUrl || !user) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
             commentsCount: 0,
             views: 0,
             music: music || "",
+            thumbnailUrl: thumbnailUrl || "",
             createdAt: new Date().toISOString()
         };
 
