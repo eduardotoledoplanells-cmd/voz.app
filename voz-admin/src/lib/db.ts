@@ -231,6 +231,48 @@ export async function addCreatorCoinInteraction(creatorId: string, type: string,
     return updated as Creator;
 }
 
+// --- Voice Comments Logic ---
+export interface VoiceComment {
+    id: string;
+    video_id: string;
+    user_handle: string;
+    avatar_url?: string;
+    audio_url: string;
+    duration: string;
+    likes: number;
+    created_at: string;
+}
+
+export async function getVoiceComments(videoId: string): Promise<VoiceComment[]> {
+    const { data, error } = await supabase
+        .from('voice_comments')
+        .select('*')
+        .eq('video_id', videoId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching voice comments:', error);
+        return [];
+    }
+
+    return data;
+}
+
+export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
+    const { data, error } = await supabase
+        .from('voice_comments')
+        .insert([comment])
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding voice comment:', error);
+        return null;
+    }
+
+    return data;
+}
+
 // --- User Penalties ---
 export async function addPenaltyToUser(handle: string, penalty: { url?: string, reason: string }) {
     await supabase.from('user_penalties').insert([{
