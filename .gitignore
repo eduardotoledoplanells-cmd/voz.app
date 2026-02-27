@@ -52,3 +52,5 @@ next-env.d.ts
 # multimedia uploads (Vercel doesn't persist these)
 public/uploads/
 voz-admin/public/uploads/
+
+.vercel

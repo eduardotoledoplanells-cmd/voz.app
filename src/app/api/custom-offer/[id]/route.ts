@@ -6,10 +6,10 @@ const OFFERS_FILE = path.join(process.cwd(), 'src', 'data', 'custom-offers.json'
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Leer archivo de ofertas
         const fs = require('fs');

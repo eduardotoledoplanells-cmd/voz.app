@@ -223,22 +223,88 @@ export interface VoiceComment {
     audio_url: string;
     duration: string;
     likes: number;
+    parent_id?: string;
     created_at: string;
+    isLikedByMe?: boolean;
 }
 
-export async function getVoiceComments(videoId: string): Promise<VoiceComment[]> {
-    const { data, error } = await supabase
+export async function getVoiceComments(videoId: string, currentUserHandle?: string): Promise<any[]> {
+    // 1. Cargar comentarios principales (parent_id = null)
+    const { data: parentComments, error: parentsError } = await supabase
         .from('voice_comments')
         .select('*')
         .eq('video_id', videoId)
+        .is('parent_id', null)
         .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error('Error fetching voice comments:', error);
+    if (parentsError || !parentComments) {
+        console.error('Error fetching parent comments:', parentsError);
         return [];
     }
 
-    return data;
+    const parentIds = parentComments.map(c => c.id);
+
+    // 2. Para cada comentario cargar sus respuestas
+    let replies: any[] = [];
+    if (parentIds.length > 0) {
+        const { data: repliesData, error: repliesError } = await supabase
+            .from('voice_comments')
+            .select('*')
+            .in('parent_id', parentIds)
+            .order('created_at', { ascending: true });
+
+        if (!repliesError && repliesData) {
+            replies = repliesData;
+        }
+    }
+
+    const allComments = [...parentComments, ...replies];
+    if (allComments.length === 0) return [];
+
+    const allCommentIds = allComments.map(c => c.id);
+
+    // Obtener likes desde la tabla comment_likes (voice_comment_likes en nuestra DB actual)
+    // para contar cuántos likes reales tiene cada uno sin usar la columna 'likes'
+    let likesData: any[] = [];
+    const { data: fetchedLikes } = await supabase
+        .from('voice_comment_likes')
+        .select('comment_id, user_handle')
+        .in('comment_id', allCommentIds);
+
+    if (fetchedLikes) likesData = fetchedLikes;
+
+    const likesCountMap = new Map<string, number>();
+    const likedByMeSet = new Set<string>();
+
+    likesData.forEach(like => {
+        const cId = like.comment_id;
+        likesCountMap.set(cId, (likesCountMap.get(cId) || 0) + 1);
+        if (currentUserHandle && like.user_handle === currentUserHandle) {
+            likedByMeSet.add(cId);
+        }
+    });
+
+    // Fetch user profiles to get up-to-date avatars
+    const handles = [...new Set(allComments.map(c => c.user_handle))];
+    const userMap = new Map();
+    if (handles.length > 0) {
+        const { data: users } = await supabase
+            .from('app_users')
+            .select('handle, profile_image')
+            .in('handle', handles);
+
+        users?.forEach(u => userMap.set(u.handle, u.profile_image));
+    }
+
+    // Formatear la respuesta con el conteo dinámico de likes
+    const enrichedComments = allComments.map(c => ({
+        ...c,
+        avatar_url: userMap.get(c.user_handle) || null,
+        likes: likesCountMap.get(c.id) || 0, // Conteo dinámico calculado
+        isLikedByMe: likedByMeSet.has(c.id)
+    }));
+
+    return enrichedComments;
 }
 
 export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
@@ -254,6 +320,24 @@ export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<V
     }
 
     return data;
+}
+
+export async function incrementVoiceCommentLike(commentId: string, userHandle: string): Promise<boolean> {
+    // 1. Insertar el registro en comment_likes (voice_comment_likes)
+    // Supabase evita duplicados si hay llave primaria combinada (user_handle + comment_id) o si lo validamos
+    const { error: likeError } = await supabase
+        .from('voice_comment_likes')
+        .insert([{ comment_id: commentId, user_handle: userHandle }]);
+
+    if (likeError) {
+        console.warn("Posible duplicado o error al dar like en voice_comment_likes:", likeError);
+        return false;
+    }
+
+    // Ya no incrementamos la columna 'likes' manualmente en 'voice_comments'
+    // El frontend obtendrá el total hacienda count de los registros en getVoiceComments.
+
+    return true;
 }
 
 export async function getModerationQueue(): Promise<ModerationItem[]> {

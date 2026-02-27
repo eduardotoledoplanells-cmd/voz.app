@@ -243,19 +243,68 @@ export interface VoiceComment {
     created_at: string;
 }
 
-export async function getVoiceComments(videoId: string): Promise<VoiceComment[]> {
-    const { data, error } = await supabase
+export async function getVoiceComments(videoId: string): Promise<any[]> {
+    // Cargar comentarios principales
+    const { data: parentComments, error: parentsError } = await supabase
         .from('voice_comments')
         .select('*')
         .eq('video_id', videoId)
+        .is('parent_id', null)
         .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error('Error fetching voice comments:', error);
-        return [];
+    if (parentsError || !parentComments) return [];
+
+    const parentIds = parentComments.map(c => c.id);
+
+    // Cargar respuestas
+    let replies: any[] = [];
+    if (parentIds.length > 0) {
+        const { data: repliesData } = await supabase
+            .from('voice_comments')
+            .select('*')
+            .in('parent_id', parentIds)
+            .order('created_at', { ascending: true });
+        if (repliesData) replies = repliesData;
     }
 
-    return data;
+    const allComments = [...parentComments, ...replies];
+    if (allComments.length === 0) return [];
+
+    const allCommentIds = allComments.map(c => c.id);
+
+    // Contar likes dinámicamente
+    let likesData: any[] = [];
+    const { data: fetchedLikes } = await supabase
+        .from('voice_comment_likes')
+        .select('comment_id')
+        .in('comment_id', allCommentIds);
+
+    if (fetchedLikes) likesData = fetchedLikes;
+
+    const likesCountMap = new Map<string, number>();
+    likesData.forEach(like => {
+        const cId = like.comment_id;
+        likesCountMap.set(cId, (likesCountMap.get(cId) || 0) + 1);
+    });
+
+    // Fetch user profiles to get up-to-date avatars
+    const handles = [...new Set(allComments.map(c => c.user_handle))];
+    const userMap = new Map();
+    if (handles.length > 0) {
+        const { data: users } = await supabase
+            .from('app_users')
+            .select('handle, profile_image')
+            .in('handle', handles);
+        users?.forEach(u => userMap.set(u.handle, u.profile_image));
+    }
+
+    const enrichedComments = allComments.map(c => ({
+        ...c,
+        avatar_url: userMap.get(c.user_handle) || null,
+        likes: likesCountMap.get(c.id) || 0
+    }));
+
+    return enrichedComments;
 }
 
 export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
