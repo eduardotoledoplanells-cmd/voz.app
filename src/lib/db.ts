@@ -202,6 +202,20 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
     };
 }
 
+export async function deleteVideo(id: string, userHandle: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('videos')
+        .delete()
+        .match({ id, user_handle: userHandle });
+
+    if (error) {
+        console.error('Error deleting video:', error);
+        return false;
+    }
+
+    return true;
+}
+
 // --- Moderation Queue ---
 export interface ModerationItem {
     id: string;

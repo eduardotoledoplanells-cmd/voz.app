@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideos, addVideo, VideoPost } from "@/lib/db";
+import { getVideos, addVideo, VideoPost, deleteVideo } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
@@ -46,5 +46,27 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error("Error creating video post:", error);
         return NextResponse.json({ error: (error as Error).message || "Internal Server Error" }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { videoId, userHandle } = body;
+
+        if (!videoId || !userHandle) {
+            return NextResponse.json({ error: "Missing required fields: videoId and userHandle" }, { status: 400 });
+        }
+
+        const success = await deleteVideo(videoId, userHandle);
+
+        if (success) {
+            return NextResponse.json({ success: true, message: "Video deleted successfully" });
+        } else {
+            return NextResponse.json({ error: "Failed to delete video. Make sure you own the video." }, { status: 403 });
+        }
+    } catch (error) {
+        console.error("Error deleting video:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
