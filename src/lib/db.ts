@@ -182,8 +182,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
         .single();
 
     if (error) {
-        console.error('Error adding video:', error);
-        return null;
+        console.error('Error adding video to Supabase:', error);
+        throw new Error(error.message);
     }
 
     return {
