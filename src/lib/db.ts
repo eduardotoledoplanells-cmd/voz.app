@@ -340,6 +340,20 @@ export async function incrementVoiceCommentLike(commentId: string, userHandle: s
     return true;
 }
 
+export async function removeVoiceCommentLike(commentId: string, userHandle: string): Promise<boolean> {
+    const { error: unlikeError } = await supabase
+        .from('voice_comment_likes')
+        .delete()
+        .match({ comment_id: commentId, user_handle: userHandle });
+
+    if (unlikeError) {
+        console.warn("Error al quitar like en voice_comment_likes:", unlikeError);
+        return false;
+    }
+
+    return true;
+}
+
 export async function getModerationQueue(): Promise<ModerationItem[]> {
     const { data, error } = await supabase
         .from('moderation_queue')
