@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error("Error creating video post:", error);
-        return NextResponse.json({ error: (error as Error).message || "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({
+            success: false,
+            error: (error as Error).message || "Internal Server Error"
+        }, { status: 500 });
     }
 }
 
