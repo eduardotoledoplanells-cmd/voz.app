@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const moderationId = uuidv4();
 
         // Insert into the moderation_queue table using the anonymous auth client (now allowed by RLS)
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('moderation_queue')
             .insert([{
                 id: moderationId,
@@ -26,16 +26,14 @@ export async function POST(req: NextRequest) {
                 content: `Perfil de usuario`,
                 status: 'pending',
                 timestamp: new Date().toISOString()
-            }])
-            .select()
-            .single();
+            }]);
 
         if (error) {
             console.error("Error inserting moderation item:", error);
             return NextResponse.json({ success: false, error: "Error al registrar la denuncia en la base de datos." }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, message: "Denuncia registrada con éxito.", item: data });
+        return NextResponse.json({ success: true, message: "Denuncia registrada con éxito.", item: null });
     } catch (e: any) {
         console.error("Error in /api/voz/users/report:", e);
         return NextResponse.json({ success: false, error: "Ocurrió un error inesperado al procesar la denuncia." }, { status: 500 });
