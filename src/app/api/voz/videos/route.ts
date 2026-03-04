@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVideos, addVideo, VideoPost, deleteVideo } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const videos = await getVideos();
+        const { searchParams } = new URL(request.url);
+        const userHandle = searchParams.get('userHandle') || undefined;
+        const videos = await getVideos(userHandle);
         return NextResponse.json(videos);
     } catch (error) {
         console.error("Error fetching videos:", error);

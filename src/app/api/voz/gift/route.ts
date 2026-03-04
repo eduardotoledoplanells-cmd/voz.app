@@ -18,13 +18,15 @@ export async function POST(request: Request) {
             videoId
         });
 
-        // 2. Update Receiver Balance
+        // 2. Update Receiver Balance (75% Commission for Creator, 25% for App)
+        const payoutAmount = Number(amount) * 0.75;
+
         const users = await getAppUsers();
         const receiver = users.find(u => u.handle === receiverHandle);
 
         if (receiver) {
             await updateAppUser(receiver.id, {
-                walletBalance: (receiver.walletBalance || 0) + Number(amount)
+                walletBalance: (receiver.walletBalance || 0) + payoutAmount
             });
         } else {
             // Auto-create user if it doesn't exist
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
                 status: 'active',
                 reputation: 10,
                 joinedAt: new Date().toISOString(),
-                walletBalance: Number(amount)
+                walletBalance: payoutAmount
             });
         }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike } from "@/lib/db";
+import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike, removeVoiceCommentLike } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
     try {
@@ -61,14 +61,20 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
         const { commentId, userHandle, action } = body;
 
-        if (!commentId || !userHandle || action !== 'like') {
+        if (!commentId || !userHandle || !['like', 'unlike'].includes(action)) {
             return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
         }
 
-        const success = await incrementVoiceCommentLike(commentId, userHandle);
+        let success = false;
+
+        if (action === 'like') {
+            success = await incrementVoiceCommentLike(commentId, userHandle);
+        } else if (action === 'unlike') {
+            success = await removeVoiceCommentLike(commentId, userHandle);
+        }
 
         if (!success) {
-            return NextResponse.json({ error: "Could not add like" }, { status: 500 });
+            return NextResponse.json({ error: "Could not modify like status" }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
