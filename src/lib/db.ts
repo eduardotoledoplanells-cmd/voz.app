@@ -4,7 +4,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://obdrsqeueiv
 const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const isValidEnvKey = envKey.startsWith('eyJ') && !envKey.includes('M81T8_3');
 const supabaseAnonKey = isValidEnvKey ? envKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZHJzcWV1ZWl2aG5ic2liaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTE4MTksImV4cCI6MjA4NzMyNzgxOX0.6iZ82MtwuC5_Uxyu4xDRMKxITeugq8GiklPkgvq9AUg';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZHJzcWV1ZWl2aG5ic2liaGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMTc1MTgxOSwiZXhwIjoyMDg3MzI3ODE5fQ.NhKLeKDwtOD772l520x2eb-c3hgOMtSU3_VCDfgf5bg';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl) {
     console.error('Supabase credentials missing in environment variables');
@@ -128,6 +128,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
 export interface VideoPost {
     id: string;
     videoUrl: string;
+    thumbnailUrl?: string;
     user: string;
     description: string;
     likes: number;
@@ -137,15 +138,16 @@ export interface VideoPost {
     createdAt: string;
     music?: string;
     isAd?: boolean;
-    thumbnailUrl?: string;
     isLikedByMe?: boolean;
     isBookmarkedByMe?: boolean;
+    isPinned?: boolean;
 }
 
 export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]> {
     const { data: videos, error } = await supabase
         .from('videos')
         .select('*')
+        .order('is_pinned', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
     if (error || !videos) {
@@ -186,7 +188,8 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
         isAd: v.is_ad,
         thumbnailUrl: v.thumbnail_url,
         isLikedByMe: likedSet.has(v.id),
-        isBookmarkedByMe: bookmarkedSet.has(v.id)
+        isBookmarkedByMe: bookmarkedSet.has(v.id),
+        isPinned: v.is_pinned
     }));
 }
 
@@ -604,6 +607,21 @@ export async function addCoinSale(sale: any) {
         console.error('Error adding coin sale:', error);
     }
 }
+
+export async function getRedemptionRequests(): Promise<any[]> {
+    const { data, error } = await supabase.from('redemptions').select('*').order('timestamp', { ascending: false });
+    if (error) return [];
+    return data.map(r => ({
+        id: r.id,
+        userHandle: r.user_handle,
+        amount: parseFloat(r.amount),
+        status: r.status,
+        method: r.method,
+        details: r.details,
+        timestamp: r.timestamp
+    }));
+}
+
 // --- Health Check ---
 async function checkTableHealth() {
     if (typeof window !== 'undefined') return; // Only on server
