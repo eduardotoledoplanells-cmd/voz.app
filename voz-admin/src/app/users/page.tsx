@@ -673,13 +673,13 @@ export default function VozUsersPage() {
                                                 setDialog({ ...dialog, show: false });
                                             }}
                                         >
-                                            Sí
+                                            Aceptar
                                         </button>
                                         <button
                                             style={{ minWidth: 60 }}
                                             onClick={() => setDialog({ ...dialog, show: false })}
                                         >
-                                            No
+                                            Cancelar
                                         </button>
                                     </>
                                 ) : (
