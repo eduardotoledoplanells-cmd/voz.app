@@ -861,10 +861,15 @@ export default function VozModerationPage() {
                                                                             headers: { 'Content-Type': 'application/json' },
                                                                             body: JSON.stringify({ id: item.id, status: 'rejected', employeeName, skipPenalty: false })
                                                                         }))).then(() => {
+                                                                            // Actualizar el estado de forma inmediata sin esperar otro fetch
+                                                                            const updatedQueue = queue.filter(item => item.userHandle !== handle);
+                                                                            setQueue(updatedQueue);
+
                                                                             setConfirmModal(null);
                                                                             setSelectedProfileHandle(null);
+                                                                            // Actualizar los datos de base de forma asíncrona
                                                                             fetchQueue();
-                                                                            alert(`Usuario ${handle} ha sido borrado.`);
+                                                                            alert(`Usuario ${handle} ha sido borrado y quitado de la lista.`);
                                                                         });
                                                                     }
                                                                 },
