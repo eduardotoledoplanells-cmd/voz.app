@@ -75,14 +75,37 @@ export async function PATCH(request: Request) {
             // Si el status es 'rejected'
             if (status === 'rejected') {
                 if (updated.type === 'profile') {
-                    // Si es un perfil, lo baneamos directamente
+                    // Si es un perfil, lo baneamos directamente (ya incluye borrado de sus videos)
                     await banAppUserByHandle(updated.userHandle);
-                } else if (!skipPenalty) {
-                    // Si es contenido (video/audio) y no se salta la penalización
-                    await addPenaltyToUser(updated.userHandle, {
-                        url: updated.url,
-                        reason: updated.reportReason || 'Contenido inapropiado'
-                    });
+                } else {
+                    // Si es contenido específico (video/audio)
+                    if (updated.type === 'video') {
+                        // Borrar el video de la tabla principal
+                        const { error: videoDelError } = await supabaseAdmin
+                            .from('videos')
+                            .delete()
+                            .eq('video_url', updated.url);
+
+                        if (videoDelError) {
+                            console.error('Error al borrar video tras baneo:', videoDelError);
+                        } else {
+                            console.log('Video borrado exitosamente:', updated.url);
+                        }
+                    } else if (updated.type === 'audio') {
+                        // Borrar el comentario de voz
+                        await supabaseAdmin
+                            .from('voice_comments')
+                            .delete()
+                            .eq('audio_url', updated.url);
+                    }
+
+                    if (!skipPenalty) {
+                        // Si no se salta la penalización, registrarla y bajar reputación
+                        await addPenaltyToUser(updated.userHandle, {
+                            url: updated.url,
+                            reason: updated.reportReason || 'Contenido inapropiado'
+                        });
+                    }
                 }
             }
 
