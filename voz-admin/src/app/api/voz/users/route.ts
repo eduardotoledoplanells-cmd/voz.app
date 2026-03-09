@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, addAppUser, updateAppUser, deleteAppUser, getVideosByUser } from '@/lib/db';
+import { getAppUsers, addAppUser, updateAppUser, deleteAppUser, getVideosByUser, supabaseAdmin } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,15 +7,70 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const handle = searchParams.get('handle');
+        const isProfile = searchParams.get('isProfile') === 'true';
 
-        if (handle) {
+        if (handle && !isProfile) {
             const videos = await getVideosByUser(handle);
             return NextResponse.json(videos);
+        }
+
+        if (handle && isProfile) {
+            const users = await getAppUsers();
+
+            // Robust normalization
+            const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
+            const searchNormalized = normalize(handle);
+            const user = users.find(u => normalize(u.handle) === searchNormalized);
+
+            if (!user) {
+                return NextResponse.json({ error: "User not found" }, { status: 404 });
+            }
+
+            const { password, ...userWithoutPassword } = user;
+
+            // Fetch extra stats (Fans, Following, Likes) from DB
+            let fansCount = 0;
+            let followingCount = 0;
+            let totalLikes = 0;
+
+            const { data: fansData } = await supabaseAdmin
+                .from("user_follows")
+                .select("follower_handle")
+                .eq("following_handle", user.handle);
+            fansCount = fansData?.length || 0;
+
+            const { data: followingData } = await supabaseAdmin
+                .from("user_follows")
+                .select("following_handle")
+                .eq("follower_handle", user.handle);
+            followingCount = followingData?.length || 0;
+
+            const { data: userVideos } = await supabaseAdmin
+                .from("videos")
+                .select("likes")
+                .eq("user_handle", user.handle);
+
+            if (userVideos) {
+                totalLikes = userVideos.reduce((sum: number, v: any) => sum + (v.likes || 0), 0);
+            }
+
+            return NextResponse.json({
+                success: true,
+                user: {
+                    ...userWithoutPassword,
+                    fans: fansCount.toString(),
+                    following: followingCount.toString(),
+                    likes: totalLikes.toString()
+                },
+                fans: fansData ? fansData.map((f: any) => f.follower_handle) : [],
+                following: followingData ? followingData.map((f: any) => f.following_handle) : []
+            });
         }
 
         const users = await getAppUsers();
         return NextResponse.json(users);
     } catch (error) {
+        console.error("GET users error:", error);
         return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
     }
 }
