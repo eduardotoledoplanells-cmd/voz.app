@@ -2,13 +2,14 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const STRIPE_ACCOUNT_ID = 'acct_1Sm1OD3BtXxsW9yn';
-
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_default';
+        const stripe = new Stripe(stripeKey);
+        const STRIPE_ACCOUNT_ID = 'acct_1Sm1OD3BtXxsW9yn';
+
         // En un entorno de producción, recuperaríamos datos reales de Stripe.
         // Aquí intentaremos recuperar la información de la cuenta y el balance.
 

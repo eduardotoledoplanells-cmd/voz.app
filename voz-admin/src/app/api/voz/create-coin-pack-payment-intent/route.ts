@@ -2,8 +2,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Intentar cargar la clave secreta. En una app real, esto debería estar en .env
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Intentar cargar la clave secreta posteriormente para evadir errores de build
 
 const COIN_PACKS_SERVER = {
     'p1': {
@@ -69,6 +68,9 @@ export async function POST(request: Request) {
 
         const pack = COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER];
         const amount = pack.price * 100; // Cents
+
+        const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_default';
+        const stripe = new Stripe(stripeKey);
 
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
