@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getViralStats, trackVideoEvent, getAppUsers, getLogs } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         // 1. Viral Videos Stats
@@ -76,3 +78,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to track event' }, { status: 500 });
     }
 }
+

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVoiceComments, addVoiceComment } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
@@ -48,3 +50,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+

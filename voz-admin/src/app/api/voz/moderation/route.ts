@@ -20,6 +20,8 @@ function corsHeaders(response: NextResponse) {
     return response;
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     const queue = (await getModerationQueue()).filter(item => item.status === 'pending');
     return corsHeaders(NextResponse.json(queue));

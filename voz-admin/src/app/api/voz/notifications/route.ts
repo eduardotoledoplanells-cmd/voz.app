@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getNotifications, addNotification, Notification } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const recipientId = searchParams.get('recipientId');
@@ -40,3 +42,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
     }
 }
+

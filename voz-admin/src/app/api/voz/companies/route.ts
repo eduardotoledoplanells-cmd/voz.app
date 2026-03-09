@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCompanies, addCompany, deleteCompany, Company, addCreator, Creator } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const data = await getCompanies();
@@ -70,3 +72,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Failed to delete company' }, { status: 500 });
     }
 }
+

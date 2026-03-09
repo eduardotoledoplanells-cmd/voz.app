@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getModerationQueue, getModerationHistoryByEmployee, ModerationItem } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -31,3 +33,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Failed to fetch moderation stats' }, { status: 500 });
     }
 }
+

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCreators } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const creators = await getCreators();
@@ -25,3 +27,4 @@ export async function GET() {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
+

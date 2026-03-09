@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCampaigns, addCampaign, deleteCampaign, incrementCampaignImpressions, Campaign, getCompanies } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const [campaigns, companies] = await Promise.all([
@@ -91,3 +93,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Failed to delete campaign' }, { status: 500 });
     }
 }
+

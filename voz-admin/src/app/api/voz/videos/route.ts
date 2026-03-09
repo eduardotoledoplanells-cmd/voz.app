@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVideos, addVideo, VideoPost } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const videos = await getVideos();
@@ -43,3 +45,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+

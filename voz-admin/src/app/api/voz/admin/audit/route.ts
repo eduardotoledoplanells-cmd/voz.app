@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, getAppUsers, getTransactions, getRedemptionRequests } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         // 1. Fetch total verified incoming Stripe coins
@@ -101,3 +103,4 @@ export async function GET() {
         return NextResponse.json({ error: 'Internal server error during audit' }, { status: 500 });
     }
 }
+
