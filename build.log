@@ -1,0 +1,46 @@
+
+> radiant-interstellar@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ÔÜá `eslint` configuration in next.config.ts is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+ÔÜá Invalid next.config.ts options detected: 
+ÔÜá     Unrecognized key(s) in object: 'eslint'
+ÔÜá See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\package-lock.json
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Ô£ô Compiled successfully in 6.2s
+  Skipping validation of types
+  Collecting page data using 7 workers ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Error: Neither apiKey nor config.authenticator provided
+    at r._setAuthenticator (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[root-of-the-server]__2a4beda1._.js:1:123610)
+    at new r (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[root-of-the-server]__2a4beda1._.js:1:118213)
+    at module evaluation (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[root-of-the-server]__7a732b29._.js:1:1386)
+    at instantiateModule (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[turbopack]_runtime.js:740:9)
+    at instantiateRuntimeModule (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[turbopack]_runtime.js:768:12)
+    at getOrInstantiateRuntimeModule (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[turbopack]_runtime.js:781:12)
+    at Object.m (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\chunks\[turbopack]_runtime.js:790:18)
+    at Object.<anonymous> (C:\Users\Mis Documentos.RETROTIENDAS-HO\Desktop\APP\VOZ\server\.next\server\app\api\create-coin-pack-payment-intent\route.js:6:3)
+
+> Build error occurred
+Error: Failed to collect page data for /api/create-coin-pack-payment-intent
+    at ignore-listed frames {
+  type: 'Error'
+}

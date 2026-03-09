@@ -54,3 +54,4 @@ public/uploads/
 voz-admin/public/uploads/
 
 .vercel
+.env*.local

@@ -1,23 +1,29 @@
+require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
 
-const envContent = fs.readFileSync('.env.local', 'utf8');
-const env = {};
-envContent.split('\n').forEach(line => {
-    const parts = line.split('=');
-    if (parts.length >= 2) env[parts[0].trim()] = parts.slice(1).join('=').trim();
-});
-
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 async function checkVideos() {
-    const { data: vData, error: vErr } = await supabase.from('videos').select('*');
-    if (vErr) console.error("Videos error:", vErr);
-    else console.log("Videos count:", vData.length);
+    console.log('Using URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-    const { data: bData, error: bErr } = await supabase.storage.listBuckets();
-    if (bErr) console.error("Buckets error:", bErr);
-    else console.log("Buckets:", bData.map(b => b.name));
+    const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    if (error) {
+        console.error('Error fetching videos:', error);
+        return;
+    }
+
+    console.log('--- Last 5 videos ---');
+    data.forEach(v => {
+        console.log(`ID: ${v.id}, User: ${v.user_handle}, Description: "${v.description}", Created: ${v.created_at}`);
+    });
 }
 
 checkVideos();

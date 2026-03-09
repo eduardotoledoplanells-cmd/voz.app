@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCoinSales, getBillingStats, getRedemptionRequests, getCreators, getCampaigns, getCompanies } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const [sales, stats, redemptions, creators, campaigns, companies] = await Promise.all([
@@ -20,8 +22,8 @@ export async function GET() {
             campaigns,
             companies
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching billing data:', error);
-        return NextResponse.json({ error: 'Failed to fetch billing data' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to fetch billing data' }, { status: 500 });
     }
 }

@@ -304,8 +304,8 @@ export default function BillingPage() {
                         <div style={{ textAlign: 'center', padding: '20px 0' }}>
                             <img src="/coin-pixel.jpg" width="80" height="80" style={{ marginBottom: 20, borderRadius: '50%', border: '2px solid #000' }} />
                             <h2 style={{ margin: '0 0 10px 0' }}>Control de Monedas en Circulación</h2>
-                            <p style={{ maxWidth: 500, margin: '0 auto 20px auto', fontSize: '13px', lineHeight: '1.4' }}>
-                                Este reporte muestra el total de <b>ROBcoins</b> que han sido compradas por los usuarios pero aún no han sido gastadas ni canjeadas. Representa una deuda técnica de servicios pendientes.
+                            <p style={{ maxWidth: 500, margin: '0 auto 20px auto', fontSize: '15px', fontFamily: 'sans-serif', color: '#111', lineHeight: '1.6' }}>
+                                Este reporte muestra el total de <b>monedas</b> que han sido compradas por los usuarios pero aún no han sido gastadas ni canjeadas. Representa una deuda técnica de servicios pendientes.
                             </p>
                             <div className="sunken-panel" style={{ display: 'inline-block', padding: '20px 40px', backgroundColor: '#fff' }}>
                                 <div style={{ fontSize: '14px', marginBottom: 5 }}>TOTAL CIRCULANTE:</div>

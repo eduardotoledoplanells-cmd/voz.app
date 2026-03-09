@@ -4,7 +4,8 @@ import { updateAppUser } from "@/lib/db";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, walletBalance } = body;
+        // SECURITY FIX: Removed walletBalance from allowed explicitly updated fields by the client
+        const { id, handle, name, bio, profile_image, profileImage } = body;
 
         if (!id) {
             return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
@@ -15,7 +16,6 @@ export async function POST(request: NextRequest) {
         if (name) updates.name = name;
         if (bio) updates.bio = bio;
         if (profile_image || profileImage) updates.profile_image = profile_image || profileImage;
-        if (walletBalance !== undefined) updates.walletBalance = walletBalance;
 
         const updated = await updateAppUser(id, updates);
 

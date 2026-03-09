@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula } from '@/lib/db';
+import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function OPTIONS() {
@@ -70,12 +70,18 @@ export async function PATCH(request: Request) {
         });
 
         if (updated) {
-            // Si el status es 'rejected' y no se pide omitir la penalización
-            if (status === 'rejected' && !skipPenalty) {
-                await addPenaltyToUser(updated.userHandle, {
-                    url: updated.url,
-                    reason: updated.reportReason || 'Contenido inapropiado'
-                });
+            // Si el status es 'rejected'
+            if (status === 'rejected') {
+                if (updated.type === 'profile') {
+                    // Si es un perfil, lo baneamos directamente
+                    await banAppUserByHandle(updated.userHandle);
+                } else if (!skipPenalty) {
+                    // Si es contenido (video/audio) y no se salta la penalización
+                    await addPenaltyToUser(updated.userHandle, {
+                        url: updated.url,
+                        reason: updated.reportReason || 'Contenido inapropiado'
+                    });
+                }
             }
 
             // Log the action

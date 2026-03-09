@@ -6,6 +6,7 @@ export default function VozHrPage() {
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [isAuthorized, setIsAuthorized] = useState(false);
 
     // Form state
     const [newEmp, setNewEmp] = useState({
@@ -16,6 +17,19 @@ export default function VozHrPage() {
     });
 
     useEffect(() => {
+        const stored = localStorage.getItem('vozEmployee');
+        if (stored) {
+            const emp = JSON.parse(stored);
+            // Allow role 1 (Director) and role 2 (Admin)
+            if (emp.role === 1 || emp.role === 2 || emp.role === '1' || emp.role === '2') {
+                setIsAuthorized(true);
+            } else {
+                alert("Acceso denegado: Se requiere perfil de Director o Administrador.");
+                window.location.href = '/';
+            }
+        } else {
+            window.location.href = '/';
+        }
         fetchEmployees();
     }, []);
 
@@ -51,6 +65,7 @@ export default function VozHrPage() {
             });
     };
 
+    if (!isAuthorized) return <div style={{ padding: 10 }}>Verificando credenciales de Director...</div>;
     if (loading && employees.length === 0) return <div style={{ padding: 10 }}>Cargando HR...</div>;
 
     return (

@@ -5,7 +5,7 @@ import '98.css';
 interface ModerationItem {
     id: string;
     matricula?: string;
-    type: 'video' | 'audio' | 'text' | 'image';
+    type: 'video' | 'audio' | 'text' | 'image' | 'profile';
     url: string;
     userHandle: string;
     reportedBy?: string;
@@ -42,10 +42,11 @@ export default function VozModerationPage() {
     const alertAudioRef = useRef<HTMLAudioElement | null>(null);
     const clickAudioRef = useRef<HTMLAudioElement | null>(null);
     const [audioUnlocked, setAudioUnlocked] = useState(false);
-    const [viewMode, setViewMode] = useState<'moderation' | 'supervision'>('moderation');
+    const [viewMode, setViewMode] = useState<'moderation' | 'supervision' | 'profiles'>('moderation');
     const [moderatorsStats, setModeratorsStats] = useState<any[]>([]);
     const [selectedModeratorHistory, setSelectedModeratorHistory] = useState<any[]>([]);
     const [currentRole, setCurrentRole] = useState<number>(0);
+    const [selectedProfileHandle, setSelectedProfileHandle] = useState<string | null>(null);
 
     // Función para desbloquear el audio con la primera interacción del usuario
     const unlockAudio = () => {
@@ -78,8 +79,13 @@ export default function VozModerationPage() {
         if (!currentTime) setCurrentTime(new Date());
         if (!lastActivity) setLastActivity(Date.now());
 
-        const employee = JSON.parse(localStorage.getItem('vozEmployee') || '{}');
-        setCurrentRole(employee.role || 0);
+        const stored = localStorage.getItem('vozEmployee');
+        const employee = JSON.parse(stored || '{}');
+        setCurrentRole(Number(employee.role) || 0);
+        if (Number(employee.role) === 1) setWorkMode('work');
+
+        // Ejecución inmediata inicial
+        updateWorkStatus(new Date());
 
         const timer = setInterval(() => {
             const now = new Date();
@@ -105,11 +111,12 @@ export default function VozModerationPage() {
         window.addEventListener('click', handleActivity);
 
         const activityInterval = setInterval(() => {
-            if (Date.now() - lastActivity > 120000 && workMode === 'work' && !isInactive) {
+            if (Date.now() - lastActivity > 120000 && workMode === 'work' && !isInactive && currentRole !== 1 && Number(JSON.parse(localStorage.getItem('vozEmployee') || '{}').role) !== 1) {
                 setIsInactive(true);
                 window.dispatchEvent(new CustomEvent('voz-inactivity-active', { detail: { active: true } }));
                 // Registrar inactividad en el servidor
-                const employee = JSON.parse(localStorage.getItem('vozEmployee') || '{}');
+                const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
+                const employee = JSON.parse(stored || '{}');
                 fetch('/api/voz/moderation', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -129,7 +136,7 @@ export default function VozModerationPage() {
             window.removeEventListener('scroll', handleActivity);
             window.removeEventListener('click', handleActivity);
         };
-    }, [isLunchRequested, lastActivity, isInactive, workMode]);
+    }, [isLunchRequested, lastActivity, isInactive, workMode, currentRole]);
 
     // Control de audio de alarma
     useEffect(() => {
@@ -147,6 +154,21 @@ export default function VozModerationPage() {
 
     // Lógica de cronograma de trabajo
     const updateWorkStatus = (now: Date) => {
+        // Double check role from state or localStorage for maximum safety
+        let role = currentRole;
+        if (role === 0 && typeof window !== 'undefined') {
+            const emp = JSON.parse(localStorage.getItem('vozEmployee') || '{}');
+            role = Number(emp.role) || 0;
+        }
+
+        // Director bypasses all schedule restrictions
+        if (role === 1) {
+            setWorkMode('work');
+            setTimeLeft(86400); // 24h
+            setCurrentShift('Director');
+            return;
+        }
+
         const hour = now.getHours();
         const min = now.getMinutes();
         const totalMin = hour * 60 + min + now.getSeconds() / 60;
@@ -199,18 +221,19 @@ export default function VozModerationPage() {
     // Reiniciar cronómetro al cambiar de item
     useEffect(() => {
         if (selectedItem?.type === 'video') {
-            setVideoTimeLeft(30);
-            setCanAction(false);
+            const isDirector = currentRole === 1 || Number(JSON.parse(localStorage.getItem('vozEmployee') || '{}').role) === 1;
+            setVideoTimeLeft(isDirector ? 0 : 30);
+            setCanAction(isDirector ? true : false);
         } else {
             setVideoTimeLeft(0);
             setCanAction(true);
         }
-    }, [selectedItem?.id]);
+    }, [selectedItem?.id, currentRole]);
 
     // Descuento de tiempo (solo si está activo y trabajando)
     useEffect(() => {
         let vTimer: any;
-        if (workMode === 'work' && selectedItem?.type === 'video' && !isInactive && !canAction) {
+        if (workMode === 'work' && selectedItem?.type === 'video' && !isInactive && !canAction && currentRole !== 1 && Number(JSON.parse(localStorage.getItem('vozEmployee') || '{}').role) !== 1) {
             vTimer = setInterval(() => {
                 setVideoTimeLeft(prev => {
                     if (prev <= 1) {
@@ -228,7 +251,7 @@ export default function VozModerationPage() {
     // Alerta sonora permanente SR001 durante inactividad
     // Alerta sonora permanente SR001 durante inactividad (CONTROL HTML AUDIO)
     useEffect(() => {
-        if (isInactive && workMode === 'work') {
+        if (isInactive && workMode === 'work' && currentRole !== 1 && Number(JSON.parse(localStorage.getItem('vozEmployee') || '{}').role) !== 1) {
             if (alertAudioRef.current) {
                 // Intentar reproducir. Si falla (autoplay policy), el usuario "desbloqueará" al interactuar
                 alertAudioRef.current.play().catch(e => console.error("Error reproduciendo alarma:", e));
@@ -263,7 +286,8 @@ export default function VozModerationPage() {
 
     const fetchQueue = () => {
         setLoading(true);
-        const employee = JSON.parse(localStorage.getItem('vozEmployee') || '{}');
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
+        const employee = JSON.parse(stored || '{}');
         const employeeName = `[${employee.workerNumber || '???'}] ${employee.username || 'unknown'}`;
 
         fetch(`/api/voz/moderation?employee=${encodeURIComponent(employeeName)}`)
@@ -305,7 +329,8 @@ export default function VozModerationPage() {
     const handleAction = (status: 'approved' | 'rejected', skipPenalty: boolean = false) => {
         if (!selectedItem) return;
 
-        const employee = JSON.parse(localStorage.getItem('vozEmployee') || '{}');
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
+        const employee = JSON.parse(stored || '{}');
 
         fetch('/api/voz/moderation', {
             method: 'PATCH',
@@ -354,19 +379,22 @@ export default function VozModerationPage() {
                 <div className="title-bar">
                     <div className="title-bar-text">Panel de Moderación - VOZ {currentShift && `[Turno de ${currentShift}]`}</div>
                 </div>
-                {currentRole === 1 && (
-                    <menu role="tablist" style={{ margin: '5px 5px 0 5px' }}>
-                        <li role="tab" aria-selected={viewMode === 'moderation'} onClick={() => setViewMode('moderation')}>
-                            <a href="#moderation">Cola de Trabajo</a>
-                        </li>
+                <menu role="tablist" style={{ margin: '5px 5px 0 5px' }}>
+                    <li role="tab" aria-selected={viewMode === 'moderation'} onClick={() => setViewMode('moderation')}>
+                        <a href="#moderation">Cola de Trabajo</a>
+                    </li>
+                    <li role="tab" aria-selected={viewMode === 'profiles'} onClick={() => setViewMode('profiles')}>
+                        <a href="#profiles">👤 Perfiles Denunciados</a>
+                    </li>
+                    {currentRole === 1 && (
                         <li role="tab" aria-selected={viewMode === 'supervision'} onClick={() => {
                             setViewMode('supervision');
                             fetchModeratorsStats();
                         }}>
                             <a href="#supervision">🔍 Supervisión Director</a>
                         </li>
-                    </menu>
-                )}
+                    )}
+                </menu>
                 <div className="window-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 15px' }}>
                     <div style={{ display: 'flex', gap: 20 }}>
                         <div className="status-bar" style={{ padding: '2px 10px', minWidth: 200 }}>
@@ -374,46 +402,56 @@ export default function VozModerationPage() {
                                 <span style={{
                                     marginLeft: 5,
                                     fontWeight: 'bold',
-                                    color: workMode === 'work' ? 'green' : workMode === 'rest' ? 'orange' : 'red'
+                                    color: (currentRole === 1) ? 'blue' : (workMode === 'work' ? 'green' : workMode === 'rest' ? 'orange' : 'red')
                                 }}>
-                                    {workMode === 'work' ? 'TRABAJANDO' : workMode === 'rest' ? 'DESCANSANDO' : workMode === 'lunch' ? 'COMIDA' : 'FUERA DE HORARIO'}
+                                    {(currentRole === 1) ? 'MODO DIRECTOR (IRRESTRICTO)' : (workMode === 'work' ? 'TRABAJANDO' : workMode === 'rest' ? 'DESCANSANDO' : workMode === 'lunch' ? 'COMIDA' : 'FUERA DE HORARIO')}
                                 </span>
                             </p>
                         </div>
-                        <div className="status-bar" style={{ padding: '2px 10px', minWidth: 150 }}>
-                            <p className="status-bar-field">Tiempo restante: <b>{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</b></p>
-                        </div>
+                        {(currentRole !== 1) && (
+                            <div className="status-bar" style={{ padding: '2px 10px', minWidth: 150 }}>
+                                <p className="status-bar-field">Tiempo restante: <b>{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</b></p>
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
-                        <div style={{ fontSize: '12px' }}>
-                            Ciclo: <b>{reviewedInCycle} / 90</b> vídeos
-                        </div>
-                        <div style={{ fontSize: '12px' }}>
-                            Jornada: <b>{totalToday} / 630</b> vídeos
-                        </div>
-                        <button
-                            disabled={workMode !== 'work' || isLunchRequested}
-                            onClick={() => {
-                                setConfirmModal({
-                                    title: 'Confirmar Pausa para Comer',
-                                    message: '¿Quieres solicitar tu hora de comida ahora? El sistema se bloqueará por 60 minutos.',
-                                    buttons: [
-                                        { label: 'Aceptar', onClick: () => setIsLunchRequested(true), isDefault: true },
-                                        { label: 'Cancelar', onClick: () => setConfirmModal(null) }
-                                    ]
-                                });
-                            }}
-                        >
-                            Solicitar Comida
-                        </button>
+                        {(currentRole !== 1) ? (
+                            <>
+                                <div style={{ fontSize: '12px' }}>
+                                    Ciclo: <b>{reviewedInCycle} / 90</b> vídeos
+                                </div>
+                                <div style={{ fontSize: '12px' }}>
+                                    Jornada: <b>{totalToday} / 630</b> vídeos
+                                </div>
+                                <button
+                                    disabled={workMode !== 'work' || isLunchRequested}
+                                    onClick={() => {
+                                        setConfirmModal({
+                                            title: 'Confirmar Pausa para Comer',
+                                            message: '¿Quieres solicitar tu hora de comida ahora? El sistema se bloqueará por 60 minutos.',
+                                            buttons: [
+                                                { label: 'Aceptar', onClick: () => setIsLunchRequested(true), isDefault: true },
+                                                { label: 'Cancelar', onClick: () => setConfirmModal(null) }
+                                            ]
+                                        });
+                                    }}
+                                >
+                                    Solicitar Comida
+                                </button>
+                            </>
+                        ) : (
+                            <div style={{ fontSize: '14px', color: 'darkblue', fontWeight: 'bold', border: '2px solid darkblue', padding: '2px 10px', backgroundColor: '#eef' }}>
+                                👔 MODO DIRECTOR - ACCESO TOTAL (SIN LÍMITES)
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, flex: 1, position: 'relative' }}>
                 {/* Overlay de Bloqueo por Pausa/Comida */}
-                {workMode !== 'work' && (
+                {workMode !== 'work' && currentRole !== 1 && (
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, right: 0, bottom: 0,
@@ -445,7 +483,7 @@ export default function VozModerationPage() {
                 )}
 
                 {/* Overlay de Inactividad */}
-                {isInactive && workMode === 'work' && (
+                {isInactive && workMode === 'work' && currentRole !== 1 && (
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, right: 0, bottom: 0,
@@ -495,157 +533,164 @@ export default function VozModerationPage() {
                     </div>
                 )}
 
-                {/* Lista de Cola de Denuncias */}
-                <div style={{ width: '300px', display: 'flex', flexDirection: 'column' }}>
-                    <fieldset style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <legend>Denuncias Pendientes ({queue.length})</legend>
-                        <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflowY: 'auto' }}>
-                            <ul className="tree-view">
-                                {loading ? (
-                                    <li>Cargando reportes...</li>
-                                ) : queue.length === 0 ? (
-                                    <li>No hay denuncias pendientes</li>
-                                ) : (
-                                    queue.map(item => (
-                                        <li
-                                            key={item.id}
-                                            onClick={() => setSelectedItem(item)}
-                                            style={{
-                                                cursor: 'pointer',
-                                                backgroundColor: selectedItem?.id === item.id ? 'navy' : 'transparent',
-                                                color: selectedItem?.id === item.id ? 'white' : 'black',
-                                                padding: '4px 8px',
-                                                borderBottom: '1px solid #dfdfdf'
-                                            }}
-                                        >
-                                            <div style={{ fontWeight: 'bold' }}>{item.type === 'video' ? '📹 Video' : '🔊 Audio'}</div>
-                                            <div style={{ fontSize: '0.8em', opacity: selectedItem?.id === item.id ? 0.9 : 0.7 }}>
-                                                Por: {item.userHandle}
-                                            </div>
-                                        </li>
-                                    ))
-                                )}
-                            </ul>
-                        </div>
-                    </fieldset>
-                </div>
-
-                {/* Área de Visualización */}
+                {/* VISTA GENERAL DE MODERACIÓN */}
                 {viewMode === 'moderation' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <div className="window" style={{ flex: 1, marginBottom: 10, display: 'flex', flexDirection: 'column' }}>
-                            <div className="title-bar">
-                                <div className="title-bar-text">
-                                    Visualizador de Denuncias: {selectedItem ? `${selectedItem.type.toUpperCase()} de ${selectedItem.userHandle}` : 'Nada seleccionado'}
+                    <div style={{ flex: 1, display: 'flex', gap: 10 }}>
+                        {/* Lista de Cola de Denuncias */}
+                        <div style={{ width: '300px', display: 'flex', flexDirection: 'column' }}>
+                            <fieldset style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <legend>Denuncias Pendientes ({queue.filter(q => q.type !== 'profile').length})</legend>
+                                <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflowY: 'auto' }}>
+                                    <ul className="tree-view">
+                                        {loading ? (
+                                            <li>Cargando reportes...</li>
+                                        ) : queue.filter(q => q.type !== 'profile').length === 0 ? (
+                                            <li>No hay denuncias pendientes</li>
+                                        ) : (
+                                            queue.filter(q => q.type !== 'profile').map(item => (
+                                                <li
+                                                    key={item.id}
+                                                    onClick={() => setSelectedItem(item)}
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        backgroundColor: selectedItem?.id === item.id ? 'navy' : 'transparent',
+                                                        color: selectedItem?.id === item.id ? 'white' : 'black',
+                                                        padding: '4px 8px',
+                                                        borderBottom: '1px solid #dfdfdf'
+                                                    }}
+                                                >
+                                                    <div style={{ fontWeight: 'bold' }}>{item.type === 'video' ? '📹 Video' : item.type === 'audio' ? '🔊 Audio' : '📝 Contenido'}</div>
+                                                    <div style={{ fontSize: '0.8em', opacity: selectedItem?.id === item.id ? 0.9 : 0.7 }}>
+                                                        Por: {item.userHandle}
+                                                    </div>
+                                                </li>
+                                            ))
+                                        )}
+                                    </ul>
+                                </div>
+                            </fieldset>
+                        </div>
+
+                        {/* Área de Visualización */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div className="window" style={{ flex: 1, marginBottom: 10, display: 'flex', flexDirection: 'column' }}>
+                                <div className="title-bar">
+                                    <div className="title-bar-text">
+                                        Visualizador de Denuncias: {selectedItem ? `${selectedItem.type.toUpperCase()} de ${selectedItem.userHandle}` : 'Nada seleccionado'}
+                                    </div>
+                                </div>
+                                <div className="window-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 10 }}>
+                                    {selectedItem ? (
+                                        <>
+                                            <div style={{ marginBottom: 10, padding: 5, background: '#ffcccc', border: '1px solid red', fontWeight: 'bold', color: '#b30000' }}>
+                                                🚩 Motivo del Reporte: {selectedItem.reportReason || 'No especificado'}
+                                            </div>
+                                            <div className="sunken-panel" style={{ flex: 1, background: 'black', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                                                {selectedItem.type === 'video' ? (
+                                                    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+                                                        <video
+                                                            key={selectedItem.url}
+                                                            src={selectedItem.url}
+                                                            autoPlay
+                                                            style={{ maxWidth: '100%', maxHeight: '100%', pointerEvents: 'none' }}
+                                                            onContextMenu={(e) => e.preventDefault()}
+                                                        />
+                                                        {!canAction && currentRole !== 1 && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                bottom: 10,
+                                                                right: 10,
+                                                                background: 'rgba(0,0,0,0.7)',
+                                                                color: 'white',
+                                                                padding: '5px 10px',
+                                                                fontSize: '14px',
+                                                                fontFamily: 'monospace'
+                                                            }}>
+                                                                Analizando... {videoTimeLeft}s
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : selectedItem.type === 'audio' ? (
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <img src="https://win98icons.alexmeub.com/icons/png/sndvol32-1.png" alt="Audio" style={{ width: 64, marginBottom: 20 }} />
+                                                        <audio
+                                                            key={selectedItem.url}
+                                                            src={selectedItem.url}
+                                                            controls
+                                                            autoPlay
+                                                            style={{ width: '300px' }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <p style={{ color: 'white' }}>Tipo de contenido no soportado: {selectedItem.type}</p>
+                                                )}
+                                            </div>
+                                            <div className="status-bar" style={{ marginTop: 10 }}>
+                                                <p className="status-bar-field">Matrícula: {selectedItem.matricula || 'VOZ-NEW'}</p>
+                                                <p className="status-bar-field">ID: {selectedItem.id}</p>
+                                                <p className="status-bar-field">Usuario: {selectedItem.userHandle}</p>
+                                                <p className="status-bar-field">Fecha: {new Date(selectedItem.timestamp).toLocaleString()}</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#c0c0c0' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <img src="https://win98icons.alexmeub.com/icons/png/shield_cool-1.png" alt="Moderacion" style={{ width: 64, marginBottom: 10 }} />
+                                                <p>Selecciona una denuncia de la cola para revisarla.</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            <div className="window-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 10 }}>
-                                {selectedItem ? (
-                                    <>
-                                        <div style={{ marginBottom: 10, padding: 5, background: '#ffcccc', border: '1px solid red', fontWeight: 'bold', color: '#b30000' }}>
-                                            🚩 Motivo del Reporte: {selectedItem.reportReason || 'No especificado'}
-                                        </div>
-                                        <div className="sunken-panel" style={{ flex: 1, background: 'black', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-                                            {selectedItem.type === 'video' ? (
-                                                <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                                                    <video
-                                                        key={selectedItem.url}
-                                                        src={selectedItem.url}
-                                                        autoPlay
-                                                        style={{ maxWidth: '100%', maxHeight: '100%', pointerEvents: 'none' }}
-                                                        onContextMenu={(e) => e.preventDefault()}
-                                                    />
-                                                    {!canAction && (
-                                                        <div style={{
-                                                            position: 'absolute',
-                                                            bottom: 10,
-                                                            right: 10,
-                                                            background: 'rgba(0,0,0,0.7)',
-                                                            color: 'white',
-                                                            padding: '5px 10px',
-                                                            fontSize: '14px',
-                                                            fontFamily: 'monospace'
-                                                        }}>
-                                                            Analizando... {videoTimeLeft}s
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : selectedItem.type === 'audio' ? (
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <img src="https://win98icons.alexmeub.com/icons/png/sndvol32-1.png" alt="Audio" style={{ width: 64, marginBottom: 20 }} />
-                                                    <audio
-                                                        key={selectedItem.url}
-                                                        src={selectedItem.url}
-                                                        controls
-                                                        autoPlay
-                                                        style={{ width: '300px' }}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <p style={{ color: 'white' }}>Tipo de contenido no soportado: {selectedItem.type}</p>
-                                            )}
-                                        </div>
-                                        <div className="status-bar" style={{ marginTop: 10 }}>
-                                            <p className="status-bar-field">Matrícula: {selectedItem.matricula || 'VOZ-NEW'}</p>
-                                            <p className="status-bar-field">ID: {selectedItem.id}</p>
-                                            <p className="status-bar-field">Usuario: {selectedItem.userHandle}</p>
-                                            <p className="status-bar-field">Fecha: {new Date(selectedItem.timestamp).toLocaleString()}</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#c0c0c0' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <img src="https://win98icons.alexmeub.com/icons/png/shield_cool-1.png" alt="Moderacion" style={{ width: 64, marginBottom: 10 }} />
-                                            <p>Selecciona una denuncia de la cola para revisarla.</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        <div className="field-row" style={{ justifyContent: 'center', gap: 20 }}>
-                            <button
-                                disabled={!selectedItem || !canAction}
-                                onClick={() => {
-                                    setConfirmModal({
-                                        title: 'Rechazar Contenido',
-                                        message: `¿Qué acción deseas tomar para el contenido de ${selectedItem?.userHandle}?`,
-                                        buttons: [
-                                            {
-                                                label: 'Rechazar y Penalizar',
-                                                onClick: () => handleAction('rejected', false),
-                                                style: { color: 'red', fontWeight: 'bold' }
-                                            },
-                                            {
-                                                label: 'Rechazar y Aceptar',
-                                                onClick: () => handleAction('rejected', true),
-                                                style: { fontWeight: 'bold' }
-                                            },
-                                            {
-                                                label: 'Cancelar',
-                                                onClick: () => setConfirmModal(null)
-                                            }
-                                        ]
-                                    });
-                                }}
-                                style={{ minWidth: 150, fontWeight: 'bold', color: 'red' }}
-                            >
-                                {canAction ? '🗑️ RECHAZAR / PENALIZAR' : `ESPERE (${videoTimeLeft}s)`}
-                            </button>
-                            <button
-                                disabled={!selectedItem || !canAction}
-                                onClick={() => handleAction('approved')}
-                                style={{ minWidth: 120, fontWeight: 'bold', color: 'green' }}
-                            >
-                                {canAction ? '🛡️ APROBAR / MANTENER' : '...'}
-                            </button>
-                            <button
-                                disabled={queue.length <= 1 || !canAction}
-                                onClick={handleSkip}
-                                style={{ minWidth: 80 }}
-                            >
-                                Saltar
-                            </button>
+                            <div className="field-row" style={{ justifyContent: 'center', gap: 20 }}>
+                                <button
+                                    disabled={!selectedItem || !canAction}
+                                    onClick={() => {
+                                        if (currentRole === 1) {
+                                            handleAction('rejected', true); // Automáticamente Skip Penalty para el Director
+                                            return;
+                                        }
+                                        setConfirmModal({
+                                            title: 'Rechazar Contenido',
+                                            message: `¿Qué acción deseas tomar para el contenido de ${selectedItem?.userHandle}?`,
+                                            buttons: [
+                                                {
+                                                    label: 'Rechazar y Penalizar',
+                                                    onClick: () => handleAction('rejected', false),
+                                                    style: { color: 'red', fontWeight: 'bold' }
+                                                },
+                                                {
+                                                    label: 'Rechazar y Aceptar',
+                                                    onClick: () => handleAction('rejected', true),
+                                                    style: { fontWeight: 'bold' }
+                                                },
+                                                {
+                                                    label: 'Cancelar',
+                                                    onClick: () => setConfirmModal(null)
+                                                }
+                                            ]
+                                        });
+                                    }}
+                                    style={{ minWidth: 150, fontWeight: 'bold', color: 'red' }}
+                                >
+                                    {canAction ? '🗑️ RECHAZAR / PENALIZAR' : (currentRole === 1 ? '🗑️ RECHAZAR' : `ESPERE (${videoTimeLeft}s)`)}
+                                </button>
+                                <button
+                                    disabled={!selectedItem || !canAction}
+                                    onClick={() => handleAction('approved')}
+                                    style={{ minWidth: 120, fontWeight: 'bold', color: 'green' }}
+                                >
+                                    {canAction ? '🛡️ APROBAR / MANTENER' : '...'}
+                                </button>
+                                <button
+                                    disabled={queue.filter(q => q.type !== 'profile').length <= 1 || !canAction}
+                                    onClick={handleSkip}
+                                    style={{ minWidth: 80 }}
+                                >
+                                    Saltar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -708,6 +753,155 @@ export default function VozModerationPage() {
                                     </table>
                                 </div>
                             </fieldset>
+                        </div>
+                    </div>
+                )}
+
+                {/* VISTA DE PERFILES DENUNCIADOS */}
+                {viewMode === 'profiles' && (
+                    <div style={{ flex: 1, display: 'flex', gap: 10 }}>
+                        <div style={{ width: '300px', display: 'flex', flexDirection: 'column' }}>
+                            <fieldset style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <legend>Perfiles ({Object.keys(
+                                    queue.filter(item => item.type === 'profile').reduce((acc, current) => {
+                                        acc[current.userHandle] = (acc[current.userHandle] || 0) + 1;
+                                        return acc;
+                                    }, {} as Record<string, number>)
+                                ).length})</legend>
+                                <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflowY: 'auto' }}>
+                                    <ul className="tree-view">
+                                        {(() => {
+                                            const grouped = queue
+                                                .filter(item => item.type === 'profile')
+                                                .reduce((acc, current) => {
+                                                    const handle = current.userHandle;
+                                                    if (!acc[handle]) acc[handle] = { handle, count: 0, items: [] };
+                                                    acc[handle].count += 1;
+                                                    acc[handle].items.push(current);
+                                                    return acc;
+                                                }, {} as Record<string, { handle: string, count: number, items: ModerationItem[] }>);
+
+                                            const list = Object.values(grouped).sort((a, b) => b.count - a.count);
+
+                                            if (list.length === 0) return <li style={{ padding: 5 }}>No hay denuncias</li>;
+                                            return list.map((p, i) => (
+                                                <li key={i}
+                                                    style={{
+                                                        cursor: 'pointer', padding: '8px',
+                                                        backgroundColor: selectedProfileHandle === p.handle ? 'navy' : 'transparent',
+                                                        color: selectedProfileHandle === p.handle ? 'white' : 'black',
+                                                        borderBottom: '1px solid #eee'
+                                                    }}
+                                                    onClick={() => setSelectedProfileHandle(p.handle)}
+                                                >
+                                                    <div style={{ fontWeight: 'bold' }}>👤 {p.handle}</div>
+                                                    <div style={{ fontSize: '12px', color: selectedProfileHandle === p.handle ? '#ccc' : 'red', marginTop: 4 }}>
+                                                        {p.count} {p.count === 1 ? 'denuncia' : 'denuncias'}
+                                                    </div>
+                                                </li>
+                                            ));
+                                        })()}
+                                    </ul>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div className="window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <div className="title-bar">
+                                    <div className="title-bar-text">Detalle del Perfil: {selectedProfileHandle || 'Selecciona uno'}</div>
+                                </div>
+                                <div className="window-body" style={{ flex: 1, padding: 10, display: 'flex', flexDirection: 'column' }}>
+                                    {selectedProfileHandle ? (() => {
+                                        const profileItems = queue.filter(item => item.type === 'profile' && item.userHandle === selectedProfileHandle);
+                                        return (
+                                            <>
+                                                <div style={{ marginBottom: 15 }}>
+                                                    <h3>Perfil Analizado: {selectedProfileHandle}</h3>
+                                                    <p>Total de reportes pendientes: <b>{profileItems.length}</b></p>
+                                                    <a href={`https://voz.app/profile/${selectedProfileHandle.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ color: 'blue', textDecoration: 'underline' }}>
+                                                        Abrir perfil en nueva pestaña ↗
+                                                    </a>
+                                                </div>
+                                                <div className="sunken-panel" style={{ flex: 1, background: 'white', overflowY: 'auto' }}>
+                                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                        <thead>
+                                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid black', background: '#eee' }}>
+                                                                <th style={{ padding: 5 }}>Fecha</th>
+                                                                <th style={{ padding: 5 }}>Motivo de la Denuncia</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {profileItems.map((item, i) => (
+                                                                <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                                                                    <td style={{ padding: 5, fontSize: '12px' }}>{new Date(item.timestamp).toLocaleString()}</td>
+                                                                    <td style={{ padding: 5, color: '#b30000', fontWeight: 'bold' }}>{item.reportReason || 'No especificado'}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div className="field-row" style={{ marginTop: 15, justifyContent: 'flex-end', gap: 10 }}>
+                                                    <button onClick={() => {
+                                                        const handle = selectedProfileHandle;
+                                                        setConfirmModal({
+                                                            title: 'Confirmar Borrado',
+                                                            message: `¿Seguro que quieres borrar este usuario?`,
+                                                            buttons: [
+                                                                {
+                                                                    label: 'Aceptar',
+                                                                    style: { backgroundColor: 'red', color: 'white', fontWeight: 'bold' },
+                                                                    onClick: () => {
+                                                                        const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
+                                                                        const employee = JSON.parse(stored || '{}');
+                                                                        const employeeName = `[${employee.workerNumber || '???'}] ${employee.username}`;
+
+                                                                        // Ejecutar baneo/borrado para todos los reportes de perfil
+                                                                        Promise.all(profileItems.map(item => fetch('/api/voz/moderation', {
+                                                                            method: 'PATCH',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({ id: item.id, status: 'rejected', employeeName, skipPenalty: false })
+                                                                        }))).then(() => {
+                                                                            setConfirmModal(null);
+                                                                            setSelectedProfileHandle(null);
+                                                                            fetchQueue();
+                                                                            alert(`Usuario ${handle} ha sido borrado.`);
+                                                                        });
+                                                                    }
+                                                                },
+                                                                {
+                                                                    label: 'Cancelar',
+                                                                    onClick: () => setConfirmModal(null)
+                                                                }
+                                                            ]
+                                                        });
+                                                    }} style={{ color: 'red', fontWeight: 'bold' }}>
+                                                        🚫 Eliminar / Banear Perfil
+                                                    </button>
+                                                    <button onClick={() => {
+                                                        const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
+                                                        const employee = JSON.parse(stored || '{}');
+                                                        const employeeName = `[${employee.workerNumber || '???'}] ${employee.username}`;
+                                                        Promise.all(profileItems.map(item => fetch('/api/voz/moderation', {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ id: item.id, status: 'approved', employeeName, skipPenalty: true })
+                                                        }))).then(() => {
+                                                            setSelectedProfileHandle(null);
+                                                            fetchQueue();
+                                                        });
+                                                    }} style={{ color: 'green', fontWeight: 'bold' }}>
+                                                        ✔️ Ignorar Reportes
+                                                    </button>
+                                                </div>
+                                            </>
+                                        );
+                                    })() : (
+                                        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'gray' }}>
+                                            Selecciona un perfil de la lista izquierda para ver sus denuncias.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

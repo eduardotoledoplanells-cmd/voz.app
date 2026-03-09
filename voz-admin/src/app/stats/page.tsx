@@ -30,12 +30,20 @@ export default function ViralRankingPage() {
     const [topDonors, setTopDonors] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [summary, setSummary] = useState({ donationsToday: 0, activeUsers: 0 });
+    const [auditData, setAuditData] = useState<any>(null);
 
     const fetchStats = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/voz/stats');
-            const data = await response.json();
+            const [statsRes, auditRes] = await Promise.all([
+                fetch('/api/voz/stats'),
+                fetch('/api/voz/admin/audit')
+            ]);
+
+            const [data, audit] = await Promise.all([
+                statsRes.json(),
+                auditRes.json()
+            ]);
 
             // Handle new API structure { videos: [], donors: [], summary: {}, categories: [] }
             if (data.videos) {
@@ -47,6 +55,11 @@ export default function ViralRankingPage() {
                 // Fallback for old structure just in case
                 setVideoRanking(data);
             }
+
+            if (audit && audit.status) {
+                setAuditData(audit);
+            }
+
             setIsLoading(false);
         } catch (error) {
             console.error('Error fetching stats:', error);
@@ -199,6 +212,71 @@ export default function ViralRankingPage() {
                 border: '2px solid',
                 borderColor: '#808080 #ffffff #ffffff #808080'
             }}>
+                {/* SECURITY AUDIT WIDGET */}
+                {auditData && (
+                    <div style={{
+                        marginBottom: '20px',
+                        padding: '15px',
+                        backgroundColor: auditData.status === 'BREACHED' ? '#ffcccc' : '#d4f0d4',
+                        border: '2px solid',
+                        borderColor: auditData.status === 'BREACHED' ? '#cc0000' : '#008000',
+                        color: '#000'
+                    }}>
+                        <h2 style={{
+                            fontSize: '18px',
+                            color: auditData.status === 'BREACHED' ? '#cc0000' : '#006400',
+                            marginTop: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            {auditData.status === 'BREACHED' ? '🚨 ALERTA CRÍTICA: Descuadre de Monedas Detectado' : '✅ Auditoría Matemática: Sistema Seguro'}
+                        </h2>
+
+                        <div style={{ display: 'flex', gap: '20px', fontSize: '12px', marginTop: '10px' }}>
+                            <div>
+                                <strong>Ventas Oficiales (Stripe):</strong> {auditData.globalMath.totalCoinsFromStripe.toFixed(2)} 🪙
+                                <br />
+                                <strong>Bonos de Admin:</strong> {auditData.globalMath.totalCoinsFromAdmins.toFixed(2)} 🪙
+                            </div>
+                            <div>
+                                <strong>Total Esperado (Matemático):</strong> {auditData.globalMath.totalExpectedSupply.toFixed(2)} 🪙
+                                <br />
+                                <strong>Monedas Reales en Carteras:</strong> {auditData.globalMath.totalRealCirculatingSupply.toFixed(2)} 🪙
+                            </div>
+                            <div>
+                                <strong>Descuadre Global:</strong> <span style={{ color: auditData.globalMath.globalDiscrepancy > 0.1 ? 'red' : 'green', fontWeight: 'bold' }}>{auditData.globalMath.globalDiscrepancy.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        {auditData.suspiciousUsers && auditData.suspiciousUsers.length > 0 && (
+                            <div style={{ marginTop: '15px', borderTop: '1px solid #cc0000', paddingTop: '10px' }}>
+                                <strong style={{ color: '#cc0000' }}>Usuarios Sospechosos (Monedas Inyectadas):</strong>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '5px', backgroundColor: '#fff' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'left' }}>Usuario</th>
+                                            <th style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right' }}>Cartera Actual</th>
+                                            <th style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right' }}>Balance Matemático</th>
+                                            <th style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right' }}>Descuadre (Falso)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {auditData.suspiciousUsers.map((u: any) => (
+                                            <tr key={u.handle}>
+                                                <td style={{ border: '1px solid #cc0000', padding: '4px', fontWeight: 'bold' }}>{u.handle}</td>
+                                                <td style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right' }}>{u.currentBalance}</td>
+                                                <td style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right' }}>{u.expectedBalance}</td>
+                                                <td style={{ border: '1px solid #cc0000', padding: '4px', textAlign: 'right', color: 'red', fontWeight: 'bold' }}>+{u.discrepancy}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {activeTab === 'videos' && (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead style={{ position: 'sticky', top: 0, backgroundColor: '#c0c0c0', zIndex: 10 }}>
@@ -291,7 +369,7 @@ export default function ViralRankingPage() {
                                         }}>
                                             🪙 {donor.donation.toLocaleString()}
                                         </div>
-                                        <div style={{ fontSize: '12px', color: '#222' }}>ROBcoins donados</div>
+                                        <div style={{ fontSize: '12px', color: '#222' }}>Monedas donadas</div>
                                     </div>
                                 </div>
                             ))

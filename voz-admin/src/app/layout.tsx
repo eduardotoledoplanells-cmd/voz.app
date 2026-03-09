@@ -78,10 +78,11 @@ function VozAdminContent({
         { href: '/moderation', label: '🛡️ Moderación Voz', roles: [1, 3, 5, 6] },
         { href: '/ads', label: '📢 Publicidad App', roles: [1, 4, 5, 6] },
         { href: '/stats', label: '📈 Ranking Viral', roles: [1, 5, 6] },
+        { href: '/hr', label: '👥 Recursos Humanos', roles: [1] },
         { href: '/logs', label: '📜 Logs del Director', roles: [1] },
     ];
 
-    const currentRole = employee?.role || 1;
+    const currentRole = employee ? Number(employee.role) : 1;
     const navItems = allNavItems.filter(item => {
         if (currentRole === 1 || currentRole === 6) return true;
         return item.roles.includes(currentRole);
@@ -90,7 +91,8 @@ function VozAdminContent({
     useEffect(() => {
         const currentItem = allNavItems.find(i => i.href === pathname);
         if (currentItem && employee) {
-            if (!currentItem.roles.includes(employee.role) && employee.role !== 1 && employee.role !== 6) {
+            const role = Number(employee.role);
+            if (!currentItem.roles.includes(role) && role !== 1 && role !== 6) {
                 router.push('/');
             }
         }

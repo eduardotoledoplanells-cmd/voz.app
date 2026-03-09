@@ -9,20 +9,44 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Add Transaction to Supabase
+        // 1. Validate Sender Balance
+        const users = await getAppUsers();
+        const sender = users.find(u => u.handle === senderHandle);
+        const receiver = users.find(u => u.handle === receiverHandle);
+
+        if (!sender) {
+            return NextResponse.json({ error: 'Sender not found' }, { status: 404 });
+        }
+
+        const giftAmount = Number(amount);
+        if (isNaN(giftAmount) || giftAmount <= 0) {
+            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        }
+
+        if ((sender.walletBalance || 0) < giftAmount) {
+            return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
+        }
+
+        // 2. Perform safe deduction from sender
+        const newSenderBalance = (sender.walletBalance || 0) - giftAmount;
+        const senderUpdated = await updateAppUser(sender.id, { walletBalance: newSenderBalance });
+
+        if (!senderUpdated) {
+            return NextResponse.json({ error: 'Failed to process transaction' }, { status: 500 });
+        }
+
+        // 3. Add Transaction Log to Supabase
         await addTransaction({
             senderHandle,
             receiverHandle,
-            amount: Number(amount),
+            amount: giftAmount,
             type: 'gift',
             videoId
         });
 
-        // 2. Update Receiver Balance (75% Commission for Creator, 25% for App)
-        const payoutAmount = Number(amount) * 0.75;
-
-        const users = await getAppUsers();
-        const receiver = users.find(u => u.handle === receiverHandle);
+        // 4. Update Receiver Balance (75% Commission for Creator, 25% for App)
+        // Ensure atomic-style addition using the fresh receiver data
+        const payoutAmount = giftAmount * 0.75;
 
         if (receiver) {
             await updateAppUser(receiver.id, {
@@ -41,7 +65,7 @@ export async function POST(request: Request) {
             });
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, newSenderBalance });
 
     } catch (error) {
         console.error('Error processing gift:', error);

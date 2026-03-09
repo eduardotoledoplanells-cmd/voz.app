@@ -90,7 +90,7 @@ export interface User {
     verificationTokenExpiry?: number;
     favorites?: string[]; // Array of Product IDs
     points?: number;
-    lastRobCoinEarned?: number; // Timestamp of last earned coin
+    lastCoinEarned?: number; // Timestamp of last earned coin
 }
 
 export interface ProductView {
