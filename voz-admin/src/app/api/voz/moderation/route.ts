@@ -80,23 +80,25 @@ export async function PATCH(request: Request) {
                 } else {
                     // Si es contenido específico (video/audio)
                     if (updated.type === 'video') {
-                        // Borrar el video de la tabla principal
+                        // Borrar el video de la tabla principal. Intentamos por ID y por URL.
+                        if (updated.content && updated.content.length > 20) {
+                            console.log(`[MODERATION] Borrando por ID: ${updated.content}`);
+                            await supabaseAdmin.from('videos').delete().eq('id', updated.content);
+                        }
                         const { error: videoDelError } = await supabaseAdmin
                             .from('videos')
                             .delete()
-                            .eq('video_url', updated.url);
+                            .ilike('video_url', updated.url);
 
                         if (videoDelError) {
-                            console.error('Error al borrar video tras baneo:', videoDelError);
-                        } else {
-                            console.log('Video borrado exitosamente:', updated.url);
+                            console.error('[MODERATION] Error al borrar video por URL:', videoDelError);
                         }
                     } else if (updated.type === 'audio') {
                         // Borrar el comentario de voz
-                        await supabaseAdmin
-                            .from('voice_comments')
-                            .delete()
-                            .eq('audio_url', updated.url);
+                        if (updated.content && updated.content.length > 20) {
+                            await supabaseAdmin.from('voice_comments').delete().eq('id', updated.content);
+                        }
+                        await supabaseAdmin.from('voice_comments').delete().ilike('audio_url', updated.url);
                     }
 
                     if (!skipPenalty) {
