@@ -290,7 +290,7 @@ export default function VozModerationPage() {
         const employee = JSON.parse(stored || '{}');
         const employeeName = `[${employee.workerNumber || '???'}] ${employee.username || 'unknown'}`;
 
-        fetch(`/api/voz/moderation?employee=${encodeURIComponent(employeeName)}`)
+        fetch(`/api/voz/moderation?employee=${encodeURIComponent(employeeName)}&_t=${Date.now()}`)
             .then(res => res.json())
             .then(data => {
                 setQueue(data);
