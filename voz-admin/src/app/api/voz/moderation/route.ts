@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle } from '@/lib/db';
+import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle, supabaseAdmin } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function OPTIONS() {
