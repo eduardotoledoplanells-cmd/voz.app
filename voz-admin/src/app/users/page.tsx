@@ -50,7 +50,7 @@ export default function VozUsersPage() {
     };
 
     const fetchUsers = () => {
-        fetch(`/api/voz/users?_t=${Date.now()}`)
+        fetch('/api/voz/users')
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {

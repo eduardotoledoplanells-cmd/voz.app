@@ -12,7 +12,25 @@ if (!isValidEnvKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-export const supabaseAdmin = serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : supabase;
+
+// Detectar si la clave de Service Role pertenece realmente a este proyecto
+// para evitar que falle con "Item not found" si el usuario puso una clave de otro proyecto en Vercel.
+function validateServiceKey(key: string, url: string): boolean {
+    if (!key || !url) return false;
+    try {
+        const payloadPart = key.split('.')[1];
+        const payload = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
+        const keyRef = payload.ref;
+        const urlRef = url.split('//')[1]?.split('.')[0];
+        return keyRef === urlRef;
+    } catch (e) {
+        return false;
+    }
+}
+
+export const supabaseAdmin = (serviceRoleKey && validateServiceKey(serviceRoleKey, supabaseUrl))
+    ? createClient(supabaseUrl, serviceRoleKey)
+    : supabase;
 
 export interface AppUser {
     id: string;
