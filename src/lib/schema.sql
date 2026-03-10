@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS videos (
     video_url TEXT NOT NULL,
     user_handle TEXT NOT NULL,
     description TEXT,
-    music TEXT,
+    music JSONB,
     likes INTEGER DEFAULT 0,
     shares INTEGER DEFAULT 0,
     comments_count INTEGER DEFAULT 0,
@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS videos (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_ad BOOLEAN DEFAULT FALSE,
     thumbnail_url TEXT,
-    is_pinned BOOLEAN DEFAULT FALSE
+    is_pinned BOOLEAN DEFAULT FALSE,
+    filter_config JSONB
 );
 
 -- 3. Cola de Moderación

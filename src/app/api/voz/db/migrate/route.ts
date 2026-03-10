@@ -47,6 +47,20 @@ export async function POST(req: NextRequest) {
                     
                     ALTER TABLE user_follows ENABLE ROW LEVEL SECURITY;
                     
+                    -- Actualización de la tabla videos para filtros y música
+                    ALTER TABLE videos ADD COLUMN IF NOT EXISTS filter_config JSONB;
+                    
+                    -- Intentar convertir la columna music a JSONB si es TEXT
+                    DO $$ 
+                    BEGIN
+                        IF (SELECT data_type FROM information_schema.columns WHERE table_name = 'videos' AND column_name = 'music') = 'text' THEN
+                            ALTER TABLE videos ALTER COLUMN music TYPE JSONB USING music::JSONB;
+                        END IF;
+                    EXCEPTION
+                        WHEN others THEN 
+                            NULL; -- Ignorar errores si la columna no existe o ya es JSONB
+                    END $$;
+
                     DO $$ 
                     BEGIN
                         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public read access' AND tablename = 'user_follows') THEN

@@ -137,6 +137,7 @@ export interface VideoPost {
     views: number;
     createdAt: string;
     music?: string;
+    filterConfig?: any;
     isAd?: boolean;
     isLikedByMe?: boolean;
     isBookmarkedByMe?: boolean;
@@ -206,7 +207,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             comments_count: video.commentsCount,
             views: video.views,
             is_ad: video.isAd || false,
-            thumbnail_url: video.thumbnailUrl
+            thumbnail_url: video.thumbnailUrl,
+            filter_config: video.filterConfig
         }])
         .select()
         .single();
@@ -227,6 +229,7 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
         views: data.views,
         createdAt: data.created_at,
         music: data.music,
+        filterConfig: data.filter_config,
         isAd: data.is_ad,
         thumbnailUrl: data.thumbnail_url
     };

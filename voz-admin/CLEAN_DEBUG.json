@@ -1,0 +1,268 @@
+{
+  "videos": [
+    {
+      "id": "d9b7eb9a-2415-4ba8-9c56-f89a9f935fcc",
+      "video_url": "/storage/v1/object/public/media/videos/1772711811337-video_1772711811720.mp4",
+      "user_handle": "@Edu_82",
+      "description": "",
+      "music": null,
+      "likes": 56,
+      "shares": 2,
+      "comments_count": 0,
+      "views": 358,
+      "created_at": "2026-03-09T18:31:20.865+00:00",
+      "is_ad": false,
+      "thumbnail_url": "/storage/v1/object/public/media/thumbnails/1772711811337-video_1772711811720.jpg",
+      "is_pinned": false
+    }
+  ],
+  "app_users": [
+    {
+      "id": "537f8352-6f80-497a-a65e-128564bb4aba",
+      "handle": "@Edu_82",
+      "email": "Retrotiendas2019@gmail.com",
+      "password": "123456789",
+      "status": "active",
+      "reputation": 10,
+      "wallet_balance": 0,
+      "joined_at": "2026-02-23T19:14:35.093956+00:00",
+      "name": "edu_82",
+      "bio": null,
+      "profile_image": null,
+      "is_creator": false
+    }
+  ],
+  "moderation_queue": [
+    {
+      "id": "38b73849-cbb0-42cc-8409-7b496b277c64",
+      "type": "profile",
+      "url": "https://voz.app/profile/usuario",
+      "user_handle": "@usuario",
+      "content": "Perfil de usuario",
+      "report_reason": "Reportado por @Edu_82: Contenido inapropiado",
+      "status": "approved",
+      "timestamp": "2026-03-04T20:24:14.018+00:00"
+    },
+    {
+      "id": "82a22632-c8a1-467e-b50d-add7dc1cb3c3",
+      "type": "video",
+      "url": "https://voz.apptesturl.mp4",
+      "user_handle": "@usuario",
+      "content": "5e205e1d-8ab6-4d69-af66-5a11a601b0a3",
+      "report_reason": "Reportado por @Edu_82: Contenido Inapropiado",
+      "status": "rejected",
+      "timestamp": "2026-03-04T20:24:31.191+00:00"
+    },
+    {
+      "id": "233b7fc6-1f96-4056-ba6b-31765474c3a6",
+      "type": "video",
+      "url": "https://voz.apptesturl.mp4",
+      "user_handle": "@usuario",
+      "content": "5e205e1d-8ab6-4d69-af66-5a11a601b0a3",
+      "report_reason": "Reportado por @Edu_82: Violencia / Acoso",
+      "status": "rejected",
+      "timestamp": "2026-03-07T15:50:39.547+00:00"
+    },
+    {
+      "id": "48b1fe93-b1e0-479c-83e4-b599d92395b2",
+      "type": "video",
+      "url": "https://example.com/test-video.mp4",
+      "user_handle": "@testuser",
+      "content": null,
+      "report_reason": "Prueba de diagnóstico de Antigravity",
+      "status": "rejected",
+      "timestamp": "2026-03-08T19:55:21.243+00:00"
+    },
+    {
+      "id": "1ed81ada-ec52-4a44-8df3-31e5bc3b8e58",
+      "type": "video",
+      "url": "https://example.com/test-video.mp4",
+      "user_handle": "@testuser",
+      "content": null,
+      "report_reason": "Prueba de diagnóstico de Antigravity",
+      "status": "rejected",
+      "timestamp": "2026-03-08T14:41:48.222+00:00"
+    },
+    {
+      "id": "17b1d790-6442-4064-bb04-c3ce3d14989f",
+      "type": "video",
+      "url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/videos/1772711811337-video_1772711811720.mp4",
+      "user_handle": "@Edu_82",
+      "content": "b8e937a3-4735-406b-9d13-7c7e707222c6",
+      "report_reason": "Reportado por @Edu_82: Violencia / Acoso",
+      "status": "approved",
+      "timestamp": "2026-03-05T12:39:37.748+00:00"
+    }
+  ],
+  "video_likes": [],
+  "video_bookmarks": [],
+  "video_views": [],
+  "voice_comments": [
+    {
+      "id": "9758be31-d4f0-490f-85fc-9dc20c77aba0",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772122465643-voice_1772122465610.m4a",
+      "duration": "0s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-26T16:14:26.613098+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "22cb1d01-947c-4c55-9437-0d14dca69f42",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772122467952-voice_1772122468033.m4a",
+      "duration": "0s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-26T16:14:29.203276+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "79857a63-7759-4019-a454-7056f5b12966",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772122477480-voice_1772122477272.m4a",
+      "duration": "6s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-26T16:14:38.616762+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "02361bd3-7491-4995-8740-c989aa8b08df",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772122500570-voice_1772122500558.m4a",
+      "duration": "5s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-26T16:15:01.611754+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "7ee8cd3d-8ff6-4800-8938-abbbfee30a57",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772122513725-voice_1772122513443.m4a",
+      "duration": "9s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-26T16:15:15.546968+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "220c74ca-2a96-4387-8c2f-320840ade8fa",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772123089948-voice_1772123089717.m4a",
+      "duration": "7s",
+      "avatar_url": "https://i.pravatar.cc/150?u=@Edu_82",
+      "likes": 0,
+      "created_at": "2026-02-26T16:24:51.302734+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "24aafcfb-1313-4d21-9a12-8e337f93c53f",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772123747828-voice_1772123747649.m4a",
+      "duration": "4s",
+      "avatar_url": "https://i.pravatar.cc/150?u=@Edu_82",
+      "likes": 0,
+      "created_at": "2026-02-26T16:35:49.096749+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "e16c2851-3043-40d2-bf48-4b8553001012",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772160781529-voice_1772160780695.m4a",
+      "duration": "3s",
+      "avatar_url": "https://i.pravatar.cc/150?u=@Edu_82",
+      "likes": 0,
+      "created_at": "2026-02-27T02:53:02.772485+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "19afc1c9-96c3-41eb-833c-e167bd561d87",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161258509-voice_1772161257861.m4a",
+      "duration": "5s",
+      "avatar_url": null,
+      "likes": 0,
+      "created_at": "2026-02-27T03:00:59.512642+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "9fef49b1-9155-447f-a6e5-fa5608ceb983",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772247197524-voice_1772247196734.m4a",
+      "duration": "3s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-02-28T02:53:20.371939+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "7dc82563-ec1a-42f9-b172-2349b6c9c813",
+      "video_id": "8aa9349f-8b07-4974-a885-2f90978abac8",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/audio/1772285569198-voice_1772285568984.m4a",
+      "duration": "3s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-02-28T13:32:49.775282+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "f66a349e-9c79-44a3-8ee7-3d95d49e28f0",
+      "video_id": "10baf0ca-36bb-4672-ac56-44a15ed2af14",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/audio/1772303107776-voice_1772303107406.m4a",
+      "duration": "4s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-02-28T18:25:08.873494+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "624d85dc-65e1-4327-b02c-7b47c8c3d4bc",
+      "video_id": "10baf0ca-36bb-4672-ac56-44a15ed2af14",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/audio/1772551597791-voice_1772551597390.m4a",
+      "duration": "2s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-03-03T15:26:39.159899+00:00",
+      "parent_id": null
+    },
+    {
+      "id": "f0e15cdd-f30c-4391-b0ab-4400ca20ff5a",
+      "video_id": "10baf0ca-36bb-4672-ac56-44a15ed2af14",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/audio/1772551605932-voice_1772551605806.m4a",
+      "duration": "1s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-03-03T15:26:46.634225+00:00",
+      "parent_id": "f66a349e-9c79-44a3-8ee7-3d95d49e28f0"
+    },
+    {
+      "id": "91dd4447-564c-406e-8150-3a051fbfd588",
+      "video_id": "10baf0ca-36bb-4672-ac56-44a15ed2af14",
+      "user_handle": "@Edu_82",
+      "audio_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/audio/1772551930406-voice_1772551930179.m4a",
+      "duration": "1s",
+      "avatar_url": "https://obdrsqeueivhnbsibhen.supabase.co/storage/v1/object/public/media/1772161794160-avatar_1772161793463.jpg",
+      "likes": 0,
+      "created_at": "2026-03-03T15:32:11.788755+00:00",
+      "parent_id": null
+    }
+  ],
+  "user_follows": []
+}
