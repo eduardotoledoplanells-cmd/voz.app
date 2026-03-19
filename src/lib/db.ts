@@ -66,7 +66,11 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
             status: user.status,
             reputation: user.reputation,
             wallet_balance: user.walletBalance || 0,
-            joined_at: user.joinedAt
+            joined_at: user.joinedAt,
+            name: user.name,
+            bio: user.bio,
+            profile_image: user.profileImage,
+            is_creator: user.isCreator || false
         }])
         .select()
         .single();
@@ -83,23 +87,37 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
 }
 
 export async function updateAppUser(id: string, updates: Partial<AppUser>): Promise<AppUser | null> {
-    const dbUpdates: any = { ...updates };
-    if (updates.walletBalance !== undefined) {
-        dbUpdates.wallet_balance = updates.walletBalance;
-        delete dbUpdates.walletBalance;
+    // Get current handle if changing
+    let oldHandle = '';
+    if (updates.handle !== undefined) {
+        const { data: current } = await supabase.from('app_users').select('handle').eq('id', id).single();
+        if (current) oldHandle = current.handle;
     }
-    if (updates.joinedAt !== undefined) {
-        dbUpdates.joined_at = updates.joinedAt;
-        delete dbUpdates.joinedAt;
+
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at'];
+    const dbUpdates: any = {};
+
+    // Map fields
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.handle !== undefined) dbUpdates.handle = updates.handle;
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.reputation !== undefined) dbUpdates.reputation = updates.reputation;
+    if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
+        dbUpdates.profile_image = updates.profileImage || (updates as any).profile_image;
     }
-    if (updates.profileImage !== undefined) {
-        dbUpdates.profile_image = updates.profileImage;
-        delete dbUpdates.profileImage;
-    }
-    if (updates.isCreator !== undefined) {
-        dbUpdates.is_creator = updates.isCreator;
-        delete dbUpdates.isCreator;
-    }
+    if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
+    if (updates.password !== undefined) dbUpdates.password = updates.password;
+    if (updates.joinedAt !== undefined) dbUpdates.joined_at = updates.joinedAt;
+
+    // Filter and remove undefined
+    Object.keys(dbUpdates).forEach(key => {
+        if (!allowedKeys.includes(key) || dbUpdates[key] === undefined) {
+            delete dbUpdates[key];
+        }
+    });
 
     const { data, error } = await supabase
         .from('app_users')
@@ -113,14 +131,46 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         return null;
     }
 
+    // CASCADE Handle change to other tables
+    if (updates.handle !== undefined && oldHandle && oldHandle !== updates.handle) {
+        const newHandle = updates.handle;
+        const cascadeTasks = [
+            { table: 'videos', col: 'user_handle' },
+            { table: 'voice_comments', col: 'user_handle' },
+            { table: 'user_follows', col: 'follower_handle' },
+            { table: 'user_follows', col: 'following_handle' },
+            { table: 'video_likes', col: 'user_handle' },
+            { table: 'video_bookmarks', col: 'user_handle' },
+            { table: 'video_views', col: 'user_handle' },
+            { table: 'voice_comment_likes', col: 'user_handle' },
+            { table: 'moderation_queue', col: 'user_handle' },
+            { table: 'moderation_queue', col: 'reported_by' },
+            { table: 'transactions', col: 'sender_handle' },
+            { table: 'transactions', col: 'receiver_handle' },
+            { table: 'coin_sales', col: 'user_handle' }
+        ];
+
+        for (const task of cascadeTasks) {
+            try {
+                await supabaseAdmin.from(task.table).update({ [task.col]: newHandle }).eq(task.col, oldHandle);
+            } catch (err) {
+                console.error(`[CASCADE] Failed for ${task.table}.${task.col}:`, err);
+            }
+        }
+    }
+
     return {
         id: data.id,
         handle: data.handle,
+        name: data.name,
         email: data.email,
         status: data.status,
         reputation: data.reputation,
         walletBalance: parseFloat(data.wallet_balance),
-        joinedAt: data.joined_at
+        joinedAt: data.joined_at,
+        bio: data.bio,
+        profileImage: data.profile_image,
+        isCreator: data.is_creator
     };
 }
 
@@ -236,10 +286,11 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
 }
 
 export async function deleteVideo(id: string, userHandle: string): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('videos')
         .delete()
-        .match({ id, user_handle: userHandle });
+        .eq('id', id)
+        .eq('user_handle', userHandle);
 
     if (error) {
         console.error('Error deleting video:', error);
