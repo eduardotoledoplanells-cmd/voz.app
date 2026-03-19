@@ -192,6 +192,7 @@ export interface VideoPost {
     isLikedByMe?: boolean;
     isBookmarkedByMe?: boolean;
     isPinned?: boolean;
+    isMuted?: boolean;
 }
 
 export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]> {
@@ -240,7 +241,8 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
         thumbnailUrl: v.thumbnail_url,
         isLikedByMe: likedSet.has(v.id),
         isBookmarkedByMe: bookmarkedSet.has(v.id),
-        isPinned: v.is_pinned
+        isPinned: v.is_pinned,
+        isMuted: v.is_muted
     }));
 }
 
@@ -258,7 +260,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             views: video.views,
             is_ad: video.isAd || false,
             thumbnail_url: video.thumbnailUrl,
-            filter_config: video.filterConfig
+            filter_config: video.filterConfig,
+            is_muted: video.isMuted || false
         }])
         .select()
         .single();
@@ -281,7 +284,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
         music: data.music,
         filterConfig: data.filter_config,
         isAd: data.is_ad,
-        thumbnailUrl: data.thumbnail_url
+        thumbnailUrl: data.thumbnail_url,
+        isMuted: data.is_muted
     };
 }
 
