@@ -4,13 +4,31 @@ import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = 'force-dynamic';
 
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
+}
+
+function corsHeaders(response: NextResponse) {
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
+}
+
 export async function GET() {
     try {
         const videos = await getVideos();
-        return NextResponse.json(videos);
+        return corsHeaders(NextResponse.json(videos));
     } catch (error) {
         console.error("Error fetching videos:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
     }
 }
 
@@ -41,11 +59,11 @@ export async function POST(request: NextRequest) {
 
         const result = await addVideo(newVideo);
 
-        return NextResponse.json({ success: true, video: result || newVideo });
+        return corsHeaders(NextResponse.json({ success: true, video: result || newVideo }));
 
     } catch (error) {
         console.error("Error creating video post:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
     }
 }
 
@@ -56,17 +74,17 @@ export async function DELETE(request: NextRequest) {
         const userHandle = searchParams.get('userHandle');
 
         if (!id || !userHandle) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            return corsHeaders(NextResponse.json({ error: "Missing required fields" }, { status: 400 }));
         }
 
         const success = await deleteVideo(id, userHandle);
         if (!success) {
-            return NextResponse.json({ error: "Failed to delete video" }, { status: 500 });
+            return corsHeaders(NextResponse.json({ error: "Failed to delete video" }, { status: 500 }));
         }
 
-        return NextResponse.json({ success: true });
+        return corsHeaders(NextResponse.json({ success: true }));
     } catch (error) {
         console.error("Error deleting video post:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
     }
 }
