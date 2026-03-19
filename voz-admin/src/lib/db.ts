@@ -13,23 +13,21 @@ if (!isValidEnvKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Detectar si la clave de Service Role pertenece realmente a este proyecto
-// para evitar que falle con "Item not found" si el usuario puso una clave de otro proyecto en Vercel.
-function validateServiceKey(key: string, url: string): boolean {
-    if (!key || !url) return false;
+// Inicialización de clientes
+console.log("[Supabase] Initializing clients. URL:", supabaseUrl);
+if (!serviceRoleKey) {
+    console.warn("[Supabase] SUPABASE_SERVICE_ROLE_KEY is missing. Admin operations will likely fail.");
+} else {
     try {
-        const payloadPart = key.split('.')[1];
-        const payload = JSON.parse(Buffer.from(payloadPart, 'base64').toString());
-        const keyRef = payload.ref;
-        const urlRef = url.split('//')[1]?.split('.')[0];
-        return keyRef === urlRef;
+        const payload = JSON.parse(Buffer.from(serviceRoleKey.split('.')[1], 'base64').toString());
+        console.log("[Supabase] Service Key Info - Ref:", payload.ref, "Role:", payload.role);
     } catch (e) {
-        return false;
+        console.error("[Supabase] Error decoding Service Key:", e);
     }
 }
 
-export const supabaseAdmin = (serviceRoleKey && validateServiceKey(serviceRoleKey, supabaseUrl))
-    ? createClient(supabaseUrl, serviceRoleKey)
+export const supabaseAdmin = serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
     : supabase;
 
 export interface AppUser {
@@ -37,6 +35,10 @@ export interface AppUser {
     handle: string;
     email: string;
     password?: string;
+    name?: string;
+    bio?: string;
+    profileImage?: string;
+    isCreator?: boolean;
     status: 'active' | 'banned' | 'verified';
     reputation: number;
     walletBalance?: number;
@@ -124,8 +126,11 @@ export interface VideoPost {
     commentsCount: number;
     views: number;
     createdAt: string;
-    music?: string;
+    music?: any;
     isAd?: boolean;
+    thumbnailUrl?: string;
+    filterConfig?: any;
+    isMuted?: boolean;
 }
 
 // --- App Users / Creators ---
@@ -136,13 +141,17 @@ export async function getAppUsers(): Promise<AppUser[]> {
     }
     return data.map(u => ({
         id: u.id,
+        name: u.name,
         handle: u.handle,
         email: u.email,
         password: u.password,
         status: u.status,
         reputation: u.reputation,
         walletBalance: parseFloat(u.wallet_balance),
-        joinedAt: u.joined_at
+        joinedAt: u.joined_at,
+        bio: u.bio,
+        profileImage: u.profile_image,
+        isCreator: u.is_creator
     }));
 }
 
@@ -162,16 +171,85 @@ export async function getCreators(): Promise<Creator[]> {
 }
 
 export async function updateAppUser(id: string, updates: Partial<AppUser>): Promise<AppUser | null> {
-    const dbUpdates: any = { ...updates };
-    if (updates.walletBalance !== undefined) {
-        dbUpdates.wallet_balance = updates.walletBalance;
-        delete dbUpdates.walletBalance;
+    // Get current handle if changing
+    let oldHandle = '';
+    if (updates.handle !== undefined) {
+        const { data: current } = await supabase.from('app_users').select('handle').eq('id', id).single();
+        if (current) oldHandle = current.handle;
     }
+
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password'];
+    const dbUpdates: any = {};
+
+    // Map fields
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.handle !== undefined) dbUpdates.handle = updates.handle;
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.reputation !== undefined) dbUpdates.reputation = updates.reputation;
+    if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
+        dbUpdates.profile_image = updates.profileImage || (updates as any).profile_image;
+    }
+    if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
+    if (updates.password !== undefined) dbUpdates.password = updates.password;
+
+    // Filter only allowed keys and remove undefined
+    Object.keys(dbUpdates).forEach(key => {
+        if (!allowedKeys.includes(key) || dbUpdates[key] === undefined) {
+            delete dbUpdates[key];
+        }
+    });
+
+    if (Object.keys(dbUpdates).length === 0) return null;
+
     const { data, error } = await supabase.from('app_users').update(dbUpdates).eq('id', id).select().single();
-    if (error) return null;
+    if (error) {
+        console.error('Update User Error:', error);
+        return null;
+    }
+
+    // CASCADE Handle change to other tables
+    if (updates.handle !== undefined && oldHandle && oldHandle !== updates.handle) {
+        const newHandle = updates.handle;
+        const cascadeTasks = [
+            { table: 'videos', col: 'user_handle' },
+            { table: 'voice_comments', col: 'user_handle' },
+            { table: 'user_follows', col: 'follower_handle' },
+            { table: 'user_follows', col: 'following_handle' },
+            { table: 'video_likes', col: 'user_handle' },
+            { table: 'video_bookmarks', col: 'user_handle' },
+            { table: 'video_views', col: 'user_handle' },
+            { table: 'voice_comment_likes', col: 'user_handle' },
+            { table: 'moderation_queue', col: 'user_handle' },
+            { table: 'moderation_queue', col: 'reported_by' },
+            { table: 'transactions', col: 'sender_handle' },
+            { table: 'transactions', col: 'receiver_handle' },
+            { table: 'coin_sales', col: 'user_handle' }
+        ];
+
+        for (const task of cascadeTasks) {
+            try {
+                await supabaseAdmin.from(task.table).update({ [task.col]: newHandle }).eq(task.col, oldHandle);
+            } catch (err) {
+                console.error(`[CASCADE] Failed for ${task.table}.${task.col}:`, err);
+            }
+        }
+    }
+
     return {
-        ...data,
-        walletBalance: parseFloat(data.wallet_balance)
+        id: data.id,
+        name: data.name,
+        handle: data.handle,
+        email: data.email,
+        status: data.status,
+        reputation: data.reputation,
+        walletBalance: parseFloat(data.wallet_balance),
+        joinedAt: data.joined_at,
+        bio: data.bio,
+        profileImage: data.profile_image,
+        isCreator: data.is_creator
     };
 }
 
@@ -191,6 +269,7 @@ export async function updateCreator(id: string, updates: any, employeeName: stri
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
     const { data, error } = await supabase.from('app_users').insert([{
+        name: user.name,
         handle: user.handle,
         email: user.email,
         password: user.password,
@@ -775,7 +854,10 @@ export async function getVideos(): Promise<VideoPost[]> {
         views: v.views,
         createdAt: v.created_at,
         music: v.music,
-        isAd: v.is_ad
+        isAd: v.is_ad,
+        thumbnailUrl: v.thumbnail_url,
+        filterConfig: v.filter_config,
+        isMuted: v.is_muted
     }));
 }
 
@@ -793,7 +875,10 @@ export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
         views: v.views,
         createdAt: v.created_at,
         music: v.music,
-        isAd: v.is_ad
+        isAd: v.is_ad,
+        thumbnailUrl: v.thumbnail_url,
+        filterConfig: v.filter_config,
+        isMuted: v.is_muted
     }));
 }
 
@@ -809,7 +894,10 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             shares: video.shares,
             comments_count: video.commentsCount,
             views: video.views,
-            is_ad: video.isAd || false
+            is_ad: video.isAd || false,
+            thumbnail_url: video.thumbnailUrl,
+            filter_config: video.filterConfig,
+            is_muted: video.isMuted || false
         }])
         .select()
         .single();
@@ -830,8 +918,25 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
         views: data.views,
         createdAt: data.created_at,
         music: data.music,
-        isAd: data.is_ad
+        isAd: data.is_ad,
+        thumbnailUrl: data.thumbnail_url,
+        filterConfig: data.filter_config,
+        isMuted: data.is_muted
     };
+}
+
+export async function deleteVideo(id: string, userHandle: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+        .from('videos')
+        .delete()
+        .eq('id', id)
+        .eq('user_handle', userHandle);
+
+    if (error) {
+        console.error('Error deleting video:', error);
+        return false;
+    }
+    return true;
 }
 
 // --- Billing & Redemptions ---

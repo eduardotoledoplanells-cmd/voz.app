@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideos, addVideo, VideoPost } from "@/lib/db";
+import { getVideos, addVideo, deleteVideo, VideoPost } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { videoUrl, user, description, transcription, music } = body;
+        const { videoUrl, user, description, transcription, music, thumbnailUrl, filterConfig, isMuted } = body;
 
         if (!videoUrl || !user) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
             commentsCount: 0,
             views: 0,
             createdAt: new Date().toISOString(),
-            music: music || ""
+            music: music || "",
+            thumbnailUrl: thumbnailUrl || "",
+            filterConfig: filterConfig || null,
+            isMuted: isMuted || false
         };
 
         const result = await addVideo(newVideo);
@@ -46,3 +49,24 @@ export async function POST(request: NextRequest) {
     }
 }
 
+export async function DELETE(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+        const userHandle = searchParams.get('userHandle');
+
+        if (!id || !userHandle) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        const success = await deleteVideo(id, userHandle);
+        if (!success) {
+            return NextResponse.json({ error: "Failed to delete video" }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting video post:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}

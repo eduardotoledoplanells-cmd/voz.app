@@ -134,6 +134,7 @@ export default function VozUsersPage() {
             body: JSON.stringify({
                 id: tempUser.id,
                 name: tempUser.name,
+                handle: tempUser.handle,
                 status: tempUser.status,
                 reputation: tempUser.reputation,
                 penalties: tempUser.penalties,
@@ -385,6 +386,15 @@ export default function VozUsersPage() {
                                         />
                                     </div>
                                     <p style={{ margin: 0, fontSize: '12px' }}><b>ID:</b> {String(tempUser?.id || '')}</p>
+                                    <div className="field-row" style={{ marginTop: 5, marginBottom: 5 }}>
+                                        <label><b>Handle:</b></label>
+                                        <input
+                                            type="text"
+                                            value={tempUser?.handle || ''}
+                                            onChange={(e) => setTempUser({ ...tempUser, handle: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
                                     <p style={{ margin: 0, fontSize: '12px' }}><b>Email:</b> {String(tempUser?.email || '')}</p>
                                     <div className="field-row" style={{ marginTop: 10 }}>
                                         <label><b>Estado:</b></label>
