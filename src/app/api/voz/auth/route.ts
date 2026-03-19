@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
                 email,
                 password,
                 options: {
+                    emailRedirectTo: 'https://voz-admin-murex.vercel.app',
                     data: {
                         username: username,
                     }
