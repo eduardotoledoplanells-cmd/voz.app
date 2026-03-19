@@ -39,16 +39,24 @@ const COIN_PACKS_SERVER = {
 
 export async function POST(request: Request) {
     try {
-        const { packId, userId, userHandle } = await request.json();
-        console.log('Payment request:', { packId, userId, userHandle });
+        let body;
+        try {
+            body = await request.json();
+        } catch (e) {
+            console.error('JSON Parse Error:', e);
+            return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+        }
+
+        const { packId, userId, userHandle } = body;
+        console.log('Payment request received for pack:', packId, 'from user:', userHandle);
 
         if (!packId || !COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER]) {
-            console.error('Invalid packId:', packId);
+            console.error('Invalid packId requested:', packId);
             return NextResponse.json({ error: 'Paquete de monedas no válido' }, { status: 400 });
         }
 
         const pack = COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER];
-        const amount = pack.price * 100; // Amount in cents
+        const amount = Math.round(pack.price * 100); // Ensure integer cents
 
         if (!process.env.STRIPE_SECRET_KEY) {
             console.error('STRIPE_SECRET_KEY is missing');
@@ -72,7 +80,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
-        console.error('Stripe error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('Stripe PaymentIntent creation error:', error);
+        return NextResponse.json({ error: error.message || 'Error interno al crear el pago' }, { status: 500 });
     }
 }

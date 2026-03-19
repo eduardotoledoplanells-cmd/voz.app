@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, addAppUser, updateAppUser, AppUser } from "@/lib/db";
+import { getAppUsers, addAppUser, updateAppUser, AppUser, supabase } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
@@ -7,22 +7,37 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { action, email, password, username } = body;
 
-        const users = await getAppUsers();
-
         if (action === 'register') {
             if (!email || !password || !username) {
                 return NextResponse.json({ error: "Missing fields" }, { status: 400 });
             }
 
-            if (users.some(u => u.email === email || u.handle === `@${username}`)) {
-                return NextResponse.json({ error: "User already exists" }, { status: 409 });
+            // 1. Registro en Supabase Auth (esto dispara el email de validación)
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        username: username,
+                    }
+                }
+            });
+
+            if (authError) {
+                console.error("Supabase Auth Error:", authError);
+                if (authError.status === 409 || authError.message.includes("already registered")) {
+                    return NextResponse.json({ error: "El usuario o email ya existe" }, { status: 409 });
+                }
+                return NextResponse.json({ error: authError.message }, { status: 400 });
             }
 
+            // 2. Crear el registro en la tabla pública app_users (para el perfil y wallet)
+            // Nota: El ID de app_users coincidirá con el ID de Supabase Auth
             const newUser: AppUser = {
-                id: uuidv4(),
+                id: authData.user?.id || uuidv4(),
                 handle: `@${username}`,
                 email,
-                password, // En un sistema real, usar bcrypt aquí
+                password: '', // No guardamos la password en la tabla pública por seguridad
                 status: 'active',
                 reputation: 10,
                 walletBalance: 0,
@@ -31,40 +46,54 @@ export async function POST(request: NextRequest) {
 
             await addAppUser(newUser);
 
-            const { password: _, ...userWithoutPassword } = newUser;
-            return NextResponse.json({ success: true, user: userWithoutPassword });
+            return NextResponse.json({ 
+                success: true, 
+                message: "Registro iniciado. Por favor, verifica tu correo electrónico.",
+                user: { id: newUser.id, handle: newUser.handle, email: newUser.email } 
+            });
 
         } else if (action === 'login') {
-            const user = users.find(u => u.email === email && u.password === password);
+            // 1. Login en Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
 
-            if (!user) {
-                return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+            if (authError) {
+                console.error("Login Error:", authError);
+                return NextResponse.json({ error: "Credenciales inválidas o email no verificado" }, { status: 401 });
             }
 
-            const { password: _, ...userWithoutPassword } = user;
-            return NextResponse.json({ success: true, user: userWithoutPassword });
+            // 2. Obtener datos del perfil de app_users
+            const users = await getAppUsers();
+            const userProfile = users.find(u => u.id === authData.user?.id || u.email === email);
+
+            if (!userProfile) {
+                return NextResponse.json({ error: "Perfil de usuario no encontrado" }, { status: 404 });
+            }
+
+            return NextResponse.json({ success: true, user: userProfile });
+
         } else if (action === 'forgot_password') {
-            const user = users.find(u => u.email === email);
-            if (!user) {
-                return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+            
+            if (resetError) {
+                return NextResponse.json({ error: resetError.message }, { status: 400 });
             }
 
-            // Simulación de envío de correo/token
-            const resetPin = Math.floor(1000 + Math.random() * 9000).toString();
-            console.log(`[PASSWORD RESET PIN] Sent to ${email}: ${resetPin}`);
-
-            return NextResponse.json({ success: true, message: "Recuperación iniciada", simuladoToken: resetPin });
+            return NextResponse.json({ success: true, message: "Instrucciones de recuperación enviadas a tu email" });
 
         } else if (action === 'reset_password') {
             const { newPassword } = body;
-            const user = users.find(u => u.email === email);
+            
+            // Esto requiere que el usuario esté en una sesión de recuperación o tenga un token
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword
+            });
 
-            if (!user) {
-                return NextResponse.json({ error: "Invalid user" }, { status: 400 });
+            if (updateError) {
+                return NextResponse.json({ error: updateError.message }, { status: 400 });
             }
-
-            // Actualizamos en Supabase
-            await updateAppUser(user.id, { password: newPassword });
 
             return NextResponse.json({ success: true, message: "Contraseña actualizada con éxito" });
         }
