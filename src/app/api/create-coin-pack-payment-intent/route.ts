@@ -5,12 +5,6 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const COIN_PACKS_SERVER = {
-    'p1': {
-        price: 5,
-        coins: 4,
-        stripeProductId: 'prod_TjWpwj5UlowbTV',
-        stripePriceId: 'price_1Sm3lv3BtXxsW9ynOIXWfDnM'
-    },
     'p2': {
         price: 10,
         coins: 8,
@@ -34,6 +28,12 @@ const COIN_PACKS_SERVER = {
         coins: 80,
         stripeProductId: 'prod_TjXF3kLaarGv61',
         stripePriceId: 'price_1Sm4B43BtXxsW9ynuXyq8awR'
+    },
+    'pVIP': {
+        price: 500,
+        coins: 420,
+        stripeProductId: 'prod_UB9JjJ8h8p1YDe',
+        stripePriceId: 'price_1TCn0l3BtXxsW9ynqgqoPVX4'
     },
 };
 

@@ -5,11 +5,11 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const COIN_PACKS_SERVER = {
-    'p1': { price: 5, coins: 4 },
     'p2': { price: 10, coins: 8 },
     'p3': { price: 20, coins: 17 },
     'p4': { price: 50, coins: 42 },
     'ps': { price: 100, coins: 80 },
+    'pVIP': { price: 500, coins: 420 },
 };
 
 export async function POST(request: NextRequest) {
