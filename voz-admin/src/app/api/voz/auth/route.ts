@@ -47,22 +47,26 @@ export async function POST(request: NextRequest) {
             const { password: _, ...userWithoutPassword } = user;
             return NextResponse.json({ success: true, user: userWithoutPassword });
         } else if (action === 'forgot_password') {
+            console.log("[DEBUG] forgot_password action triggered for:", email);
             const user = users.find(u => u.email === email);
             if (!user) {
+                console.log("[DEBUG] User not found in database:", email);
                 return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
             }
 
             const resetPin = Math.floor(1000 + Math.random() * 9000).toString();
+            console.log("[DEBUG] Generated PIN:", resetPin);
             
             // Guardar PIN en la base de datos para verificación posterior
             await updateAppUser(user.id, { resetPin });
-
-            console.log(`[PASSWORD RESET] Sending PIN ${resetPin} to ${email}`);
+            console.log("[DEBUG] PIN saved to database for user ID:", user.id);
 
             // Enviar email real si la API Key está configurada
+            console.log("[DEBUG] Checking RESEND_API_KEY presence:", !!process.env.RESEND_API_KEY);
             if (process.env.RESEND_API_KEY) {
                 try {
-                    await resend.emails.send({
+                    console.log("[DEBUG] Attempting to send email via Resend to:", email);
+                    const { data: resendData, error: resendError } = await resend.emails.send({
                         from: 'VOZ <onboarding@resend.dev>',
                         to: email,
                         subject: 'Recuperación de contraseña - VOZ',
@@ -80,10 +84,17 @@ export async function POST(request: NextRequest) {
                             </div>
                         `
                     });
+
+                    if (resendError) {
+                        console.error("[DEBUG] Resend error details:", resendError);
+                    } else {
+                        console.log("[DEBUG] Email sent successfully via Resend. ID:", resendData?.id);
+                    }
                 } catch (emailError) {
-                    console.error("[Resend Error] Failed to send email:", emailError);
-                    // Continuamos aunque falle el envío real para que el flujo no se rompa en dev
+                    console.error("[DEBUG] Resend caught exception:", emailError);
                 }
+            } else {
+                console.warn("[DEBUG] RESEND_API_KEY is NOT set. Skipping email send.");
             }
 
             // Ya no enviamos el simuladoToken al cliente por seguridad
