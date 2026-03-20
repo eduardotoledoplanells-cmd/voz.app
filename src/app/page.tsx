@@ -1,6 +1,33 @@
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
+const TRANSLATIONS = {
+  es: {
+    title: "Email verificado",
+    message: "Tu cuenta ha sido activada con éxito.",
+    submessage: "Vuelve a tu inicio de sesión",
+    button: "en la App para continuar.",
+    dev: "Desarrollado por"
+  },
+  en: {
+    title: "Email verified",
+    message: "Your account has been successfully activated.",
+    submessage: "Go back to login",
+    button: "in the App to continue.",
+    dev: "Powered by"
+  },
+  pt: {
+    title: "E-mail verificado",
+    message: "Sua conta foi ativada com sucesso.",
+    submessage: "Volte para o login",
+    button: "no App para continuar.",
+    dev: "Desenvolvido por"
+  }
+};
+
+export default function Home({ searchParams }: { searchParams: { lang?: string } }) {
+  const lang = (searchParams.lang || 'es') as keyof typeof TRANSLATIONS;
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.es;
+
   return (
     <main style={{
       display: 'flex',
@@ -79,7 +106,7 @@ export default function Home() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          Email verificado
+          {t.title}
         </h1>
         
         <p style={{ 
@@ -89,8 +116,8 @@ export default function Home() {
           marginBottom: '3rem',
           fontWeight: '400'
         }}>
-          Tu cuenta ha sido activada con éxito.<br/>
-          <span style={{ color: '#8E2DE2', fontWeight: '700' }}>Vuelve a tu inicio de sesión</span> en la App para continuar.
+          {t.message}<br/>
+          <span style={{ color: '#8E2DE2', fontWeight: '700' }}>{t.submessage}</span> {t.button}
         </p>
 
         <div style={{ 
@@ -108,7 +135,7 @@ export default function Home() {
             marginBottom: '1.25rem',
             fontWeight: '600'
           }}>
-            Desarrollado por
+            {t.dev}
           </p>
           <img 
             src="/logo/logo-voz.png" 

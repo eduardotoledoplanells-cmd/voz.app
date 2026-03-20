@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from "uuid";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { action, email, password, username } = body;
+        const { action, email, password, username, language } = body;
+        const userLanguage = language || 'es';
 
         if (action === 'register') {
             if (!email || !password || !username) {
@@ -17,9 +18,10 @@ export async function POST(request: NextRequest) {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: 'https://voz-admin-murex.vercel.app',
+                    emailRedirectTo: `https://voz-admin-murex.vercel.app?lang=${userLanguage}`,
                     data: {
                         username: username,
+                        language: userLanguage,
                     }
                 }
             });
