@@ -43,6 +43,7 @@ export interface AppUser {
     reputation: number;
     walletBalance?: number;
     joinedAt: string;
+    resetPin?: string;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -151,7 +152,8 @@ export async function getAppUsers(): Promise<AppUser[]> {
         joinedAt: u.joined_at,
         bio: u.bio,
         profileImage: u.profile_image,
-        isCreator: u.is_creator
+        isCreator: u.is_creator,
+        resetPin: u.reset_pin
     }));
 }
 
@@ -178,7 +180,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -194,6 +196,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     }
     if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
     if (updates.password !== undefined) dbUpdates.password = updates.password;
+    if (updates.resetPin !== undefined) dbUpdates.reset_pin = updates.resetPin;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -249,7 +252,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         joinedAt: data.joined_at,
         bio: data.bio,
         profileImage: data.profile_image,
-        isCreator: data.is_creator
+        isCreator: data.is_creator,
+        resetPin: data.reset_pin
     };
 }
 
