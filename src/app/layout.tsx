@@ -8,10 +8,10 @@ import { SellProvider } from '@/context/SellContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'RevoluxBit - Tu tienda de videojuegos retro',
-  description: 'Compra y vende videojuegos y consolas retro',
+  title: 'VOZ - La comunidad del video y audio',
+  description: 'Comparte tus momentos en VOZ',
   manifest: '/manifest.json',
-  themeColor: '#e60000',
+  themeColor: '#8E2DE2',
   viewport: {
     width: 'device-width',
     initialScale: 1,
@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'RevoluxBit',
+    title: 'VOZ',
   },
   icons: {
-    icon: '/logo/logo-short.png',
-    apple: '/logo/logo-short.png',
+    icon: '/logo/logo-voz.png',
+    apple: '/logo/logo-voz.png',
   },
 };
 

@@ -111,12 +111,12 @@ export default function Home() {
             Desarrollado por
           </p>
           <img 
-            src="/logo/logo-white.png" 
+            src="/logo/logo-voz.png" 
             alt="Logo VOZ" 
             style={{ 
-              height: '44px', 
-              opacity: 0.85,
-              filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.1))'
+              height: '80px', 
+              opacity: 0.95,
+              filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.2))'
             }}
           />
         </div>
