@@ -54,8 +54,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
             }
 
-            const resetPin = Math.floor(1000 + Math.random() * 9000).toString();
-            console.log("[DEBUG] Generated PIN:", resetPin);
+            // Generar un PIN de 8 dígitos
+            const resetPin = Math.floor(10000000 + Math.random() * 90000000).toString();
+            console.log("[DEBUG] Generated 8-digit PIN:", resetPin);
             
             // Guardar PIN en la base de datos para verificación posterior
             await updateAppUser(user.id, { resetPin });
@@ -74,8 +75,8 @@ export async function POST(request: NextRequest) {
                             <div style="font-family: sans-serif; padding: 20px; color: #333;">
                                 <h2 style="color: #8E2DE2;">Recuperación de contraseña</h2>
                                 <p>Has solicitado restablecer tu contraseña en la aplicación VOZ.</p>
-                                <p>Tu código de seguridad es:</p>
-                                <div style="background: #f4f4f4; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; border-radius: 8px;">
+                                <p>Tu código de seguridad de 8 dígitos es:</p>
+                                <div style="background: #f4f4f4; padding: 15px; font-size: 28px; font-weight: bold; text-align: center; letter-spacing: 5px; border-radius: 8px;">
                                     ${resetPin}
                                 </div>
                                 <p style="margin-top: 20px; font-size: 13px; color: #666;">
