@@ -136,7 +136,7 @@ export interface VideoPost {
 
 // --- App Users / Creators ---
 export async function getAppUsers(): Promise<AppUser[]> {
-    const { data, error } = await supabase.from('app_users').select('*');
+    const { data, error } = await supabaseAdmin.from('app_users').select('*');
     if (error) {
         throw new Error("Supabase error: " + JSON.stringify(error));
     }
@@ -176,7 +176,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     // Get current handle if changing
     let oldHandle = '';
     if (updates.handle !== undefined) {
-        const { data: current } = await supabase.from('app_users').select('handle').eq('id', id).single();
+        const { data: current } = await supabaseAdmin.from('app_users').select('handle').eq('id', id).single();
         if (current) oldHandle = current.handle;
     }
 
@@ -207,7 +207,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
 
     if (Object.keys(dbUpdates).length === 0) return null;
 
-    const { data, error } = await supabase.from('app_users').update(dbUpdates).eq('id', id).select().single();
+    const { data, error } = await supabaseAdmin.from('app_users').update(dbUpdates).eq('id', id).select().single();
     if (error) {
         console.error('Update User Error:', error);
         return null;
@@ -272,7 +272,7 @@ export async function updateCreator(id: string, updates: any, employeeName: stri
 }
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
-    const { data, error } = await supabase.from('app_users').insert([{
+    const { data, error } = await supabaseAdmin.from('app_users').insert([{
         name: user.name,
         handle: user.handle,
         email: user.email,
@@ -300,7 +300,7 @@ export async function addCreator(user: any, employeeName: string): Promise<Creat
 }
 
 export async function deleteCreatorCompletely(id: string, employeeName: string): Promise<boolean> {
-    const { error } = await supabase.from('app_users').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
     if (error) return false;
     await addLog({
         id: Date.now().toString(),
@@ -355,7 +355,7 @@ export interface VoiceComment {
 
 export async function getVoiceComments(videoId: string): Promise<any[]> {
     // Cargar comentarios principales
-    const { data: parentComments, error: parentsError } = await supabase
+    const { data: parentComments, error: parentsError } = await supabaseAdmin
         .from('voice_comments')
         .select('*')
         .eq('video_id', videoId)
@@ -369,7 +369,7 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
     // Cargar respuestas
     let replies: any[] = [];
     if (parentIds.length > 0) {
-        const { data: repliesData } = await supabase
+        const { data: repliesData } = await supabaseAdmin
             .from('voice_comments')
             .select('*')
             .in('parent_id', parentIds)
@@ -384,7 +384,7 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
 
     // Contar likes dinámicamente
     let likesData: any[] = [];
-    const { data: fetchedLikes } = await supabase
+    const { data: fetchedLikes } = await supabaseAdmin
         .from('voice_comment_likes')
         .select('comment_id')
         .in('comment_id', allCommentIds);
@@ -401,7 +401,7 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
     const handles = [...new Set(allComments.map(c => c.user_handle))];
     const userMap = new Map();
     if (handles.length > 0) {
-        const { data: users } = await supabase
+        const { data: users } = await supabaseAdmin
             .from('app_users')
             .select('handle, profile_image')
             .in('handle', handles);
@@ -418,7 +418,7 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
 }
 
 export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('voice_comments')
         .insert([comment])
         .select()
@@ -434,7 +434,7 @@ export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<V
 
 // --- User Penalties ---
 export async function addPenaltyToUser(handle: string, penalty: { url?: string, reason: string }) {
-    await supabase.from('user_penalties').insert([{
+    await supabaseAdmin.from('user_penalties').insert([{
         user_handle: handle,
         content_url: penalty.url,
         reason: penalty.reason
@@ -450,7 +450,7 @@ export async function addPenaltyToUser(handle: string, penalty: { url?: string, 
 
 // --- Employees ---
 export async function getEmployees(): Promise<Employee[]> {
-    const { data, error } = await supabase.from('employees').select('*');
+    const { data, error } = await supabaseAdmin.from('employees').select('*');
     if (error) return [];
     return data.map(e => ({
         id: e.id,
@@ -463,7 +463,7 @@ export async function getEmployees(): Promise<Employee[]> {
 }
 
 export async function addEmployee(employee: Employee): Promise<Employee | null> {
-    const { data, error } = await supabase.from('employees').insert([{
+    const { data, error } = await supabaseAdmin.from('employees').insert([{
         username: employee.username,
         password: employee.password,
         role: employee.role,
@@ -479,19 +479,19 @@ export async function updateEmployee(id: string, updates: Partial<Employee>): Pr
         dbUpdates.last_login = updates.lastLogin;
         delete dbUpdates.lastLogin;
     }
-    const { data, error } = await supabase.from('employees').update(dbUpdates).eq('id', id).select().single();
+    const { data, error } = await supabaseAdmin.from('employees').update(dbUpdates).eq('id', id).select().single();
     if (error) return null;
     return data;
 }
 
 export async function deleteAppUser(id: string): Promise<boolean> {
-    const { error } = await supabase.from('app_users').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
     if (error) return false;
     return true;
 }
 
 export async function deleteAppUserByHandle(handle: string): Promise<boolean> {
-    const { error } = await supabase.from('app_users').delete().eq('handle', handle);
+    const { error } = await supabaseAdmin.from('app_users').delete().eq('handle', handle);
     if (error) return false;
     return true;
 }
@@ -540,7 +540,7 @@ export async function banAppUserByHandle(handle: string): Promise<boolean> {
 
 // --- Companies ---
 export async function getCompanies(): Promise<Company[]> {
-    const { data, error } = await supabase.from('companies').select('*');
+    const { data, error } = await supabaseAdmin.from('companies').select('*');
     if (error) return [];
     return data.map(c => ({
         ...c,
@@ -552,7 +552,7 @@ export async function getCompanies(): Promise<Company[]> {
 }
 
 export async function addCompany(company: Company, employeeName: string): Promise<Company | null> {
-    const { data, error } = await supabase.from('companies').insert([{
+    const { data, error } = await supabaseAdmin.from('companies').insert([{
         id: company.id,
         name: company.name,
         legal_name: company.legalName,
@@ -580,7 +580,7 @@ export async function addCompany(company: Company, employeeName: string): Promis
 }
 
 export async function deleteCompany(id: string, employeeName: string): Promise<boolean> {
-    const { error } = await supabase.from('companies').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('companies').delete().eq('id', id);
     if (error) return false;
 
     await addLog({
@@ -606,7 +606,7 @@ export interface Notification {
 }
 
 export async function getNotifications(recipientId?: string): Promise<Notification[]> {
-    let query = supabase.from('notifications').select('*');
+    let query = supabaseAdmin.from('notifications').select('*');
     if (recipientId) query = query.eq('recipient_id', recipientId);
 
     const { data, error } = await query.order('timestamp', { ascending: false });
@@ -624,7 +624,7 @@ export async function getNotifications(recipientId?: string): Promise<Notificati
 }
 
 export async function addNotification(n: Notification): Promise<Notification | null> {
-    const { data, error } = await supabase.from('notifications').insert([{
+    const { data, error } = await supabaseAdmin.from('notifications').insert([{
         recipient_id: n.recipientId,
         type: n.type,
         title: n.title,
@@ -637,7 +637,7 @@ export async function addNotification(n: Notification): Promise<Notification | n
 
 // --- Campaigns ---
 export async function getCampaigns(): Promise<Campaign[]> {
-    const { data, error } = await supabase.from('campaigns').select('*');
+    const { data, error } = await supabaseAdmin.from('campaigns').select('*');
     if (error) return [];
     return data.map(c => ({
         ...c,
@@ -651,7 +651,7 @@ export async function getCampaigns(): Promise<Campaign[]> {
 }
 
 export async function addCampaign(campaign: Campaign, employeeName: string): Promise<Campaign | null> {
-    const { data, error } = await supabase.from('campaigns').insert([{
+    const { data, error } = await supabaseAdmin.from('campaigns').insert([{
         id: campaign.id,
         company_id: campaign.companyId,
         name: campaign.name,
@@ -680,7 +680,7 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
 }
 
 export async function deleteCampaign(id: string, employeeName: string): Promise<boolean> {
-    const { error } = await supabase.from('campaigns').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('campaigns').delete().eq('id', id);
     if (error) return false;
 
     await addLog({
@@ -695,10 +695,10 @@ export async function deleteCampaign(id: string, employeeName: string): Promise<
 }
 
 export async function incrementCampaignImpressions(id: string): Promise<boolean> {
-    const { data: campaign } = await supabase.from('campaigns').select('impressions').eq('id', id).single();
+    const { data: campaign } = await supabaseAdmin.from('campaigns').select('impressions').eq('id', id).single();
     if (!campaign) return false;
 
-    const { error } = await supabase.from('campaigns').update({
+    const { error } = await supabaseAdmin.from('campaigns').update({
         impressions: (campaign.impressions || 0) + 1
     }).eq('id', id);
 
@@ -716,7 +716,7 @@ export async function trackVideoEvent(videoId: string, event: string, videoData?
 
 // --- Moderation ---
 export async function getModerationQueue(): Promise<ModerationItem[]> {
-    const { data, error } = await supabase.from('moderation_queue').select('*');
+    const { data, error } = await supabaseAdmin.from('moderation_queue').select('*');
     if (error) return [];
     return data.map(m => ({
         id: m.id,
@@ -734,7 +734,7 @@ export async function getModerationQueue(): Promise<ModerationItem[]> {
 }
 
 export async function addModerationItem(item: ModerationItem): Promise<ModerationItem | null> {
-    const { data, error } = await supabase.from('moderation_queue').insert([{
+    const { data, error } = await supabaseAdmin.from('moderation_queue').insert([{
         matricula: item.matricula,
         type: item.type,
         url: item.url,
@@ -784,7 +784,7 @@ export async function updateModerationItem(id: string, updates: Partial<Moderati
 }
 
 export async function getModerationHistoryByEmployee(employeeName: string): Promise<ModerationItem[]> {
-    const { data, error } = await supabase.from('moderation_queue').select('*').eq('moderated_by', employeeName).neq('status', 'pending');
+    const { data, error } = await supabaseAdmin.from('moderation_queue').select('*').eq('moderated_by', employeeName).neq('status', 'pending');
     if (error) return [];
     return data.map(m => ({
         id: m.id,
@@ -803,7 +803,7 @@ export async function getModerationHistoryByEmployee(employeeName: string): Prom
 
 // --- Logs ---
 export async function getLogs(): Promise<AppLog[]> {
-    const { data, error } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
+    const { data, error } = await supabaseAdmin.from('logs').select('*').order('timestamp', { ascending: false });
     if (error) return [];
     return data.map(l => ({
         id: l.id,
@@ -815,7 +815,7 @@ export async function getLogs(): Promise<AppLog[]> {
 }
 
 export async function addLog(log: AppLog): Promise<AppLog | null> {
-    const { data, error } = await supabase.from('logs').insert([{
+    const { data, error } = await supabaseAdmin.from('logs').insert([{
         employee_name: log.employeeName,
         action: log.action,
         details: log.details
@@ -836,7 +836,7 @@ export async function addInactivityLog(employeeName: string) {
 
 // --- Productivity ---
 export async function addProductivityLog(employeeName: string, cycleVideos: number, totalVideos: number) {
-    await supabase.from('productivity').insert([{
+    await supabaseAdmin.from('productivity').insert([{
         employee_name: employeeName,
         cycle_videos: cycleVideos,
         total_videos: totalVideos
@@ -845,7 +845,7 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
 
 // --- Videos ---
 export async function getVideos(): Promise<VideoPost[]> {
-    const { data, error } = await supabase.from('videos').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabaseAdmin.from('videos').select('*').order('created_at', { ascending: false });
     if (error) return [];
     return data.map(v => ({
         id: v.id,
@@ -866,7 +866,7 @@ export async function getVideos(): Promise<VideoPost[]> {
 }
 
 export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
-    const { data, error } = await supabase.from('videos').select('*').eq('user_handle', handle);
+    const { data, error } = await supabaseAdmin.from('videos').select('*').eq('user_handle', handle);
     if (error) return [];
     return data.map(v => ({
         id: v.id,
@@ -887,7 +887,7 @@ export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
 }
 
 export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('videos')
         .insert([{
             video_url: video.videoUrl,
@@ -945,13 +945,13 @@ export async function deleteVideo(id: string, userHandle: string): Promise<boole
 
 // --- Billing & Redemptions ---
 export async function getCoinSales(): Promise<any[]> {
-    const { data, error } = await supabase.from('coin_sales').select('*').order('timestamp', { ascending: false });
+    const { data, error } = await supabaseAdmin.from('coin_sales').select('*').order('timestamp', { ascending: false });
     if (error) return [];
     return data;
 }
 
 export async function getTransactions(): Promise<any[]> {
-    const { data, error } = await supabase.from('transactions').select('*').order('timestamp', { ascending: false });
+    const { data, error } = await supabaseAdmin.from('transactions').select('*').order('timestamp', { ascending: false });
     if (error) {
         console.error('Error fetching transactions:', error);
         return [];
@@ -969,7 +969,7 @@ export async function getTransactions(): Promise<any[]> {
 }
 
 export async function getRedemptionRequests(): Promise<any[]> {
-    const { data, error } = await supabase.from('redemptions').select('*').order('timestamp', { ascending: false });
+    const { data, error } = await supabaseAdmin.from('redemptions').select('*').order('timestamp', { ascending: false });
     if (error) return [];
     return data.map(r => ({
         id: r.id,
@@ -983,7 +983,7 @@ export async function getRedemptionRequests(): Promise<any[]> {
 }
 
 export async function addRedemptionRequest(req: any): Promise<any | null> {
-    const { data, error } = await supabase.from('redemptions').insert([{
+    const { data, error } = await supabaseAdmin.from('redemptions').insert([{
         user_handle: req.creatorId || req.userHandle,
         amount: req.amountCoins || req.amount,
         status: 'pending',
@@ -995,7 +995,7 @@ export async function addRedemptionRequest(req: any): Promise<any | null> {
 }
 
 export async function updateRedemptionStatus(id: string, status: string, employeeName: string): Promise<any | null> {
-    const { data, error } = await supabase.from('redemptions').update({ status }).eq('id', id).select().single();
+    const { data, error } = await supabaseAdmin.from('redemptions').update({ status }).eq('id', id).select().single();
     if (error) return null;
 
     await addLog({
