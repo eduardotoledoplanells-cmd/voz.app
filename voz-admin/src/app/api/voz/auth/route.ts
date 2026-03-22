@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
         } else if (action === 'reset_password') {
             const { newPassword, recoveryPin } = body;
             
-            if (!recoveryPin || recoveryPin.length !== 6) {
-                return NextResponse.json({ error: "El PIN debe tener 6 dígitos" }, { status: 400 });
+            if (!recoveryPin || recoveryPin.length < 6 || recoveryPin.length > 8) {
+                return NextResponse.json({ error: "El PIN debe tener entre 6 y 8 dígitos" }, { status: 400 });
             }
 
             // Verificar el OTP (PIN de 6 dígitos) de recuperación
