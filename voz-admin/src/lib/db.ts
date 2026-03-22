@@ -213,6 +213,19 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         return null;
     }
 
+    // Sync critical changes to Supabase Auth
+    if (updates.email !== undefined || updates.password !== undefined || updates.handle !== undefined) {
+        const authUpdates: any = {};
+        if (updates.email !== undefined) authUpdates.email = updates.email;
+        if (updates.password !== undefined) authUpdates.password = updates.password;
+        if (updates.handle !== undefined) authUpdates.user_metadata = { handle: updates.handle };
+        
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, authUpdates);
+        if (authError) {
+            console.error('[Auth Sync] Error updating auth user in Supabase:', authError);
+        }
+    }
+
     // CASCADE Handle change to other tables
     if (updates.handle !== undefined && oldHandle && oldHandle !== updates.handle) {
         const newHandle = updates.handle;
@@ -300,6 +313,10 @@ export async function addCreator(user: any, employeeName: string): Promise<Creat
 }
 
 export async function deleteCreatorCompletely(id: string, employeeName: string): Promise<boolean> {
+    // Delete from Supabase Auth First
+    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authErr) console.error("[Auth Sync] Error deleting auth creator:", authErr);
+
     const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
     if (error) return false;
     await addLog({
@@ -485,12 +502,16 @@ export async function updateEmployee(id: string, updates: Partial<Employee>): Pr
 }
 
 export async function deleteAppUser(id: string): Promise<boolean> {
+    await supabaseAdmin.auth.admin.deleteUser(id); // Sync with Auth
     const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
     if (error) return false;
     return true;
 }
 
 export async function deleteAppUserByHandle(handle: string): Promise<boolean> {
+    const { data: user } = await supabaseAdmin.from('app_users').select('id').eq('handle', handle).single();
+    if (user) await supabaseAdmin.auth.admin.deleteUser(user.id);
+
     const { error } = await supabaseAdmin.from('app_users').delete().eq('handle', handle);
     if (error) return false;
     return true;
@@ -518,6 +539,13 @@ export async function banAppUserByHandle(handle: string): Promise<boolean> {
     if (userError) {
         console.error(`[DELETE] Error borrando app_users:`, userError);
         return false;
+    }
+    
+    // Auth Delete Sync
+    if (userData && userData.length > 0) {
+        for (const u of userData) {
+            await supabaseAdmin.auth.admin.deleteUser(u.id);
+        }
     }
 
     console.log(`[DELETE] app_users borrados: ${userData?.length || 0} filas.`);
