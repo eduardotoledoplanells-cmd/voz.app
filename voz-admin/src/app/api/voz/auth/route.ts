@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Missing fields" }, { status: 400 });
             }
 
-            if (users.some(u => u.email === email || u.handle === `@${username}`)) {
+            if (users.some(u => u.email.toLowerCase() === email.toLowerCase() || u.handle === `@${username}`)) {
                 return NextResponse.json({ error: "User already exists" }, { status: 409 });
             }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Obtener el usuario de la tabla app_users usando el email validado
-            const user = users.find(u => u.email === email);
+            const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
             if (!user) {
                 // El usuario está en Auth pero no en app_users (inconsistencia)
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, user: user });
 
         } else if (action === 'forgot_password') {
-            const user = users.find(u => u.email === email);
+            const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
             if (!user) {
                 return NextResponse.json({ error: "No account found with that email" }, { status: 404 });
             }
