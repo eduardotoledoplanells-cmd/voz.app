@@ -55,6 +55,20 @@ export async function POST(request: NextRequest) {
                 user: { id: newUser.id, handle: newUser.handle, email: newUser.email } 
             });
 
+        } else if (action === 'verify_signup') {
+            const { verificationToken } = body;
+            const { data, error } = await supabase.auth.verifyOtp({
+                email,
+                token: verificationToken,
+                type: 'signup'
+            });
+
+            if (error) {
+                return NextResponse.json({ error: error.message }, { status: 400 });
+            }
+
+            return NextResponse.json({ success: true });
+
         } else if (action === 'login') {
             // 1. Login en Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({

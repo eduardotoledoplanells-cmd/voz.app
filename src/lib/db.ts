@@ -56,7 +56,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
 }
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('app_users')
         .insert([{
             id: user.id,

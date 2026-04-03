@@ -286,6 +286,7 @@ export async function updateCreator(id: string, updates: any, employeeName: stri
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
     const { data, error } = await supabaseAdmin.from('app_users').insert([{
+        id: user.id,
         name: user.name,
         handle: user.handle,
         email: user.email,
@@ -294,7 +295,10 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         reputation: user.reputation,
         wallet_balance: user.walletBalance || 0
     }]).select().single();
-    if (error) return null;
+    if (error) {
+        console.error("Error inserting app_user:", error);
+        return null;
+    }
     return data;
 }
 
