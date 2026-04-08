@@ -42,7 +42,7 @@ export default function VozModerationPage() {
     const alertAudioRef = useRef<HTMLAudioElement | null>(null);
     const clickAudioRef = useRef<HTMLAudioElement | null>(null);
     const [audioUnlocked, setAudioUnlocked] = useState(false);
-    const [viewMode, setViewMode] = useState<'moderation' | 'supervision' | 'profiles'>('moderation');
+    const [viewMode, setViewMode] = useState<'moderation' | 'supervision' | 'profiles' | 'audio'>('moderation');
     const [moderatorsStats, setModeratorsStats] = useState<any[]>([]);
     const [selectedModeratorHistory, setSelectedModeratorHistory] = useState<any[]>([]);
     const [currentRole, setCurrentRole] = useState<number>(0);
@@ -361,11 +361,14 @@ export default function VozModerationPage() {
     };
 
     const handleSkip = () => {
-        const nextIndex = queue.findIndex(item => item.id === selectedItem?.id) + 1;
-        if (nextIndex < queue.length) {
-            setSelectedItem(queue[nextIndex]);
-        } else if (queue.length > 0) {
-            setSelectedItem(queue[0]);
+        // Encontrar siguiente dentro del contexto de filtrado actual
+        const filteredArray = queue.filter(q => viewMode === 'audio' ? q.type === 'audio' : (q.type !== 'profile' && q.type !== 'audio'));
+        const currentIndex = filteredArray.findIndex(item => item.id === selectedItem?.id);
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < filteredArray.length) {
+            setSelectedItem(filteredArray[nextIndex]);
+        } else if (filteredArray.length > 0) {
+            setSelectedItem(filteredArray[0]);
         }
     };
 
@@ -380,10 +383,13 @@ export default function VozModerationPage() {
                     <div className="title-bar-text">Panel de Moderación - VOZ {currentShift && `[Turno de ${currentShift}]`}</div>
                 </div>
                 <menu role="tablist" style={{ margin: '5px 5px 0 5px' }}>
-                    <li role="tab" aria-selected={viewMode === 'moderation'} onClick={() => setViewMode('moderation')}>
-                        <a href="#moderation">Cola de Trabajo</a>
+                    <li role="tab" aria-selected={viewMode === 'moderation'} onClick={() => { setViewMode('moderation'); setSelectedItem(null); }}>
+                        <a href="#moderation">📹 Cola de Trabajo</a>
                     </li>
-                    <li role="tab" aria-selected={viewMode === 'profiles'} onClick={() => setViewMode('profiles')}>
+                    <li role="tab" aria-selected={viewMode === 'audio'} onClick={() => { setViewMode('audio'); setSelectedItem(null); }}>
+                        <a href="#audio">🔊 Notas de Voz</a>
+                    </li>
+                    <li role="tab" aria-selected={viewMode === 'profiles'} onClick={() => { setViewMode('profiles'); setSelectedItem(null); }}>
                         <a href="#profiles">👤 Perfiles Denunciados</a>
                     </li>
                     {currentRole === 1 && (
@@ -533,21 +539,21 @@ export default function VozModerationPage() {
                     </div>
                 )}
 
-                {/* VISTA GENERAL DE MODERACIÓN */}
-                {viewMode === 'moderation' && (
+                {/* VISTA GENERAL DE MODERACIÓN (VIDEO/AUDIO) */}
+                {(viewMode === 'moderation' || viewMode === 'audio') && (
                     <div style={{ flex: 1, display: 'flex', gap: 10 }}>
                         {/* Lista de Cola de Denuncias */}
                         <div style={{ width: '300px', display: 'flex', flexDirection: 'column' }}>
                             <fieldset style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <legend>Denuncias Pendientes ({queue.filter(q => q.type !== 'profile').length})</legend>
+                                <legend>Denuncias Pendientes ({queue.filter(q => viewMode === 'audio' ? q.type === 'audio' : (q.type !== 'profile' && q.type !== 'audio')).length})</legend>
                                 <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflowY: 'auto' }}>
                                     <ul className="tree-view">
                                         {loading ? (
                                             <li>Cargando reportes...</li>
-                                        ) : queue.filter(q => q.type !== 'profile').length === 0 ? (
+                                        ) : queue.filter(q => viewMode === 'audio' ? q.type === 'audio' : (q.type !== 'profile' && q.type !== 'audio')).length === 0 ? (
                                             <li>No hay denuncias pendientes</li>
                                         ) : (
-                                            queue.filter(q => q.type !== 'profile').map(item => (
+                                            queue.filter(q => viewMode === 'audio' ? q.type === 'audio' : (q.type !== 'profile' && q.type !== 'audio')).map(item => (
                                                 <li
                                                     key={item.id}
                                                     onClick={() => setSelectedItem(item)}
@@ -684,7 +690,7 @@ export default function VozModerationPage() {
                                     {canAction ? '🛡️ APROBAR / MANTENER' : '...'}
                                 </button>
                                 <button
-                                    disabled={queue.filter(q => q.type !== 'profile').length <= 1 || !canAction}
+                                    disabled={queue.filter(q => viewMode === 'audio' ? q.type === 'audio' : (q.type !== 'profile' && q.type !== 'audio')).length <= 1 || !canAction}
                                     onClick={handleSkip}
                                     style={{ minWidth: 80 }}
                                 >
