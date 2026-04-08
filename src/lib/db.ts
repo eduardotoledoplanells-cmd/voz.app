@@ -27,6 +27,7 @@ export interface AppUser {
     bio?: string;
     profileImage?: string;
     isCreator?: boolean;
+    pushToken?: string;
 }
 
 export async function getAppUsers(): Promise<AppUser[]> {
@@ -51,7 +52,8 @@ export async function getAppUsers(): Promise<AppUser[]> {
         name: u.name,
         bio: u.bio,
         profileImage: u.profile_image,
-        isCreator: u.is_creator
+        isCreator: u.is_creator,
+        pushToken: u.push_token
     }));
 }
 
@@ -70,7 +72,8 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
             name: user.name,
             bio: user.bio,
             profile_image: user.profileImage,
-            is_creator: user.isCreator || false
+            is_creator: user.isCreator || false,
+            push_token: user.pushToken
         }])
         .select()
         .single();
@@ -94,7 +97,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -110,6 +113,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     }
     if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
     if (updates.password !== undefined) dbUpdates.password = updates.password;
+    if (updates.pushToken !== undefined) dbUpdates.push_token = updates.pushToken;
     if (updates.joinedAt !== undefined) dbUpdates.joined_at = updates.joinedAt;
 
     // Filter and remove undefined

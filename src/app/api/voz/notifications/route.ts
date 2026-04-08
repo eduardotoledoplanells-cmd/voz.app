@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getNotifications, addNotification, Notification, supabaseAdmin } from '@/lib/db';
+import { supabaseAdmin, supabase } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,8 +8,14 @@ export async function GET(request: Request) {
     const recipientId = searchParams.get('recipientId');
 
     try {
-        const notifications = await getNotifications(recipientId || undefined);
-        return NextResponse.json(notifications);
+        let query = supabase.from('notifications').select('*');
+        if (recipientId) {
+            query = query.eq('recipientId', recipientId);
+        }
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        return NextResponse.json(data);
     } catch (error) {
         console.error('Error fetching notifications:', error);
         return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
@@ -25,7 +31,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        const newNotification: Notification = {
+        const newNotification = {
             id: 'nt-' + Date.now(),
             recipientId,
             type,
@@ -35,7 +41,8 @@ export async function POST(request: Request) {
             readStatus: false
         };
 
-        const savedNotification = await addNotification(newNotification);
+        const { data, error } = await supabaseAdmin.from('notifications').insert([newNotification]).select().single();
+        if (error) throw error;
 
         // Attempt Push Notification via Expo
         try {
@@ -60,10 +67,9 @@ export async function POST(request: Request) {
             }
         } catch (e) { console.warn("Push error", e); }
 
-        return NextResponse.json(savedNotification);
+        return NextResponse.json(data);
     } catch (error) {
         console.error('Error creating notification:', error);
         return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
     }
 }
-

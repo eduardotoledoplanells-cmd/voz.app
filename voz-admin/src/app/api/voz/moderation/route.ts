@@ -108,6 +108,39 @@ export async function PATCH(request: Request) {
                             reason: updated.reportReason || 'Contenido inapropiado'
                         });
                     }
+
+                    // Enviar notificacion al usuario
+                    if (updated.type === 'video' || updated.type === 'audio') {
+                        try {
+                            const { addNotification } = require('../../../../../../src/lib/db'); // or just standard fetch
+                            // Actually we already import addNotification at the top!
+                            const newNotification = {
+                                id: 'nt-' + Date.now(),
+                                recipientId: updated.userHandle,
+                                type: 'moderation',
+                                title: "Contenido Eliminado",
+                                message: `Tu ${updated.type === 'video' ? 'vídeo' : 'audio'} ha sido eliminado por: ${updated.reportReason || 'Incumplimiento de normas'}.`,
+                                timestamp: new Date().toISOString(),
+                                readStatus: false
+                            };
+                            await addNotification(newNotification);
+
+                            // Send Push manually if pushToken exists
+                            const { data: userData } = await supabaseAdmin.from('app_users').select('push_token').eq('handle', updated.userHandle).single();
+                            if (userData && userData.push_token) {
+                                await fetch('https://exp.host/--/api/v2/push/send', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        to: userData.push_token,
+                                        title: newNotification.title,
+                                        body: newNotification.message,
+                                        data: { type: 'moderation' }
+                                    })
+                                });
+                            }
+                        } catch(e) { console.warn("Error enviando notificacion de moderacion", e); }
+                    }
                 }
             }
 
