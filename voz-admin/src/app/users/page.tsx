@@ -230,7 +230,12 @@ export default function VozUsersPage() {
                                 backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f5f5f5'
                             }}>
                                 <td style={{ padding: '5px' }}>{String(u.id || '').substring(0, 8)}</td>
-                                <td style={{ padding: '5px' }}>{String(u.name || 'Sin nombre')}</td>
+                                <td style={{ padding: '5px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontWeight: 'bold' }}>{u.name || 'Sin nombre'}</span>
+                                        <span style={{ fontSize: '10px', color: '#666' }}>{u.handle}</span>
+                                    </div>
+                                </td>
                                 <td style={{ padding: '5px', position: 'relative' }}>
                                     <div className="status-menu-container" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                         <span style={{

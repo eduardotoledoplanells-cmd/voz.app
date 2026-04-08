@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
             const newUser: AppUser = {
                 id: authData.user?.id || uuidv4(),
                 handle: `@${username}`,
+                name: username, // Inicializamos el nombre real con el nombre de usuario
                 email,
                 password: '', // No guardamos la password en la tabla pública por seguridad
                 status: 'active',

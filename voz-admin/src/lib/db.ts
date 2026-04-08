@@ -142,13 +142,13 @@ export async function getAppUsers(): Promise<AppUser[]> {
     }
     return data.map(u => ({
         id: u.id,
-        name: u.name,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
         handle: u.handle,
         email: u.email,
         password: u.password,
         status: u.status,
         reputation: u.reputation,
-        walletBalance: parseFloat(u.wallet_balance),
+        walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
         bio: u.bio,
         profileImage: u.profile_image,
