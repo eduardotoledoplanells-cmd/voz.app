@@ -49,7 +49,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
         reputation: u.reputation,
         walletBalance: parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
-        name: u.name,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
         bio: u.bio,
         profileImage: u.profile_image,
         isCreator: u.is_creator,

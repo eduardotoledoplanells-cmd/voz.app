@@ -232,7 +232,7 @@ export default function VozUsersPage() {
                                 <td style={{ padding: '5px' }}>{String(u.id || '').substring(0, 8)}</td>
                                 <td style={{ padding: '5px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: 'bold' }}>{u.name || 'Sin nombre'}</span>
+                                        <span style={{ fontWeight: 'bold' }}>{u.name && u.name !== 'null' ? u.name : 'Sin nombre'}</span>
                                         <span style={{ fontSize: '10px', color: '#666' }}>{u.handle}</span>
                                     </div>
                                 </td>
