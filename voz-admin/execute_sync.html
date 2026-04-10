@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sync Users</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: system-ui; padding: 20px; }
+        #log { background: #eee; padding: 10px; min-height: 200px; white-space: pre-wrap; font-family: monospace; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Supabase User Sincronization Tool</h2>
+    <div id="status">Starting up...</div>
+    <div id="log"></div>
+    <script>
+        const supabaseUrl = 'https://obdrsqeueivhnbsibhen.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZHJzcWV1ZWl2aG5ic2liaGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTc1MTgxOSwiZXhwIjoyMDg3MzI3ODE5fQ.NhKLeKDwtOD772I520x2eb-C3hgOMtSU3_VCDfgf5bg';
+        
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('log').innerHTML += msg + '\n';
+        }
+
+        async function sync() {
+            try {
+                const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                
+                log("Supabase client initialized.");
+
+                // 1. Delete @Muestra (if exists in auth/app_users)
+                log("Searching for @Muestra...");
+                const { data: muestraData } = await supabase.from('app_users').select('id').eq('handle', '@Muestra').maybeSingle();
+                
+                if (muestraData && muestraData.id) {
+                    log(`Found @Muestra in app_users with ID ${muestraData.id}. Deleting from auth.users...`);
+                    const { error: delAuthErr } = await supabase.auth.admin.deleteUser(muestraData.id);
+                    if (delAuthErr) log("Warning: " + delAuthErr.message);
+                    
+                    log("Deleting from app_users...");
+                    await supabase.from('app_users').delete().eq('id', muestraData.id);
+                    log("Deleted @Muestra successfully.");
+                } else {
+                    log("@Muestra not found in app_users, attempting to delete by handle fallback...");
+                     // Check auth.users if somehow app_users is missing it
+                     const { data: authSearch } = await supabase.auth.admin.listUsers();
+                     const mAuth = authSearch.users.find(u => u.user_metadata?.username === '@Muestra' || u.user_metadata?.handle === '@Muestra' || u.email === 'muestra@voz.app');
+                     if(mAuth) {
+                        log(`Found @Muestra in auth.users with ID ${mAuth.id}. Deleting...`);
+                        await supabase.auth.admin.deleteUser(mAuth.id);
+                        await supabase.from('app_users').delete().eq('id', mAuth.id);
+                     } else {
+                         log("@Muestra is totally clean from DB.");
+                     }
+                }
+
+                // 2. Add @Papi2
+                log("Processing @Papi2...");
+                const email = 'papi2@voz.app';
+                const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
+                if(listError) throw listError;
+                
+                let authUser = usersData.users.find(u => u.email === email || u.user_metadata?.username === 'Papi2' || u.user_metadata?.handle === '@Papi2');
+
+                if (!authUser) {
+                    log("Creating @Papi2 in auth.users...");
+                    const { data: authData, error: createError } = await supabase.auth.admin.createUser({
+                        email: email,
+                        password: 'password123',
+                        email_confirm: true,
+                        user_metadata: { name: 'Papi2', username: 'Papi2' }
+                    });
+                    
+                    if (createError) throw createError;
+                    authUser = authData.user;
+                    log(`Created @Papi2 successfully in Auth with ID: ${authUser.id}`);
+                } else {
+                    log(`@Papi2 already exists in Auth with ID: ${authUser.id}`);
+                }
+
+                log("Updating/Inserting @Papi2 in app_users...");
+                const { error: upsertErr } = await supabase.from('app_users').upsert({
+                    id: authUser.id,
+                    handle: '@Papi2', 
+                    email: email,
+                    name: 'Papi2',
+                    status: 'active',
+                    reputation: 10,
+                    joined_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+                
+                if (upsertErr) throw upsertErr;
+
+                log("Inserted @Papi2 successfully in app_users.");
+                
+                document.getElementById('status').innerHTML = "<span class='success'>SUCCESS_SYNC_COMPLETE</span>";
+                log("All operations completed successfully.");
+            } catch (err) {
+                document.getElementById('status').innerHTML = "<span class='error'>FAILED</span>";
+                log("ERROR: " + err.message);
+                console.error(err);
+            }
+        }
+        
+        sync();
+    </script>
+</body>
+</html>

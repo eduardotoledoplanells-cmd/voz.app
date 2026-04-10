@@ -13,6 +13,7 @@ export default function VozUsersPage() {
     const [userVideos, setUserVideos] = useState<any[]>([]);
     const [loadingVideos, setLoadingVideos] = useState(false);
     const [showVideosModal, setShowVideosModal] = useState(false);
+    const [currentVideoUser, setCurrentVideoUser] = useState<string>('');
 
     // Stats State
     const [showStats, setShowStats] = useState(false);
@@ -154,6 +155,7 @@ export default function VozUsersPage() {
     const handleViewVideos = (handle: string) => {
         setLoadingVideos(true);
         setShowVideosModal(true);
+        setCurrentVideoUser(handle);
         fetch(`/api/voz/users?handle=${encodeURIComponent(handle)}`)
             .then(res => res.json())
             .then(data => {
@@ -161,6 +163,22 @@ export default function VozUsersPage() {
                 setLoadingVideos(false);
             })
             .catch(() => setLoadingVideos(false));
+    };
+
+    const handleDeleteVideo = (videoId: string, userHandle: string) => {
+        showConfirm('¿Seguro que quieres borrar este video del servidor permanentemente?', () => {
+            fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(userHandle)}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setUserVideos(current => current.filter(v => v.id !== videoId));
+                        showAlert('Video eliminado exitosamente del servidor.', 'Éxito');
+                        fetchUsers();
+                    } else {
+                        showAlert('Error al borrar el video.', 'Error');
+                    }
+                });
+        }, 'Eliminar Video');
     };
 
     const handleReputationChange = (userId: string, newRep: number) => {
@@ -216,7 +234,6 @@ export default function VozUsersPage() {
                             <th style={{ padding: '5px' }}>ID</th>
                             <th style={{ padding: '5px' }}>Nombre</th>
                             <th style={{ padding: '5px' }}>Estado</th>
-                            <th style={{ padding: '5px' }}>Reputación</th>
                             <th style={{ padding: '5px' }}>Strikes</th>
                             <th style={{ padding: '5px' }}>Videos</th>
                             <th style={{ padding: '5px' }}>No. Videos</th>
@@ -232,7 +249,9 @@ export default function VozUsersPage() {
                                 <td style={{ padding: '5px' }}>{String(u.id || '').substring(0, 8)}</td>
                                 <td style={{ padding: '5px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: 'bold' }}>{u.name && u.name !== 'null' ? u.name : 'Sin nombre'}</span>
+                                        <span style={{ fontWeight: 'bold' }}>
+                                            {u.name && u.name !== 'null' && u.name !== 'Sin nombre' ? u.name : (u.handle ? u.handle.replace('@', '') : 'Sin nombre')}
+                                        </span>
                                         <span style={{ fontSize: '10px', color: '#666' }}>{u.handle}</span>
                                     </div>
                                 </td>
@@ -300,14 +319,6 @@ export default function VozUsersPage() {
                                             )}
                                         </div>
                                     </div>
-                                </td>
-                                <td style={{ padding: '5px' }}>
-                                    <input
-                                        type="number"
-                                        value={u.reputation}
-                                        onChange={(e) => handleReputationChange(u.id, parseInt(e.target.value))}
-                                        style={{ width: '60px', padding: '2px', border: '1px inset white' }}
-                                    />
                                 </td>
                                 <td style={{ padding: '5px' }}>
                                     <span style={{
@@ -417,16 +428,7 @@ export default function VozUsersPage() {
                             </div>
 
                             <fieldset style={{ marginTop: 15 }}>
-                                <legend>Gestión de Reputación</legend>
-                                <div className="field-row" style={{ justifyContent: 'center', gap: 10 }}>
-                                    <label>Reputación:</label>
-                                    <input
-                                        type="number"
-                                        value={tempUser?.reputation || 0}
-                                        onChange={(e) => setTempUser({ ...tempUser, reputation: parseInt(e.target.value) || 0 })}
-                                        style={{ width: '80px', textAlign: 'center' }}
-                                    />
-                                </div>
+                                <legend>Penalizaciones</legend>
                                 <div className="field-row" style={{ justifyContent: 'center', gap: 10, marginTop: 5 }}>
                                     <label>Penalizaciones (Strikes):</label>
                                     <input
@@ -605,7 +607,7 @@ export default function VozUsersPage() {
                 }}>
                     <div className="window">
                         <div className="title-bar">
-                            <div className="title-bar-text">Videos del Usuario: {userVideos[0]?.userHandle || 'Cargando...'}</div>
+                            <div className="title-bar-text">Videos del Usuario: {currentVideoUser || 'Cargando...'}</div>
                             <div className="title-bar-controls">
                                 <button aria-label="Close" onClick={() => setShowVideosModal(false)}></button>
                             </div>
@@ -635,9 +637,14 @@ export default function VozUsersPage() {
                                                     {v.status.toUpperCase()}
                                                 </span>
                                             </div>
-                                            <video src={v.url} style={{ width: '100%', maxHeight: '150px', backgroundColor: 'black' }} controls />
-                                            <div style={{ fontSize: '10px', marginTop: 5, color: '#666' }}>
-                                                Fecha: {new Date(v.timestamp).toLocaleString()}
+                                            <video src={v.url || v.videoUrl} style={{ width: '100%', maxHeight: '150px', backgroundColor: 'black' }} controls />
+                                            <div style={{ fontSize: '10px', marginTop: 5, color: '#666', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span>Fecha: {new Date(v.timestamp || v.createdAt).toLocaleString()}</span>
+                                                <button 
+                                                    onClick={() => handleDeleteVideo(v.id, currentVideoUser)}
+                                                >
+                                                    Eliminar
+                                                </button>
                                             </div>
                                             {v.moderatedBy && (
                                                 <div style={{ fontSize: '10px', fontWeight: 'bold' }}>
