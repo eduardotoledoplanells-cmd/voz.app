@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle, supabaseAdmin } from '@/lib/db';
+import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle, supabaseAdmin, deleteVideo, addNotification } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function OPTIONS() {
@@ -80,23 +80,12 @@ export async function PATCH(request: Request) {
                 } else {
                     // Si es contenido específico (video/audio)
                     if (updated.type === 'video') {
-                        // Borrar el video de la tabla principal. Intentamos por ID y por URL.
-                        if (updated.content && updated.content.length > 20) {
-                            console.log(`[MODERATION] Borrando por ID: ${updated.content}`);
-                            await supabaseAdmin.from('videos').delete().eq('id', updated.content);
-                        }
-                        const { error: videoDelError } = await supabaseAdmin
-                            .from('videos')
-                            .delete()
-                            .ilike('video_url', updated.url);
-
-                        if (videoDelError) {
-                            console.error('[MODERATION] Error al borrar video por URL:', videoDelError);
-                        }
+                        // Use the robust deleteVideo which handles both DB and Storage
+                        await deleteVideo(updated.url);
                     } else if (updated.type === 'audio') {
-                        // Borrar el comentario de voz
-                        if (updated.content && updated.content.length > 20) {
-                            await supabaseAdmin.from('voice_comments').delete().eq('id', updated.content);
+                        // Borrar el comentario de voz de la DB
+                        if (updated.id) {
+                             await supabaseAdmin.from('voice_comments').delete().eq('id', updated.content || '');
                         }
                         await supabaseAdmin.from('voice_comments').delete().ilike('audio_url', updated.url);
                     }
@@ -112,8 +101,6 @@ export async function PATCH(request: Request) {
                     // Enviar notificacion al usuario
                     if (updated.type === 'video' || updated.type === 'audio') {
                         try {
-                            const { addNotification } = require('../../../../../../src/lib/db'); // or just standard fetch
-                            // Actually we already import addNotification at the top!
                             const newNotification = {
                                 id: 'nt-' + Date.now(),
                                 recipientId: updated.userHandle,

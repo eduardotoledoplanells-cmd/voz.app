@@ -1,64 +1,80 @@
 import { NextResponse } from 'next/server';
-import { getViralStats, trackVideoEvent, getAppUsers, getLogs } from '@/lib/db';
+import { getViralStats, trackVideoEvent, getAppUsers, getLogs, getVideos, getCoinSales, getTransactions } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // 1. Viral Videos Stats
-        const stats = await getViralStats();
-        const sortedVideos = stats.sort((a: any, b: any) => b.views - a.views);
+        // 1. Basic Stats
+        const [users, videos, coinSales, logs, transactions] = await Promise.all([
+            getAppUsers(),
+            getVideos(),
+            getCoinSales(),
+            getLogs(),
+            getTransactions()
+        ]);
 
-        // 2. Top Donors Stats
-        const users = await getAppUsers();
-        const donors = users
-            .filter((u: any) => u.reputation > 0) // Example filter for active/reputable users
-            .sort((a: any, b: any) => (b.walletBalance || 0) - (a.walletBalance || 0)) // Example sorting by balance
-            .slice(0, 10) // Top 10
-            .map((u: any) => ({
-                id: u.id,
-                name: u.handle,
-                handle: u.handle,
-                donation: u.walletBalance || 0,
-                avatarColor: '#' + Math.floor(Math.random() * 16777215).toString(16)
-            }));
+        const today = new Date();
+        const last7Days = new Date();
+        last7Days.setDate(today.getDate() - 7);
 
-        // 3. Summary Stats
-        const logs = await getLogs();
-        const today = new Date().toISOString().split('T')[0];
-        const donationsToday = logs.filter((l: any) =>
-            l.timestamp.startsWith(today) &&
-            (l.action.includes('Regalo') || l.action.includes('Gift'))
-        ).length;
-
-        const activeUsers = users.filter((u: any) => u.status !== 'banned').length;
-
-        // 4. Category Stats
-        const categoryCounts: any = {};
-        let totalVideos = stats.length;
-        stats.forEach((v: any) => {
-            const cat = (v as any).category || 'General';
-            categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        // 2. Growth & Registration Stats (Real)
+        const dailyRegistrations: any = {};
+        users.forEach(u => {
+            const date = u.joinedAt ? new Date(u.joinedAt).toISOString().split('T')[0] : 'Unknown';
+            dailyRegistrations[date] = (dailyRegistrations[date] || 0) + 1;
         });
 
-        const categories = Object.keys(categoryCounts).map(cat => ({
-            name: cat.charAt(0).toUpperCase() + cat.slice(1),
-            count: totalVideos > 0 ? Math.round((categoryCounts[cat] / totalVideos) * 100) : 0,
-            color: '#' + Math.floor(Math.random() * 16777215).toString(16)
-        })).sort((a, b) => b.count - a.count);
+        // 3. DAU Proxy (Unique users with activity in last 24h)
+        const dayAgo = new Date();
+        dayAgo.setHours(today.getHours() - 24);
+        
+        const activeUsersCount = new Set([
+            ...logs.filter(l => new Date(l.timestamp) > dayAgo).map(l => l.employeeName), // Use employeeName as proxy if user logs exist
+            ...coinSales.filter(s => new Date(s.timestamp) > dayAgo).map(s => s.user_handle)
+        ]).size;
 
+        // 4. Financial Status
+        const totalRevenue = coinSales.reduce((acc, s) => acc + (parseFloat(s.price) || 0), 0);
+        const revenueToday = coinSales
+            .filter(s => new Date(s.timestamp).toDateString() === today.toDateString())
+            .reduce((acc, s) => acc + (parseFloat(s.price) || 0), 0);
+
+        // 5. Popular Content (Real views)
+        const topVideos = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+
+        // 6. Interaction Stats (Tips/Gifts)
+        const totalTips = transactions.filter(t => t.type === 'gift' || t.type === 'pm').length;
+        const totalRevenueShared = transactions
+            .filter(t => t.type === 'gift' || t.type === 'pm')
+            .reduce((acc, t) => acc + (t.amount || 0), 0) * 0.05; // 5% shared logic
+
+        // 6. Summary for Dashboard
         return NextResponse.json({
-            videos: sortedVideos,
-            donors: donors,
-            summary: {
-                donationsToday,
-                activeUsers
+            totals: {
+                users: users.length,
+                videos: videos.length,
+                revenue: totalRevenue,
+                activeUsers: Math.max(activeUsersCount, 1) // Ensure at least 1 for UI
             },
-            categories: categories
+            growth: {
+                dailyRegistrations,
+                revenueToday
+            },
+            videos: topVideos,
+            creators: users.filter(u => u.isCreator).length,
+            interactions: {
+                totalTips,
+                totalRevenueShared
+            },
+            system: {
+                bandwidthEstimate: `${(videos.length * 4.5).toFixed(1)} GB`, // Estimated 4.5MB per video avg
+                storageUsed: `${(videos.length * 12).toFixed(1)} MB` // Thumbnails + Metadata
+            }
         });
-    } catch (error) {
-        console.error('Error fetching stats:', error);
-        return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Error fetching real-time stats:', error);
+        return NextResponse.json({ error: 'Failed to fetch analytics', details: error.message }, { status: 500 });
     }
 }
 

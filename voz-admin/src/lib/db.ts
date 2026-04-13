@@ -1,13 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://obdrsqeueivhnbsibhen.supabase.co';
-// Hack: Skip invalid vercel variable if detected via keyword
-const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const isValidEnvKey = envKey.startsWith('eyJ') && !envKey.includes('M81T8_3');
-const supabaseAnonKey = isValidEnvKey ? envKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZHJzcWV1ZWl2aG5ic2liaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTE4MTksImV4cCI6MjA4NzMyNzgxOX0.6iZ82MtwuC5_Uxyu4xDRMKxITeugq8GiklPkgvq9AUg';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!isValidEnvKey) {
-    console.warn('Vercel Supabase key is invalid, using hardcoded fallback.');
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('CRITICAL [Admin]: Supabase credentials missing (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -40,10 +37,10 @@ export interface AppUser {
     profileImage?: string;
     isCreator?: boolean;
     status: 'active' | 'banned' | 'verified';
-    reputation: number;
     walletBalance?: number;
     joinedAt: string;
     resetPin?: string;
+    strikes?: number;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -147,13 +144,13 @@ export async function getAppUsers(): Promise<AppUser[]> {
         email: u.email,
         password: u.password,
         status: u.status,
-        reputation: u.reputation,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
         bio: u.bio,
         profileImage: u.profile_image,
         isCreator: u.is_creator,
-        resetPin: u.reset_pin
+        resetPin: u.reset_pin,
+        strikes: u.strikes || 0
     }));
 }
 
@@ -180,15 +177,16 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin'];
     const dbUpdates: any = {};
 
     // Map fields
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.name !== undefined) {
+        dbUpdates.name = updates.name || (updates.handle || '').replace('@', '');
+    }
     if (updates.handle !== undefined) dbUpdates.handle = updates.handle;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.reputation !== undefined) dbUpdates.reputation = updates.reputation;
     if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
@@ -260,13 +258,13 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         handle: data.handle,
         email: data.email,
         status: data.status,
-        reputation: data.reputation,
         walletBalance: parseFloat(data.wallet_balance),
         joinedAt: data.joined_at,
         bio: data.bio,
         profileImage: data.profile_image,
         isCreator: data.is_creator,
-        resetPin: data.reset_pin
+        resetPin: data.reset_pin,
+        strikes: data.strikes || 0
     };
 }
 
@@ -287,12 +285,11 @@ export async function updateCreator(id: string, updates: any, employeeName: stri
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
     const { data, error } = await supabaseAdmin.from('app_users').insert([{
         id: user.id,
-        name: user.name,
+        name: user.name || user.handle.replace('@', ''),
         handle: user.handle,
         email: user.email,
         password: user.password,
         status: user.status,
-        reputation: user.reputation,
         wallet_balance: user.walletBalance || 0
     }]).select().single();
     if (error) {
@@ -461,11 +458,18 @@ export async function addPenaltyToUser(handle: string, penalty: { url?: string, 
         reason: penalty.reason
     }]);
 
-    // Also decrease reputation
+    // Increase strikes and check auto-ban
     const users = await getAppUsers();
     const user = users.find(u => u.handle === handle);
     if (user) {
-        await updateAppUser(user.id, { reputation: Math.max(0, user.reputation - 1) });
+        const newStrikes = (user.strikes || 0) + 1;
+        
+        if (newStrikes >= 3) {
+            console.log(`[PENALTY] User ${handle} reached 3 strikes. Banning...`);
+            await banAppUserByHandle(handle);
+        } else {
+            await updateAppUser(user.id, { strikes: newStrikes } as any);
+        }
     }
 }
 
@@ -962,17 +966,61 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
 }
 
 export async function deleteVideo(id: string, userHandle: string): Promise<boolean> {
-    const { error } = await supabaseAdmin
-        .from('videos')
-        .delete()
-        .eq('id', id)
-        .eq('user_handle', userHandle);
+    try {
+        // 1. Get the video URL to know what to delete from storage
+        const { data: video, error: fetchError } = await supabaseAdmin
+            .from('videos')
+            .select('video_url')
+            .eq('id', id)
+            .single();
 
-    if (error) {
-        console.error('Error deleting video:', error);
+        if (fetchError || !video) {
+            console.error('Error fetching video for deletion:', fetchError);
+            return false;
+        }
+
+        // 2. Extract relative path from URL
+        // URL format: .../storage/v1/object/public/media/videos/filename.mp4
+        const urlPart = '/storage/v1/object/public/media/';
+        let relativePath = '';
+        if (video.video_url.includes(urlPart)) {
+            relativePath = video.video_url.split(urlPart)[1];
+        } else {
+            // Fallback: try to guess from the URL
+            const parts = video.video_url.split('/');
+            relativePath = parts.slice(parts.indexOf('media') + 1).join('/');
+        }
+
+        if (relativePath) {
+            console.log(`[Storage] Deleting file: ${relativePath}`);
+            const { error: storageError } = await supabaseAdmin.storage
+                .from('media')
+                .remove([relativePath]);
+
+            if (storageError) {
+                console.error('Error deleting file from storage:', storageError);
+                // We stop here to avoid orphan database records if the file persists
+                return false;
+            }
+        }
+
+        // 3. Delete from database
+        const { error: dbError } = await supabaseAdmin
+            .from('videos')
+            .delete()
+            .eq('id', id)
+            .eq('user_handle', userHandle);
+
+        if (dbError) {
+            console.error('Error deleting video from DB:', dbError);
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.error('Exception in deleteVideo:', err);
         return false;
     }
-    return true;
 }
 
 // --- Billing & Redemptions ---

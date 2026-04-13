@@ -17,6 +17,7 @@ export default function VozUsersPage() {
 
     // Stats State
     const [showStats, setShowStats] = useState(false);
+    const [statsData, setStatsData] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('registros');
 
     // Dialog state
@@ -51,12 +52,18 @@ export default function VozUsersPage() {
     };
 
     const fetchUsers = () => {
-        fetch('/api/voz/users')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setUsers(data);
-                    setFilteredUsers(data);
+        setLoading(true);
+        Promise.all([
+            fetch('/api/voz/users').then(res => res.json()),
+            fetch('/api/voz/stats').then(res => res.json())
+        ])
+            .then(([usersData, statsRes]) => {
+                if (Array.isArray(usersData)) {
+                    setUsers(usersData);
+                    setFilteredUsers(usersData);
+                }
+                if (statsRes && !statsRes.error) {
+                    setStatsData(statsRes);
                 }
                 setLoading(false);
             })
@@ -137,7 +144,6 @@ export default function VozUsersPage() {
                 name: tempUser.name,
                 handle: tempUser.handle,
                 status: tempUser.status,
-                reputation: tempUser.reputation,
                 penalties: tempUser.penalties,
                 employeeName: 'Admin'
             })
@@ -181,23 +187,6 @@ export default function VozUsersPage() {
         }, 'Eliminar Video');
     };
 
-    const handleReputationChange = (userId: string, newRep: number) => {
-        if (isNaN(newRep)) return;
-        fetch('/api/voz/users', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: userId, reputation: newRep, employeeName: 'Admin' })
-        })
-            .then(res => res.json())
-            .then(updatedUser => {
-                if (updatedUser && !updatedUser.error) {
-                    if (selectedUser?.id === userId) {
-                        setSelectedUser(updatedUser);
-                    }
-                    fetchUsers();
-                }
-            });
-    };
 
     const getStatusLabel = (status: any) => {
         const s = String(status || '').toLowerCase();
@@ -493,103 +482,110 @@ export default function VozUsersPage() {
                 }}>
                     <div className="window" style={{ width: 600 }}>
                         <div className="title-bar">
-                            <div className="title-bar-text">Estadísticas de Uso - VOZ Analytics</div>
+                            <div className="title-bar-text">Estadísticas Reales - VOZ Analytics</div>
                             <div className="title-bar-controls">
                                 <button aria-label="Close" onClick={() => setShowStats(false)}></button>
                             </div>
                         </div>
                         <div className="window-body">
-                            <menu role="tablist">
-                                <li role="tab" aria-selected={activeTab === 'registros'} onClick={() => setActiveTab('registros')}><a href="#registros">Registros Diarios</a></li>
-                                <li role="tab" aria-selected={activeTab === 'actividad'} onClick={() => setActiveTab('actividad')}><a href="#actividad">Usuarios Activos</a></li>
-                                <li role="tab" aria-selected={activeTab === 'transferencia'} onClick={() => setActiveTab('transferencia')}><a href="#transferencia">Demanda Transferencia</a></li>
-                            </menu>
-                            <div className="window" role="tabpanel" style={{ height: 300, overflowY: 'auto' }}>
-                                <div className="window-body">
-                                    {activeTab === 'registros' && (
-                                        <div>
-                                            <h4>Usuarios Registrados por Día</h4>
-                                            {(() => {
-                                                const data = users.reduce((acc: any, user) => {
-                                                    const date = user.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : 'Desconocido';
-                                                    acc[date] = (acc[date] || 0) + 1;
-                                                    return acc;
-                                                }, {});
-                                                const maxVal = Math.max(1, ...Object.values<number>(data));
+                            {!statsData ? (
+                                <p style={{ padding: 20 }}>Cargando analíticas desde Supabase...</p>
+                            ) : (
+                                <>
+                                    <menu role="tablist">
+                                        <li role="tab" aria-selected={activeTab === 'registros'} onClick={() => setActiveTab('registros')}><a href="#registros">Registros Diarios</a></li>
+                                        <li role="tab" aria-selected={activeTab === 'actividad'} onClick={() => setActiveTab('actividad')}><a href="#actividad">Actividad Real</a></li>
+                                        <li role="tab" aria-selected={activeTab === 'sistema'} onClick={() => setActiveTab('sistema')}><a href="#sistema">Infraestructura</a></li>
+                                    </menu>
+                                    <div className="window" role="tabpanel" style={{ height: 350, overflowY: 'auto' }}>
+                                        <div className="window-body">
+                                            {activeTab === 'registros' && (
+                                                <div>
+                                                    <h4>Histórico de Registros (Real)</h4>
+                                                    {(() => {
+                                                        const data = statsData.growth?.dailyRegistrations || {};
+                                                        const entries = Object.entries(data).sort((a, b) => b[0].localeCompare(a[0]));
+                                                        const maxVal = Math.max(1, ...Object.values<number>(data));
 
-                                                if (Object.keys(data).length === 0) return <p>No hay datos de registro.</p>;
+                                                        if (entries.length === 0) return <p>Esperando datos de tráfico...</p>;
 
-                                                return Object.entries(data).map(([date, count]: any) => {
-                                                    const widthPercent = (count / maxVal) * 100;
-                                                    return (
-                                                        <div key={date} style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-                                                            <span style={{ width: 100, fontSize: 12 }}>{date}</span>
-                                                            <div style={{ flex: 1, backgroundColor: 'white', border: '1px inset white', height: 20, margin: '0 10px' }}>
-                                                                <div style={{ width: `${widthPercent}%`, backgroundColor: '#000080', height: '100%' }}></div>
-                                                            </div>
-                                                            <span style={{ width: 30, textAlign: 'right', fontWeight: 'bold' }}>{count}</span>
-                                                        </div>
-                                                    );
-                                                });
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'actividad' && (
-                                        <div>
-                                            <h4>Usuarios Activos (Simulado)</h4>
-                                            <div style={{ marginBottom: 20 }}>
-                                                <p><strong>DAU (Usuarios Diarios Activos):</strong> {Math.floor(users.length * 0.4)} / {users.length}</p>
-                                                <p><strong>MAU (Usuarios Mensuales Activos):</strong> {Math.floor(users.length * 0.85)} / {users.length}</p>
-                                            </div>
-                                            <p>Actividad últimos 7 días:</p>
-                                            {[...Array(7)].map((_, i) => {
-                                                const d = new Date();
-                                                d.setDate(d.getDate() - (6 - i));
-                                                const dayStr = d.toLocaleDateString('es-ES', { weekday: 'short' });
-                                                const val = Math.floor(Math.random() * (users.length / 2)) + 1;
-                                                const max = users.length;
-                                                return (
-                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-                                                        <span style={{ width: 50, fontSize: 12, textTransform: 'capitalize' }}>{dayStr}</span>
-                                                        <div style={{ flex: 1, backgroundColor: 'white', border: '1px inset white', height: 20, margin: '0 10px' }}>
-                                                            <div style={{ width: `${(val / max) * 100}%`, backgroundColor: '#008000', height: '100%' }}></div>
-                                                        </div>
-                                                        <span style={{ width: 30, textAlign: 'right' }}>{val}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'transferencia' && (
-                                        <div>
-                                            <h4>Demanda de Transferencia (Mensual)</h4>
-                                            <p style={{ fontSize: 12, marginBottom: 15 }}>Estimación basada en reproducción de video y audio.</p>
-                                            {[
-                                                { month: 'Enero', valor: 450, unit: 'GB' },
-                                                { month: 'Febrero', valor: 520, unit: 'GB' },
-                                                { month: 'Marzo', valor: 480, unit: 'GB' },
-                                                { month: 'Abril', valor: 600, unit: 'GB' },
-                                                { month: 'Mayo (Actual)', valor: 850, unit: 'GB' },
-                                            ].map((m) => (
-                                                <div key={m.month} style={{ marginBottom: 10 }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                                                        <span>{m.month}</span>
-                                                        <span>{m.valor} {m.unit}</span>
-                                                    </div>
-                                                    <div style={{ width: '100%', backgroundColor: 'white', border: '1px inset white', height: 20 }}>
-                                                        <div style={{ width: `${(m.valor / 1000) * 100}%`, backgroundColor: '#800080', height: '100%' }}></div>
-                                                    </div>
+                                                        return entries.map(([date, count]: any) => {
+                                                            const widthPercent = (count / maxVal) * 100;
+                                                            return (
+                                                                <div key={date} style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+                                                                    <span style={{ width: 100, fontSize: 12 }}>{date}</span>
+                                                                    <div style={{ flex: 1, backgroundColor: 'white', border: '1px inset white', height: 20, margin: '0 10px' }}>
+                                                                        <div style={{ width: `${widthPercent}%`, backgroundColor: '#000080', height: '100%' }}></div>
+                                                                    </div>
+                                                                    <span style={{ width: 30, textAlign: 'right', fontWeight: 'bold' }}>{count}</span>
+                                                                </div>
+                                                            );
+                                                        });
+                                                    })()}
                                                 </div>
-                                            ))}
-                                            <p style={{ marginTop: 20, fontWeight: 'bold', color: 'red' }}>⚠️ Alerta: El consumo de Mayo está al 85% del límite del servidor.</p>
+                                            )}
+
+                                            {activeTab === 'actividad' && (
+                                                <div>
+                                                    <h4>Usuarios Activos y Engagement</h4>
+                                                    <div style={{ marginBottom: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                                        <div className="sunken-panel" style={{ padding: 10, background: '#dfdfdf' }}>
+                                                            <div style={{ fontSize: 11 }}>ACTIVOS (24h)</div>
+                                                            <div style={{ fontSize: 24, fontWeight: 'bold', color: '#000080' }}>{statsData.totals?.activeUsers || 0}</div>
+                                                        </div>
+                                                        <div className="sunken-panel" style={{ padding: 10, background: '#dfdfdf' }}>
+                                                            <div style={{ fontSize: 11 }}>CONTENIDO TOTAL</div>
+                                                            <div style={{ fontSize: 24, fontWeight: 'bold', color: '#008000' }}>{statsData.totals?.videos || 0}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p style={{ fontWeight: 'bold' }}>Top Videos por Visualizaciones:</p>
+                                                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                                                        <thead>
+                                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid #000' }}>
+                                                                <th>Creador</th>
+                                                                <th>Descripción</th>
+                                                                <th style={{ textAlign: 'right' }}>Views</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {statsData.videos?.map((v: any) => (
+                                                                <tr key={v.id}>
+                                                                    <td>{v.user}</td>
+                                                                    <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.description}</td>
+                                                                    <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{v.views}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'sistema' && (
+                                                <div>
+                                                    <h4>Estado del Servidor y Transferencia</h4>
+                                                    <div style={{ marginBottom: 15 }}>
+                                                        <p><strong>Ancho de Banda Estimado:</strong> {statsData.system?.bandwidthEstimate}</p>
+                                                        <div style={{ width: '100%', backgroundColor: 'white', border: '1px inset white', height: 20 }}>
+                                                            <div style={{ width: '45%', backgroundColor: '#800080', height: '100%' }}></div>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ marginBottom: 15 }}>
+                                                        <p><strong>Almacenamiento (Metadata + Thumbs):</strong> {statsData.system?.storageUsed}</p>
+                                                        <div style={{ width: '100%', backgroundColor: 'white', border: '1px inset white', height: 20 }}>
+                                                            <div style={{ width: '12%', backgroundColor: '#008080', height: '100%' }}></div>
+                                                        </div>
+                                                    </div>
+                                                    <p style={{ fontSize: 11, color: '#666' }}>* Métricas calculadas en base a volumen de objetos en Supabase Storage.</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                                    </div>
+                                </>
+                            )}
                             <div className="status-bar">
-                                <p className="status-bar-field">Generado: {new Date().toLocaleTimeString()}</p>
+                                <p className="status-bar-field">Sincronizado con Supabase</p>
+                                <p className="status-bar-field" style={{ flex: 1, textAlign: 'right' }}>VozAdmin Shield v2.4</p>
                             </div>
                         </div>
                     </div>

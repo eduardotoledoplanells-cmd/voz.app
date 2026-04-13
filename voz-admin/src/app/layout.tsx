@@ -76,6 +76,7 @@ function VozAdminContent({
         { href: '/creators', label: '📂 Creadores Voz', roles: [1, 2, 3, 5, 6] },
         { href: '/users', label: '👥 Usuarios App', roles: [1, 3, 5, 6] },
         { href: '/moderation', label: '🛡️ Moderación Voz', roles: [1, 3, 5, 6] },
+        { href: '/notifications', label: '✉️ Notificaciones App', roles: [1, 2, 5, 6] },
         { href: '/ads', label: '📢 Publicidad App', roles: [1, 4, 5, 6] },
         { href: '/stats', label: '📈 Ranking Viral', roles: [1, 5, 6] },
         { href: '/hr', label: '👥 Recursos Humanos', roles: [1] },

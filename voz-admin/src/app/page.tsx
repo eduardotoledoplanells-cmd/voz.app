@@ -13,33 +13,34 @@ export default function VozAdminDashboard() {
     });
     const [username, setUsername] = useState('');
     const [employeeId, setEmployeeId] = useState('');
+    const [loginError, setLoginError] = useState<string | null>(null);
     const [logs, setLogs] = useState<any[]>([]);
 
     const [currentEmployee, setCurrentEmployee] = useState<any>(null);
 
     const fetchData = async () => {
         try {
-            const [uRes, mRes, bRes, rRes, aRes] = await Promise.all([
+            const [uRes, mRes, bRes, rRes, sRes] = await Promise.all([
                 fetch('/api/voz/users'),
                 fetch('/api/voz/moderation'),
                 fetch('/api/voz/billing'),
                 fetch('/api/voz/redemptions'),
-                fetch('/api/voz/analytics')
+                fetch('/api/voz/stats')
             ]);
 
             const users = await uRes.json();
             const mod = await mRes.json();
             const billing = await bRes.json();
             const redemptions = await rRes.json();
-            const analytics = await aRes.json();
+            const serverStats = await sRes.json();
 
             setStats({
-                users: Array.isArray(users) ? users.length : 0,
+                users: serverStats?.totals?.users || (Array.isArray(users) ? users.length : 0),
                 pendingVideos: Array.isArray(mod) ? mod.filter((m: any) => m.status === 'pending').length : 0,
-                revenue: billing?.stats?.totalRevenue || 0,
+                revenue: serverStats?.totals?.revenue || billing?.stats?.totalRevenue || 0,
                 pendingRedemptions: Array.isArray(redemptions) ? redemptions.filter((r: any) => r.status === 'pending').length : 0,
-                vozInteractions: analytics?.totalTips || 0,
-                vozDistributed: analytics?.totalRevenueShared || 0
+                vozInteractions: serverStats?.interactions?.totalTips || 0,
+                vozDistributed: serverStats?.interactions?.totalRevenueShared || 0
             });
         } catch (error) {
             console.error('Error fetching dashboard stats:', error);
@@ -67,23 +68,31 @@ export default function VozAdminDashboard() {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!username || !employeeId) return;
+        setLoginError(null);
+        
+        const cleanUsername = username.trim();
+        const cleanPass = employeeId.trim();
+
+        if (!cleanUsername || !cleanPass) {
+            setLoginError('Por favor completa todos los campos.');
+            return;
+        }
 
         // Fetch employees to find the one logging in
         fetch('/api/voz/employees')
             .then(res => res.json())
             .then(employees => {
-                const emp = employees.find((e: any) => e.username.toLowerCase() === username.toLowerCase());
+                const emp = employees.find((e: any) => e.username.toLowerCase() === cleanUsername.toLowerCase());
 
                 if (!emp) {
-                    alert('Usuario no encontrado en la base de datos de empleados.');
+                    setLoginError('Usuario no encontrado en la base de datos.');
                     return;
                 }
 
                 // Verify password
                 const expectedPass = emp.password || '123';
-                if (employeeId !== expectedPass) {
-                    alert('Código de Empleado (Password) incorrecto.');
+                if (cleanPass !== expectedPass) {
+                    setLoginError('Código de Empleado (Password) incorrecto.');
                     return;
                 }
 
@@ -261,7 +270,7 @@ export default function VozAdminDashboard() {
                                         <input
                                             type="text"
                                             value={username}
-                                            onChange={(e) => setUsername(e.target.value)}
+                                            onChange={(e) => { setUsername(e.target.value); setLoginError(null); }}
                                             placeholder="ej: admin_rober"
                                         />
                                     </div>
@@ -270,10 +279,26 @@ export default function VozAdminDashboard() {
                                         <input
                                             type="password"
                                             value={employeeId}
-                                            onChange={(e) => setEmployeeId(e.target.value)}
+                                            onChange={(e) => { setEmployeeId(e.target.value); setLoginError(null); }}
                                             placeholder="••••••••"
                                         />
                                     </div>
+
+                                    {loginError && (
+                                        <div style={{
+                                            backgroundColor: '#ffbaba',
+                                            color: '#d8000c',
+                                            border: '1px solid #d8000c',
+                                            padding: '8px',
+                                            marginBottom: '15px',
+                                            fontSize: '0.85rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '5px'
+                                        }}>
+                                            <span>⚠️</span> {loginError}
+                                        </div>
+                                    )}
                                     <div className="field-row" style={{ justifyContent: 'flex-end', gap: '5px' }}>
                                         <button type="submit" style={{ fontWeight: 'bold' }}>Acceder</button>
                                         <button type="button" onClick={() => { setUsername(''); setEmployeeId(''); }}>Limpiar</button>
