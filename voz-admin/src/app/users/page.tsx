@@ -140,7 +140,12 @@ export default function VozUsersPage() {
     };
 
     const handleSaveModalChanges = () => {
-        if (!tempUser) return;
+        if (!tempUser || !selectedUser) return;
+
+        const oldStrikes = selectedUser.strikes || 0;
+        const newStrikes = tempUser.strikes || 0;
+        const userHandle = tempUser.handle;
+
         fetch('/api/voz/users', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -156,6 +161,25 @@ export default function VozUsersPage() {
             .then(res => res.json())
             .then(updatedUser => {
                 if (updatedUser && !updatedUser.error) {
+                    // Notify user if strikes changed
+                    if (newStrikes !== oldStrikes) {
+                        const cleanHandle = userHandle.replace('@', '');
+                        const isIncrease = newStrikes > oldStrikes;
+                        
+                        fetch('/api/voz/notifications', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                recipientId: cleanHandle,
+                                type: 'moderation',
+                                title: 'VOZ',
+                                message: isIncrease 
+                                    ? `Has recibido una nueva penalización por incumplimiento de normas. Recuerda que al acumular 3 strikes serás baneado.`
+                                    : `Una de tus penalizaciones ha sido retirada por el equipo de moderación. Gracias por cumplir las normas.`
+                            })
+                        }).catch(e => console.warn("Error notifying strike change:", e));
+                    }
+
                     setSelectedUser(null);
                     setTempUser(null);
                     fetchUsers();
