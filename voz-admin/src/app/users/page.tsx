@@ -20,6 +20,11 @@ export default function VozUsersPage() {
     const [statsData, setStatsData] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('registros');
 
+    // Strike Modal State
+    const [showStrikeModal, setShowStrikeModal] = useState(false);
+    const [strikeReason, setStrikeReason] = useState('');
+    const [userToStrike, setUserToStrike] = useState<any>(null);
+
     // Dialog state
     const [dialog, setDialog] = useState<{
         show: boolean;
@@ -189,29 +194,35 @@ export default function VozUsersPage() {
 
 
     const handleGiveStrike = (user: any) => {
-        const reason = window.prompt(`¿Motivo del strike para ${user.handle}?`);
-        if (!reason) return;
+        setUserToStrike(user);
+        setStrikeReason('Incumplimiento de normas'); // Default reason
+        setShowStrikeModal(true);
+    };
 
-        showConfirm(`¿Seguro que quieres dar un strike a ${user.handle} por "${reason}"?`, () => {
-            fetch('/api/voz/users/strike', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ handle: user.handle, reason })
+    const confirmStrike = () => {
+        if (!userToStrike || !strikeReason) return;
+        const targetHandle = userToStrike.handle;
+
+        fetch('/api/voz/users/strike', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ handle: targetHandle, reason: strikeReason })
+        })
+            .then(res => res.json())
+            .then(data => {
+                setShowStrikeModal(false);
+                if (data.success) {
+                    showAlert('Strike aplicado y usuario notificado.', 'Éxito');
+                    fetchUsers();
+                } else {
+                    showAlert('Error: ' + data.error, 'Error');
+                }
             })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showAlert('Strike aplicado y usuario notificado.', 'Éxito');
-                        fetchUsers(); // Refresh list to see new strike count
-                    } else {
-                        showAlert('Error: ' + data.error, 'Error');
-                    }
-                })
-                .catch(err => {
-                    console.error('Strike error:', err);
-                    showAlert('Error de conexión', 'Error');
-                });
-        }, 'Dar Strike');
+            .catch(err => {
+                setShowStrikeModal(false);
+                console.error('Strike error:', err);
+                showAlert('Error de conexión', 'Error');
+            });
     };
 
     const getStatusLabel = (status: any) => {
@@ -703,6 +714,40 @@ export default function VozUsersPage() {
                             )}
                             <div className="field-row" style={{ marginTop: 15, justifyContent: 'flex-end' }}>
                                 <button onClick={() => setShowVideosModal(false)}>Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showStrikeModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', zIndex: 10000
+                }}>
+                    <div className="window" style={{ width: 400 }}>
+                        <div className="title-bar">
+                            <div className="title-bar-text">Dar Strike a {userToStrike?.handle}</div>
+                        </div>
+                        <div className="window-body">
+                            <p>Indica el motivo de la penalización:</p>
+                            <div className="field-row-stacked" style={{ width: '100%' }}>
+                                <textarea 
+                                    style={{ width: '100%', height: 80, resize: 'none' }}
+                                    value={strikeReason}
+                                    onChange={(e) => setStrikeReason(e.target.value)}
+                                    placeholder="Ej: Contenido inapropiado, spam, lenguaje ofensivo..."
+                                />
+                            </div>
+                            <div style={{ marginTop: 15, textAlign: 'center' }}>
+                                <p style={{ color: 'red', fontSize: '12px' }}>
+                                    ⚠️ Al dar 3 strikes el usuario será baneado automáticamente.
+                                </p>
+                            </div>
+                            <div className="field-row" style={{ justifyContent: 'center', marginTop: 15, gap: 10 }}>
+                                <button style={{ minWidth: 100, fontWeight: 'bold' }} onClick={confirmStrike}>Aplicar Strike</button>
+                                <button style={{ minWidth: 80 }} onClick={() => setShowStrikeModal(false)}>Cancelar</button>
                             </div>
                         </div>
                     </div>
