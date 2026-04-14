@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
                 email,
                 // NO guardamos 'password' nunca más
                 status: 'active',
-                reputation: 10,
                 walletBalance: 0,
                 joinedAt: new Date().toISOString()
             };

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateAppUser, getAppUsers, addCoinSale } from "@/lib/db";
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
+export const dynamic = 'force-dynamic';
 
 const COIN_PACKS_SERVER = {
     'p2': { price: 10, coins: 8 },

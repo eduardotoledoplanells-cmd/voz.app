@@ -1,17 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://obdrsqeueivhnbsibhen.supabase.co';
-const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const isValidEnvKey = envKey.startsWith('eyJ') && !envKey.includes('M81T8_3');
-const supabaseAnonKey = isValidEnvKey ? envKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZHJzcWV1ZWl2aG5ic2liaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTE4MTksImV4cCI6MjA4NzMyNzgxOX0.6iZ82MtwuC5_Uxyu4xDRMKxITeugq8GiklPkgvq9AUg';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl) {
-    console.error('Supabase credentials missing in environment variables');
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('CRITICAL: Supabase credentials missing (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)');
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('Supabase configuration missing in production');
+    }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-export const supabaseAdmin = serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : supabase;
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabaseAdmin = serviceRoleKey ? createClient(supabaseUrl || '', serviceRoleKey) : supabase;
 
 // --- App Users Logic (VOZ) ---
 export interface AppUser {
@@ -20,7 +21,6 @@ export interface AppUser {
     email: string;
     password?: string;
     status: 'active' | 'banned' | 'verified';
-    reputation: number;
     walletBalance?: number;
     joinedAt: string;
     name?: string;
@@ -28,6 +28,8 @@ export interface AppUser {
     profileImage?: string;
     isCreator?: boolean;
     pushToken?: string;
+    resetPin?: string;
+    strikes?: number;
 }
 
 export async function getAppUsers(): Promise<AppUser[]> {
@@ -46,30 +48,29 @@ export async function getAppUsers(): Promise<AppUser[]> {
         email: u.email,
         password: u.password,
         status: u.status,
-        reputation: u.reputation,
         walletBalance: parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
         name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
         bio: u.bio,
         profileImage: u.profile_image,
         isCreator: u.is_creator,
-        pushToken: u.push_token
+        pushToken: u.push_token,
+        resetPin: u.reset_pin,
+        strikes: u.strikes || 0
     }));
 }
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
     const { data, error } = await supabaseAdmin
-        .from('app_users')
         .insert([{
             id: user.id,
             handle: user.handle,
             email: user.email,
             password: user.password,
             status: user.status,
-            reputation: user.reputation,
             wallet_balance: user.walletBalance || 0,
             joined_at: user.joinedAt,
-            name: user.name,
+            name: user.name || user.handle.replace('@', ''),
             bio: user.bio,
             profile_image: user.profileImage,
             is_creator: user.isCreator || false,
@@ -97,15 +98,16 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'reputation', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token'];
     const dbUpdates: any = {};
 
     // Map fields
-    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.name !== undefined) {
+        dbUpdates.name = updates.name || (updates.handle || '').replace('@', '');
+    }
     if (updates.handle !== undefined) dbUpdates.handle = updates.handle;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.reputation !== undefined) dbUpdates.reputation = updates.reputation;
     if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
@@ -169,7 +171,6 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         name: data.name,
         email: data.email,
         status: data.status,
-        reputation: data.reputation,
         walletBalance: parseFloat(data.wallet_balance),
         joinedAt: data.joined_at,
         bio: data.bio,

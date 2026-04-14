@@ -1,8 +1,8 @@
 
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
+export const dynamic = 'force-dynamic';
 
 const COIN_PACKS_SERVER = {
     'p2': {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
         if (!process.env.STRIPE_SECRET_KEY) {
             console.error('STRIPE_SECRET_KEY is missing');
-            return NextResponse.json({ error: 'Error de configuración en el servidor' }, { status: 500 });
+            return NextResponse.json({ error: 'Configuración de Stripe incompleta' }, { status: 500 });
         }
 
         const paymentIntent = await stripe.paymentIntents.create({

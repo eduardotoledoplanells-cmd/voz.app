@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 import { getAppUsers, updateAppUser, addCoinSale } from '@/lib/db';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+export const dynamic = 'force-dynamic';
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(request: Request) {
     const body = await request.text();
@@ -11,6 +12,11 @@ export async function POST(request: Request) {
 
     if (!signature) {
         return NextResponse.json({ error: 'No signature' }, { status: 400 });
+    }
+
+    if (!webhookSecret) {
+        console.error('STRIPE_WEBHOOK_SECRET is not configured');
+        return NextResponse.json({ error: 'Webhook configuration error' }, { status: 500 });
     }
 
     let event: Stripe.Event;

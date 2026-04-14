@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
                 email,
                 password: '', // No guardamos la password en la tabla pública por seguridad
                 status: 'active',
-                reputation: 10,
                 walletBalance: 0,
                 joinedAt: new Date().toISOString()
             };

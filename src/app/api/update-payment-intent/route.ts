@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle, supabaseAdmin, deleteVideo, addNotification } from '@/lib/db';
+import { getModerationQueue, updateModerationItem, addModerationItem, addLog, ModerationItem, addPenaltyToUser, addProductivityLog, addInactivityLog, generateMatricula, banAppUserByHandle, supabaseAdmin, deleteVideoByUrl, addNotification } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function OPTIONS() {
@@ -78,10 +78,9 @@ export async function PATCH(request: Request) {
                     // Si es un perfil, lo baneamos directamente (ya incluye borrado de sus videos)
                     await banAppUserByHandle(updated.userHandle);
                 } else {
-                    // Si es contenido específico (video/audio)
                     if (updated.type === 'video') {
-                        // Use the robust deleteVideo which handles both DB and Storage
-                        await deleteVideo(updated.url);
+                        // Use the robust deleteVideoByUrl which handles both DB and Storage
+                        await deleteVideoByUrl(updated.url, updated.userHandle);
                     } else if (updated.type === 'audio') {
                         // Borrar el comentario de voz de la DB
                         if (updated.id) {

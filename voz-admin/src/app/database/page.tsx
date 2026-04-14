@@ -19,7 +19,8 @@ export default function DatabasePage() {
         addLog("Iniciando migración de base de datos...");
 
         try {
-            const response = await fetch('/api/voz/db/migrate', {
+            const serverUrl = 'https://server-taupe-six.vercel.app';
+            const response = await fetch(`${serverUrl}/api/voz/db/migrate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ dbPassword })

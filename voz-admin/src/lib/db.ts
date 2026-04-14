@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error('CRITICAL [Admin]: Supabase credentials missing (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)');
@@ -33,6 +33,10 @@ export interface AppUser {
     email: string;
     password?: string;
     name?: string;
+    realName?: string;
+    dni?: string;
+    iban?: string;
+    paymentInfo?: any;
     bio?: string;
     profileImage?: string;
     isCreator?: boolean;
@@ -140,7 +144,12 @@ export async function getAppUsers(): Promise<AppUser[]> {
     return data.map(u => ({
         id: u.id,
         name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
         handle: u.handle,
+        userHandle: u.handle, // For Creator interface compatibility
+        dni: u.dni,
+        iban: u.iban,
+        paymentInfo: u.payment_info,
         email: u.email,
         password: u.password,
         status: u.status,
@@ -154,7 +163,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
     }));
 }
 
-export async function getCreators(): Promise<Creator[]> {
+export async function getCreators(): Promise<any[]> {
     const users = await getAppUsers();
     // In this simplified version, all app users are creators
     return users.map(u => ({
@@ -164,7 +173,9 @@ export async function getCreators(): Promise<Creator[]> {
         earnedEuro: (u.walletBalance || 0) * 0.05, // Example conversion
         stats: {
             totalGifts: Math.floor((u.walletBalance || 0) / 10),
-            totalVideos: 0 // Would need another query
+            totalPMs: 0,
+            earnedFromGifts: 0,
+            earnedFromPMs: 0
         }
     }));
 }
@@ -177,12 +188,18 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes'];
     const dbUpdates: any = {};
 
     // Map fields
-    if (updates.name !== undefined) {
-        dbUpdates.name = updates.name || (updates.handle || '').replace('@', '');
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.realName !== undefined || (updates as any).real_name !== undefined) {
+        dbUpdates.real_name = updates.realName || (updates as any).real_name;
+    }
+    if (updates.dni !== undefined) dbUpdates.dni = updates.dni;
+    if (updates.iban !== undefined) dbUpdates.iban = updates.iban;
+    if (updates.paymentInfo !== undefined || (updates as any).payment_info !== undefined) {
+        dbUpdates.payment_info = updates.paymentInfo || (updates as any).payment_info;
     }
     if (updates.handle !== undefined) dbUpdates.handle = updates.handle;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
@@ -195,6 +212,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
     if (updates.password !== undefined) dbUpdates.password = updates.password;
     if (updates.resetPin !== undefined) dbUpdates.reset_pin = updates.resetPin;
+    if (updates.strikes !== undefined) dbUpdates.strikes = updates.strikes;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -1019,6 +1037,28 @@ export async function deleteVideo(id: string, userHandle: string): Promise<boole
         return true;
     } catch (err) {
         console.error('Exception in deleteVideo:', err);
+        return false;
+    }
+}
+
+export async function deleteVideoByUrl(url: string, userHandle: string): Promise<boolean> {
+    try {
+        // 1. Find video by URL
+        const { data: video, error: fetchError } = await supabaseAdmin
+            .from('videos')
+            .select('id')
+            .eq('video_url', url)
+            .single();
+
+        if (fetchError || !video) {
+            console.error('Error finding video by URL for deletion:', fetchError);
+            return false;
+        }
+
+        // 2. Use existing deleteVideo function
+        return await deleteVideo(video.id, userHandle);
+    } catch (err) {
+        console.error('Exception in deleteVideoByUrl:', err);
         return false;
     }
 }

@@ -188,6 +188,32 @@ export default function VozUsersPage() {
     };
 
 
+    const handleGiveStrike = (user: any) => {
+        const reason = window.prompt(`¿Motivo del strike para ${user.handle}?`);
+        if (!reason) return;
+
+        showConfirm(`¿Seguro que quieres dar un strike a ${user.handle} por "${reason}"?`, () => {
+            fetch('/api/voz/users/strike', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ handle: user.handle, reason })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Strike aplicado y usuario notificado.', 'Éxito');
+                        fetchUsers(); // Refresh list to see new strike count
+                    } else {
+                        showAlert('Error: ' + data.error, 'Error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Strike error:', err);
+                    showAlert('Error de conexión', 'Error');
+                });
+        }, 'Dar Strike');
+    };
+
     const getStatusLabel = (status: any) => {
         const s = String(status || '').toLowerCase();
         switch (s) {
@@ -311,10 +337,10 @@ export default function VozUsersPage() {
                                 </td>
                                 <td style={{ padding: '5px' }}>
                                     <span style={{
-                                        color: (u.penalties || 0) >= 3 ? 'red' : (u.penalties || 0) > 0 ? 'orange' : 'inherit',
+                                        color: (u.strikes || 0) >= 3 ? 'red' : (u.strikes || 0) > 0 ? 'orange' : 'inherit',
                                         fontWeight: 'bold'
                                     }}>
-                                        {u.penalties || 0}/3
+                                        {u.strikes || 0}/3
                                     </span>
                                 </td>
                                 <td style={{ padding: '5px' }}>
@@ -331,6 +357,13 @@ export default function VozUsersPage() {
                                         setSelectedUser(u);
                                         setTempUser({ ...u });
                                     }}>Perfil</button>
+                                    <button
+                                        style={{ minWidth: 30, color: 'orange', fontWeight: 'bold' }}
+                                        onClick={() => handleGiveStrike(u)}
+                                        title="Dar Strike"
+                                    >
+                                        ⚡
+                                    </button>
                                     <button
                                         style={{ minWidth: 20, color: 'red', fontWeight: 'bold' }}
                                         onClick={() => handleDeleteUser(u.id)}
@@ -424,8 +457,8 @@ export default function VozUsersPage() {
                                         type="number"
                                         max={3}
                                         min={0}
-                                        value={tempUser?.penalties || 0}
-                                        onChange={(e) => setTempUser({ ...tempUser, penalties: parseInt(e.target.value) || 0 })}
+                                        value={tempUser?.strikes || 0}
+                                        onChange={(e) => setTempUser({ ...tempUser, strikes: parseInt(e.target.value) || 0 })}
                                         style={{ width: '80px', textAlign: 'center' }}
                                     />
                                 </div>
@@ -624,29 +657,33 @@ export default function VozUsersPage() {
                                     {userVideos.map((v, i) => (
                                         <div key={i} style={{ border: '1px solid #dfdfdf', padding: 5, backgroundColor: 'white' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                                                <span style={{ fontWeight: 'bold', fontSize: '12px' }}>{v.matricula || 'SIN MATRÍCULA'}</span>
+                                                <span style={{ fontWeight: 'bold', fontSize: '10px', color: '#666' }}>ID: {String(v.id || '').substring(0, 8)}</span>
                                                 <span style={{
                                                     fontSize: '10px',
-                                                    color: v.status === 'approved' ? 'green' : v.status === 'rejected' ? 'red' : 'navy',
+                                                    color: (v.status === 'approved' || !v.status) ? 'green' : v.status === 'rejected' ? 'red' : 'navy',
                                                     fontWeight: 'bold'
                                                 }}>
-                                                    {v.status.toUpperCase()}
+                                                    {(v.status || 'PUBLICADO').toUpperCase()}
                                                 </span>
                                             </div>
-                                            <video src={v.url || v.videoUrl} style={{ width: '100%', maxHeight: '150px', backgroundColor: 'black' }} controls />
-                                            <div style={{ fontSize: '10px', marginTop: 5, color: '#666', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span>Fecha: {new Date(v.timestamp || v.createdAt).toLocaleString()}</span>
-                                                <button 
-                                                    onClick={() => handleDeleteVideo(v.id, currentVideoUser)}
-                                                >
-                                                    Eliminar
-                                                </button>
-                                            </div>
-                                            {v.moderatedBy && (
-                                                <div style={{ fontSize: '10px', fontWeight: 'bold' }}>
-                                                    Moderado por: {v.moderatedBy}
+                                            <video src={v.videoUrl || v.url} style={{ width: '100%', maxHeight: '150px', backgroundColor: 'black' }} controls />
+                                            <div style={{ fontSize: '10px', marginTop: 5, color: '#666' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>📅 {new Date(v.createdAt || v.timestamp).toLocaleDateString()}</span>
+                                                    <span>👁️ {v.views || 0}</span>
                                                 </div>
-                                            )}
+                                                <div style={{ marginTop: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontStyle: 'italic', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {v.description || 'Sin descripción'}
+                                                    </span>
+                                                    <button 
+                                                        style={{ color: 'red', fontWeight: 'bold', minWidth: '60px' }}
+                                                        onClick={() => handleDeleteVideo(v.id, currentVideoUser)}
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

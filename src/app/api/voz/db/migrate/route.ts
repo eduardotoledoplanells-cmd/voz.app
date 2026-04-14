@@ -1,5 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Client } from "pg";
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
+}
+
+function corsHeaders(response: NextResponse) {
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -49,6 +64,12 @@ export async function POST(req: NextRequest) {
                     
                     -- Actualización de la tabla videos para filtros y música
                     ALTER TABLE videos ADD COLUMN IF NOT EXISTS filter_config JSONB;
+
+                    -- Soporte para Creadores Profesionales
+                    ALTER TABLE app_users ADD COLUMN IF NOT EXISTS real_name TEXT;
+                    ALTER TABLE app_users ADD COLUMN IF NOT EXISTS dni TEXT;
+                    ALTER TABLE app_users ADD COLUMN IF NOT EXISTS iban TEXT;
+                    ALTER TABLE app_users ADD COLUMN IF NOT EXISTS payment_info JSONB;
                     
                     -- Intentar convertir la columna music a JSONB si es TEXT
                     DO $$ 
@@ -84,17 +105,17 @@ export async function POST(req: NextRequest) {
         }
 
         if (success) {
-            return NextResponse.json({ success: true, message: "Base de datos actualizada correctamente." });
+            return corsHeaders(NextResponse.json({ success: true, message: "Base de datos actualizada correctamente." }));
         } else {
-            return NextResponse.json({
+            return corsHeaders(NextResponse.json({
                 success: false,
                 error: lastError,
                 details: "No se pudo conectar con la base de datos Supabase con las credenciales actuales."
-            }, { status: 500 });
+            }, { status: 500 }));
         }
 
     } catch (error: any) {
         console.error("Migration route error:", error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        return corsHeaders(NextResponse.json({ success: false, error: error.message }, { status: 500 }));
     }
 }

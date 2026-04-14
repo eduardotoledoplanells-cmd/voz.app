@@ -59,7 +59,6 @@ export async function POST(request: Request) {
                 handle: receiverHandle,
                 email: 'temp@voz.app',
                 status: 'active',
-                reputation: 10,
                 joinedAt: new Date().toISOString(),
                 walletBalance: payoutAmount
             });
