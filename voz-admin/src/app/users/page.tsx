@@ -144,7 +144,7 @@ export default function VozUsersPage() {
                 name: tempUser.name,
                 handle: tempUser.handle,
                 status: tempUser.status,
-                penalties: tempUser.penalties,
+                strikes: tempUser.strikes,
                 employeeName: 'Admin'
             })
         })
@@ -452,21 +452,30 @@ export default function VozUsersPage() {
                             <fieldset style={{ marginTop: 15 }}>
                                 <legend>Penalizaciones</legend>
                                 <div className="field-row" style={{ justifyContent: 'center', gap: 10, marginTop: 5 }}>
-                                    <label>Penalizaciones (Strikes):</label>
-                                    <input
-                                        type="number"
-                                        max={3}
-                                        min={0}
-                                        value={tempUser?.strikes || 0}
-                                        onChange={(e) => setTempUser({ ...tempUser, strikes: parseInt(e.target.value) || 0 })}
-                                        style={{ width: '80px', textAlign: 'center' }}
-                                    />
+                                    <label>Strikes Acumulados:</label>
+                                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                                        <input
+                                            type="number"
+                                            max={3}
+                                            min={0}
+                                            value={tempUser?.strikes || 0}
+                                            onChange={(e) => setTempUser({ ...tempUser, strikes: parseInt(e.target.value) || 0 })}
+                                            style={{ width: '60px', textAlign: 'center' }}
+                                        />
+                                        <button 
+                                            style={{ minWidth: '30px', color: 'orange', fontWeight: 'bold' }}
+                                            onClick={() => handleGiveStrike(tempUser)}
+                                            title="Dar Strike Directo"
+                                        >
+                                            ⚡
+                                        </button>
+                                    </div>
                                 </div>
                             </fieldset>
 
                             <fieldset style={{ marginTop: 15 }}>
                                 <legend>Evidencias de Infracción (Pruebas)</legend>
-                                <div style={{ maxHeight: '200px', overflowY: 'auto', background: 'white', padding: 5 }} className="sunken-panel">
+                                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'white', padding: 5 }} className="sunken-panel">
                                     {tempUser?.penalizedContent && tempUser.penalizedContent.length > 0 ? (
                                         tempUser.penalizedContent.map((item: any, i: number) => (
                                             <div key={i} style={{ borderBottom: '1px solid #dfdfdf', padding: '5px 0' }}>
@@ -475,17 +484,21 @@ export default function VozUsersPage() {
                                                     <span>{new Date(item.timestamp).toLocaleDateString()}</span>
                                                 </div>
                                                 <div style={{ fontSize: '12px', margin: '3px 0' }}><b>Motivo:</b> {item.reason}</div>
-                                                <div style={{ background: '#000', display: 'flex', justifyContent: 'center', marginTop: 5 }}>
-                                                    <video src={item.url} style={{ width: '100%', maxHeight: '120px' }} controls />
-                                                </div>
-                                                <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'blue', textDecoration: 'underline' }}>
-                                                    Ver video original
-                                                </a>
+                                                {item.url && (
+                                                    <>
+                                                        <div style={{ background: '#000', display: 'flex', justifyContent: 'center', marginTop: 5 }}>
+                                                            <video src={item.url} style={{ width: '100%', maxHeight: '100px' }} controls />
+                                                        </div>
+                                                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'blue', textDecoration: 'underline' }}>
+                                                            Ver video
+                                                        </a>
+                                                    </>
+                                                )}
                                             </div>
                                         ))
                                     ) : (
-                                        <div style={{ padding: 10, textAlign: 'center', color: 'gray', fontSize: '12px' }}>
-                                            No hay infracciones registradas para este usuario.
+                                        <div style={{ padding: 10, textAlign: 'center', color: 'gray', fontSize: '11px' }}>
+                                            No hay infracciones registradas.
                                         </div>
                                     )}
                                 </div>
