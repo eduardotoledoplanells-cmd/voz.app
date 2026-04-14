@@ -49,7 +49,16 @@ export async function PATCH(request: Request) {
             return corsHeaders(NextResponse.json({ status: 'deleted', id }));
         }
 
+        if (updates.action === 'processVerification') {
+            const success = await processCreatorVerification(id, updates.status, updates.reason);
+            if (!success) {
+                return corsHeaders(NextResponse.json({ error: 'Failed to process verification' }, { status: 500 }));
+            }
+            return corsHeaders(NextResponse.json({ success: true }));
+        }
+
         const updated = await updateCreator(id, updates, employeeName);
+
         if (!updated) {
             console.error("PATCH /api/voz/creators - Creator not found with ID:", id);
             return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));

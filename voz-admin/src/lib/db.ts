@@ -54,6 +54,24 @@ export interface Creator extends AppUser {
         totalGifts: number;
         totalVideos: number;
     };
+    verificationData?: CreatorVerification;
+}
+
+export interface CreatorVerification {
+    id: string;
+    user_id: string;
+    full_name: string;
+    dni_number: string;
+    dni_front_url?: string;
+    dni_back_url?: string;
+    iban: string;
+    address?: string;
+    postal_code?: string;
+    country?: string;
+    status: 'pending' | 'approved' | 'rejected';
+    rejection_reason?: string;
+    submitted_at: string;
+    updated_at: string;
 }
 
 export interface Company {
@@ -163,21 +181,71 @@ export async function getAppUsers(): Promise<AppUser[]> {
     }));
 }
 
-export async function getCreators(): Promise<any[]> {
+export async function getCreators(): Promise<Creator[]> {
     const users = await getAppUsers();
-    // In this simplified version, all app users are creators
-    return users.map(u => ({
-        ...u,
-        totalCoins: u.walletBalance || 0,
-        withdrawableCoins: u.walletBalance || 0,
-        earnedEuro: (u.walletBalance || 0) * 0.05, // Example conversion
-        stats: {
-            totalGifts: Math.floor((u.walletBalance || 0) / 10),
-            totalPMs: 0,
-            earnedFromGifts: 0,
-            earnedFromPMs: 0
+    
+    // Fetch all verifications
+    const { data: verifications } = await supabaseAdmin.from('creator_verifications').select('*');
+    const verifMap = new Map();
+    verifications?.forEach(v => verifMap.set(v.user_id, v));
+
+    return users.map(u => {
+        const v = verifMap.get(u.id);
+        const creator: Creator = {
+            ...u,
+            totalCoins: u.walletBalance || 0,
+            withdrawableCoins: u.walletBalance || 0,
+            earnedEuro: (u.walletBalance || 0) * 0.05, // Example conversion
+            stats: {
+                totalGifts: Math.floor((u.walletBalance || 0) / 10),
+                totalPMs: 0,
+                earnedFromGifts: 0,
+                earnedFromPMs: 0
+            },
+            verificationData: v || undefined
+        };
+        
+        // If they have a verification, override payment info if needed or just keep it available
+        if (v && v.status === 'approved' && !u.isCreator) {
+            // This case shouldn't normally happen if synced correctly, 
+            // but we can flag it or handle it in UI
         }
-    }));
+
+        return creator;
+    });
+}
+
+export async function processCreatorVerification(userId: string, status: 'approved' | 'rejected', reason?: string): Promise<boolean> {
+    const { error: vError } = await supabaseAdmin
+        .from('creator_verifications')
+        .update({ 
+            status, 
+            rejection_reason: reason || null,
+            updated_at: new Date().toISOString() 
+        })
+        .eq('user_id', userId);
+
+    if (vError) {
+        console.error("Error updating verification status:", vError);
+        return false;
+    }
+
+    if (status === 'approved') {
+        const { error: uError } = await supabaseAdmin
+            .from('app_users')
+            .update({ 
+                is_creator: true,
+                status: 'verified' // Optional, existing status logic
+            })
+            .eq('id', userId);
+        
+        if (uError) {
+            console.error("Error updating user is_creator flag:", uError);
+            return false;
+        }
+    }
+
+    return true;
 }
 
 export async function updateAppUser(id: string, updates: Partial<AppUser>): Promise<AppUser | null> {
