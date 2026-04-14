@@ -125,7 +125,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         }
     });
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('app_users')
         .update(dbUpdates)
         .eq('id', id)

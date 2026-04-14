@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         const updates: any = {};
         if (handle) updates.handle = handle;
         if (name) updates.name = name;
-        if (bio) updates.bio = bio;
+        if (bio !== undefined) updates.bio = bio;
         if (profile_image || profileImage) updates.profile_image = profile_image || profileImage;
 
         const updated = await updateAppUser(id, updates);
