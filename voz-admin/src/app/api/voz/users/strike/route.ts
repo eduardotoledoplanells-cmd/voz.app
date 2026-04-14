@@ -15,18 +15,26 @@ export async function POST(request: Request) {
         // 1. Add penalty (increments strikes and checks for auto-ban)
         await addPenaltyToUser(handle, { reason });
 
+        // Sanitize handle for notification delivery by removing the '@' prefix
+        const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+
         // 2. Send professional notification to the user
-        await addNotification({
-            id: Date.now().toString(),
-            recipientId: handle,
+        const notifResult = await addNotification({
+            recipientId: cleanHandle,
             type: 'moderation',
-            title: 'VOZ', // Using VOZ as title for the indicator
+            title: 'VOZ',
             message: `Has sido penalizado con un strike debido a un incumplimiento de las normas de la comunidad (${reason}). Recuerda que al acumular 3 strikes, tu cuenta será suspendida permanentemente.`,
             timestamp: new Date().toISOString(),
             readStatus: false
-        });
+        } as any);
 
-        return NextResponse.json({ success: true, message: 'Penalty applied and user notified' });
+        console.log(`[STRIKE] Notification sent to ${cleanHandle}. Result: ${notifResult ? "SUCCESS" : "FAILED"}`);
+
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Penalty applied and user notified', 
+            notificationSaved: !!notifResult
+        });
     } catch (error: any) {
         console.error("Strike API error:", error);
         return NextResponse.json({ error: error.message || 'Failed to apply strike' }, { status: 500 });

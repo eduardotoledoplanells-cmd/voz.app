@@ -683,9 +683,14 @@ export async function addNotification(n: Notification): Promise<Notification | n
         type: n.type,
         title: n.title,
         message: n.message,
+        timestamp: n.timestamp || new Date().toISOString(),
         read_status: n.readStatus
     }]).select().single();
-    if (error) return null;
+
+    if (error) {
+        console.error('[DB] Error adding notification:', error);
+        return null;
+    }
     return data;
 }
 
