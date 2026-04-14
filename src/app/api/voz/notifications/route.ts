@@ -99,3 +99,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
     }
 }
+export async function PUT(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const recipientId = searchParams.get('recipientId');
+
+        if (!recipientId) {
+            return NextResponse.json({ error: 'Missing recipientId' }, { status: 400 });
+        }
+
+        // Mark all as read for this user
+        const { error } = await supabaseAdmin
+            .from('notifications')
+            .update({ read_status: true })
+            .eq('recipient_id', recipientId)
+            .eq('read_status', false);
+
+        if (error) throw error;
+
+        return NextResponse.json({ success: true, message: 'Notifications marked as read' });
+    } catch (error) {
+        console.error('Error updating notifications:', error);
+        return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 });
+    }
+}
