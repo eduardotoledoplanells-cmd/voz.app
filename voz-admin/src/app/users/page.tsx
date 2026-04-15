@@ -155,6 +155,7 @@ export default function VozUsersPage() {
                 handle: tempUser.handle,
                 status: tempUser.status,
                 strikes: tempUser.strikes,
+                phone: tempUser.phone,
                 employeeName: 'Admin'
             })
         })
@@ -469,6 +470,15 @@ export default function VozUsersPage() {
                                         />
                                     </div>
                                     <p style={{ margin: 0, fontSize: '12px' }}><b>Email:</b> {String(tempUser?.email || '')}</p>
+                                    <div className="field-row" style={{ marginTop: 5, marginBottom: 5 }}>
+                                        <label><b>Teléfono:</b></label>
+                                        <input
+                                            type="text"
+                                            value={tempUser?.phone || ''}
+                                            onChange={(e) => setTempUser({ ...tempUser, phone: e.target.value })}
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
                                     <div className="field-row" style={{ marginTop: 10 }}>
                                         <label><b>Estado:</b></label>
                                         <select

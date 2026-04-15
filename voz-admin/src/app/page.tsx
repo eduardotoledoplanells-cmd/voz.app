@@ -74,7 +74,7 @@ export default function VozAdminDashboard() {
         const cleanPass = employeeId.trim();
 
         if (!cleanUsername || !cleanPass) {
-            setLoginError('Por favor completa todos los campos.');
+            setLoginError('Por favor, completa todos los campos.');
             return;
         }
 
@@ -128,7 +128,7 @@ export default function VozAdminDashboard() {
                     headers: { 'Content-Type': 'application/json' }
                 }).then(() => {
                     fetchLogs();
-                    alert(`Bienvenido [${emp.workerNumber}] ${emp.username}. Jornada iniciada.`);
+                    alert(`Bienvenido, [${emp.workerNumber}] ${emp.username}. Jornada iniciada.`);
                     setUsername('');
                     setEmployeeId('');
                 });
@@ -156,7 +156,7 @@ export default function VozAdminDashboard() {
     return (
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', overflowY: 'auto' }}>
             <div>
-                <h4 style={{ marginBottom: '5px' }}>Bienvenido al centro de control de la app Voz</h4>
+                <h4 style={{ marginBottom: '5px' }}>Bienvenido al centro de control de la app Voz:</h4>
                 <p>Centro de mando operativo. Datos actualizados en tiempo real desde la DB Central.</p>
             </div>
 
@@ -197,7 +197,7 @@ export default function VozAdminDashboard() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>Trabajadores Logeados:</p>
+                            <p style={{ margin: 0, fontWeight: 'bold' }}>Trabajadores logueados:</p>
                             <div className="sunken-panel" style={{
                                 padding: '10px',
                                 backgroundColor: 'white',
@@ -219,7 +219,7 @@ export default function VozAdminDashboard() {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>Supervisión Moderación:</p>
+                            <p style={{ margin: 0, fontWeight: 'bold' }}>Supervisión de moderación:</p>
                             <div className="sunken-panel" style={{
                                 padding: '10px',
                                 backgroundColor: '#f0f0f0',

@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        console.log("[CREATOR_REGISTER] Body received:", JSON.stringify(body, null, 2));
+        
         const { 
             userId, 
             fullName, 
@@ -13,11 +15,13 @@ export async function POST(request: Request) {
             iban, 
             address, 
             postalCode, 
-            country 
+            country,
+            phone
         } = body;
 
-        if (!userId || !fullName || !dniNumber || !iban) {
-            return NextResponse.json({ success: false, error: 'Faltan campos obligatorios' }, { status: 400 });
+        if (!userId || !fullName || !dniNumber || !iban || !phone) {
+            console.warn("[CREATOR_REGISTER] Validation failed. Missing fields:", { userId, fullName, dniNumber, iban, phone });
+            return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (nombre, dni, iban o teléfono)' }, { status: 400 });
         }
 
         // Upsert the verification data
@@ -33,6 +37,7 @@ export async function POST(request: Request) {
                 address: address,
                 postal_code: postalCode,
                 country: country,
+                phone: phone,
                 status: 'pending',
                 submitted_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()

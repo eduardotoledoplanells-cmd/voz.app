@@ -108,11 +108,14 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Missing recipientId' }, { status: 400 });
         }
 
+        // Sanitize recipientId: remove '@' if present to match stored format
+        const cleanRecipientId = recipientId.startsWith('@') ? recipientId.slice(1) : recipientId;
+
         // Mark all as read for this user
         const { error } = await supabaseAdmin
             .from('notifications')
             .update({ read_status: true })
-            .eq('recipient_id', recipientId)
+            .eq('recipient_id', cleanRecipientId)
             .eq('read_status', false);
 
         if (error) throw error;

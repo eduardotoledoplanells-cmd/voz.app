@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { action, email, password, username, language } = body;
+        const { action, email, password, username, language, phone } = body;
         const userLanguage = language || 'es';
 
         if (action === 'register') {
@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
                 password: '', // No guardamos la password en la tabla pública por seguridad
                 status: 'active',
                 walletBalance: 0,
-                joinedAt: new Date().toISOString()
+                joinedAt: new Date().toISOString(),
+                phone: phone || ''
             };
 
             await addAppUser(newUser);

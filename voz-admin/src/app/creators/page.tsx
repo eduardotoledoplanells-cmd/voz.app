@@ -14,6 +14,7 @@ interface CreatorVerification {
     address?: string;
     postal_code?: string;
     country?: string;
+    phone?: string;
     status: 'pending' | 'approved' | 'rejected';
     rejection_reason?: string;
     submitted_at: string;
@@ -169,7 +170,7 @@ export default function CreatorsPage() {
 
     const isAtRoot = currentPath === 'C:\\Red\\VOZ\\Creadores';
     const displayedCreators = isAtRoot 
-        ? creators.filter(c => c.isCreator) 
+        ? creators.filter(c => c.isCreator || c.verificationData?.status === 'pending') 
         : creators.filter(c => c.verificationData?.status === 'pending');
 
     if (isLoading) return <div style={{ padding: 20 }}>Cargando base de datos de Creadores...</div>;
@@ -194,18 +195,7 @@ export default function CreatorsPage() {
                 <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflowY: 'auto', padding: 15 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 20 }}>
                         {/* Folder: Solicitudes (Only at Root) */}
-                        {isAtRoot && (
-                            <div
-                                onClick={() => setCurrentPath('C:\\Red\\VOZ\\Creadores\\Solicitudes')}
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', padding: 5 }}
-                            >
-                                <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png" style={{ width: 48 }} />
-                                <span style={{ fontSize: '12px', textAlign: 'center', marginTop: 5, fontWeight: 'bold', color: '#000080' }}>
-                                    Solicitudes de Registro
-                                </span>
-                                <span style={{ fontSize: '10px', color: 'gray' }}>({creators.filter(c => c.verificationData?.status === 'pending').length} pte)</span>
-                            </div>
-                        )}
+                        {/* Folder: Solicitudes (Removed redundant folder to show them in root) */}
 
                         {displayedCreators.map(creator => (
                             <div
@@ -222,10 +212,11 @@ export default function CreatorsPage() {
                                 }}
                             >
                                 <img
-                                    src={creator.verificationData?.status === 'pending' ? "https://win98icons.alexmeub.com/icons/png/briefcase-1.png" : "https://win98icons.alexmeub.com/icons/png/directory_closed-4.png"}
+                                    src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png"
                                     style={{
                                         width: 48,
                                         opacity: creator.status === 'suspended' ? 0.4 : 1,
+                                        filter: creator.verificationData?.status === 'pending' ? 'hue-rotate(240deg)' : 'none' // Subtle blue tint for pending folders
                                     }}
                                 />
                                 <span style={{
@@ -235,7 +226,7 @@ export default function CreatorsPage() {
                                     color: selectedCreator?.id === creator.id ? 'white' : 'black',
                                     wordBreak: 'break-all'
                                 }}>
-                                    {creator.userHandle}
+                                    {creator.userHandle} {creator.verificationData?.status === 'pending' && <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'blue' }}>(PTE)</span>}
                                 </span>
                             </div>
                         ))}
@@ -247,7 +238,7 @@ export default function CreatorsPage() {
                     <div className="window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <div className="title-bar">
                             <div className="title-bar-text">
-                                {selectedCreator ? `Propiedades: ${selectedCreator.userHandle}` : 'Panel de Control de Creadores'}
+                                {selectedCreator ? `Propiedades: ${selectedCreator.userHandle} ${selectedCreator.verificationData?.phone ? `(${selectedCreator.verificationData.phone})` : ''}` : 'Panel de Control de Creadores'}
                             </div>
                         </div>
                         <div className="window-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px 5px' }}>
@@ -294,6 +285,7 @@ export default function CreatorsPage() {
                                                             <fieldset>
                                                                 <legend>Datos de Identidad</legend>
                                                                 <TextRow label="Nombre Completo" value={selectedCreator.verificationData.full_name} />
+                                                                <TextRow label="Teléfono" value={selectedCreator.verificationData.phone || 'No especificado'} />
                                                                 <TextRow label="DNI / NIE" value={selectedCreator.verificationData.dni_number} />
                                                                 <TextRow label="País" value={selectedCreator.verificationData.country || 'No especificado'} />
                                                                 <TextRow label="Dirección" value={selectedCreator.verificationData.address} />

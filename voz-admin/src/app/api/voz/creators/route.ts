@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCreators, updateCreator, addCreator, deleteCreatorCompletely } from '@/lib/db';
+import { getCreators, updateCreator, addCreator, deleteCreatorCompletely, processCreatorVerification } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

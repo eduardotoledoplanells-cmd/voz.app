@@ -45,13 +45,19 @@ export interface AppUser {
     joinedAt: string;
     resetPin?: string;
     strikes?: number;
+    phone?: string;
 }
 
 // In some parts of the admin it's referred to as Creator
 export interface Creator extends AppUser {
     earnedEuro: number;
+    totalCoins: number;
+    withdrawableCoins: number;
     stats?: {
         totalGifts: number;
+        totalPMs: number;
+        earnedFromGifts: number;
+        earnedFromPMs: number;
         totalVideos: number;
     };
     verificationData?: CreatorVerification;
@@ -68,6 +74,7 @@ export interface CreatorVerification {
     address?: string;
     postal_code?: string;
     country?: string;
+    phone?: string;
     status: 'pending' | 'approved' | 'rejected';
     rejection_reason?: string;
     submitted_at: string;
@@ -177,45 +184,73 @@ export async function getAppUsers(): Promise<AppUser[]> {
         profileImage: u.profile_image,
         isCreator: u.is_creator,
         resetPin: u.reset_pin,
-        strikes: u.strikes || 0
+        strikes: u.strikes || 0,
+        phone: u.phone
     }));
 }
 
 export async function getCreators(): Promise<Creator[]> {
-    const users = await getAppUsers();
-    
-    // Fetch all verifications
-    const { data: verifications } = await supabaseAdmin.from('creator_verifications').select('*');
-    const verifMap = new Map();
-    verifications?.forEach(v => verifMap.set(v.user_id, v));
-
-    return users.map(u => {
-        const v = verifMap.get(u.id);
-        const creator: Creator = {
-            ...u,
-            totalCoins: u.walletBalance || 0,
-            withdrawableCoins: u.walletBalance || 0,
-            earnedEuro: (u.walletBalance || 0) * 0.05, // Example conversion
-            stats: {
-                totalGifts: Math.floor((u.walletBalance || 0) / 10),
-                totalPMs: 0,
-                earnedFromGifts: 0,
-                earnedFromPMs: 0
-            },
-            verificationData: v || undefined
-        };
+    try {
+        console.log("[db] Fetching creators and verifications...");
+        const users = await getAppUsers();
+        console.log(`[db] Found ${users.length} users.`);
         
-        // If they have a verification, override payment info if needed or just keep it available
-        if (v && v.status === 'approved' && !u.isCreator) {
-            // This case shouldn't normally happen if synced correctly, 
-            // but we can flag it or handle it in UI
+        // Fetch all verifications
+        const { data: verifications, error: vError } = await supabaseAdmin
+            .from('creator_verifications')
+            .select('*');
+        
+        if (vError) {
+            console.error("[db] Error fetching verifications:", vError);
         }
 
-        return creator;
-    });
+        console.log(`[db] Found ${verifications?.length || 0} verification records.`);
+
+        const verifMap = new Map();
+        verifications?.forEach(v => {
+            if (v.user_id) {
+                const cleanId = v.user_id.trim();
+                verifMap.set(cleanId, v);
+            }
+        });
+
+        const mappedCreators = users.map(u => {
+            const cleanUserId = u.id.trim();
+            const v = verifMap.get(cleanUserId);
+            
+            const creator: Creator = {
+                ...u,
+                totalCoins: u.walletBalance || 0,
+                withdrawableCoins: u.walletBalance || 0,
+                earnedEuro: (u.walletBalance || 0) * 0.05,
+                stats: {
+                    totalGifts: Math.floor((u.walletBalance || 0) / 10),
+                    totalPMs: 0,
+                    earnedFromGifts: 0,
+                    earnedFromPMs: 0,
+                    totalVideos: 0
+                },
+                verificationData: v || undefined
+            };
+            
+            return creator;
+        });
+
+        return mappedCreators;
+    } catch (error) {
+        console.error("[db] Fatal error in getCreators:", error);
+        return [];
+    }
 }
 
 export async function processCreatorVerification(userId: string, status: 'approved' | 'rejected', reason?: string): Promise<boolean> {
+    // 1. Get user handle for the notification
+    const { data: userData, error: userFetchError } = await supabaseAdmin
+        .from('app_users')
+        .select('handle')
+        .eq('id', userId)
+        .single();
+
     const { error: vError } = await supabaseAdmin
         .from('creator_verifications')
         .update({ 
@@ -235,13 +270,36 @@ export async function processCreatorVerification(userId: string, status: 'approv
             .from('app_users')
             .update({ 
                 is_creator: true,
-                status: 'verified' // Optional, existing status logic
+                status: 'verified' 
             })
             .eq('id', userId);
         
         if (uError) {
             console.error("Error updating user is_creator flag:", uError);
             return false;
+        }
+    }
+
+    // 2. Send Notification
+    if (userData?.handle) {
+        try {
+            const title = status === 'approved' ? '¡Felicidades!' : 'Solicitud Revisada';
+            const message = status === 'approved' 
+                ? 'Ya eres un Creador Oficial. Ahora puedes recibir donaciones.' 
+                : `Tu solicitud de creador ha sido rechazada por el siguiente motivo: ${reason || 'Documentación inconsistente'}. Puedes volver a intentarlo.`;
+
+            await addNotification({
+                id: Date.now().toString(),
+                recipientId: userData.handle,
+                type: 'moderation',
+                title,
+                message,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
+            console.log(`[Notification] Sent verification status (${status}) to ${userData.handle}`);
+        } catch (notifError) {
+            console.warn("Failed to send verification notification:", notifError);
         }
     }
 
@@ -256,7 +314,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -281,6 +339,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.password !== undefined) dbUpdates.password = updates.password;
     if (updates.resetPin !== undefined) dbUpdates.reset_pin = updates.resetPin;
     if (updates.strikes !== undefined) dbUpdates.strikes = updates.strikes;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -350,7 +409,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         profileImage: data.profile_image,
         isCreator: data.is_creator,
         resetPin: data.reset_pin,
-        strikes: data.strikes || 0
+        strikes: data.strikes || 0,
+        phone: data.phone
     };
 }
 
@@ -759,6 +819,39 @@ export async function addNotification(n: Notification): Promise<Notification | n
         console.error('[DB] Error adding notification:', error);
         return null;
     }
+
+    // --- NEW: Attempt Push Notification via Expo ---
+    try {
+        const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId.substring(1) : n.recipientId;
+        const { data: userData } = await supabaseAdmin
+            .from('app_users')
+            .select('push_token')
+            .or(`handle.eq.${cleanHandle},handle.eq.@${cleanHandle}`)
+            .single();
+
+        if (userData && userData.push_token) {
+            console.log(`[Push] Sending to ${n.recipientId} via Expo...`);
+            await fetch('https://exp.host/--/api/v2/push/send', {
+                method: 'POST',
+                headers: { 
+                    'Accept': 'application/json', 
+                    'Accept-encoding': 'gzip, deflate', 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({
+                    to: userData.push_token,
+                    sound: 'default',
+                    title: n.title,
+                    body: n.message,
+                    data: { type: n.type, notificationId: data.id }
+                })
+            });
+            console.log(`[Push] Successfully sent to ${n.recipientId}`);
+        }
+    } catch (e: any) {
+        console.warn("[Push] Failed to send push notification:", e.message);
+    }
+
     return data;
 }
 
