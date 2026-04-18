@@ -280,6 +280,24 @@ export default function CreatorsPage() {
                                                             <label htmlFor="st-review">Bajo Revisión</label>
                                                         </div>
                                                     </fieldset>
+                                                    <div style={{ marginTop: 10, textAlign: 'center' }}>
+                                                        <button 
+                                                            style={{ fontWeight: 'bold', width: '100%', padding: '5px' }}
+                                                            onClick={async () => {
+                                                                const msg = prompt(`Escribe el mensaje para enviar a ${selectedCreator.userHandle} (Recibirá una alerta en su App):`);
+                                                                if(msg) {
+                                                                    await fetch('/api/voz/support', {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ userHandle: selectedCreator.userHandle, message: msg, isFromAdmin: true })
+                                                                    });
+                                                                    alert('Mensaje enviado con éxito al usuario.');
+                                                                }
+                                                            }}
+                                                        >
+                                                            ✉️ Enviar Mensaje Directo
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
 

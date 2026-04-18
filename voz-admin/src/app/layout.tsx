@@ -79,6 +79,7 @@ function VozAdminContent({
         { href: '/notifications', label: '✉️ Notificaciones App', roles: [1, 2, 5, 6] },
         { href: '/ads', label: '📢 Publicidad App', roles: [1, 4, 5, 6] },
         { href: '/stats', label: '📈 Ranking Viral', roles: [1, 5, 6] },
+        { href: '/support', label: '📬 Buzón V.O.Z.', roles: [1, 2, 5, 6] },
         { href: '/hr', label: '👥 Recursos Humanos', roles: [1] },
         { href: '/logs', label: '📜 Logs del Director', roles: [1] },
     ];
