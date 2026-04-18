@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         // SECURITY FIX: Removed walletBalance from allowed explicitly updated fields by the client
         const { id, handle, name, bio, profile_image, profileImage, email, nationality, dob, phone } = body;
-...
+
         const updates: any = {};
         if (handle) updates.handle = handle;
         if (name) updates.name = name;
