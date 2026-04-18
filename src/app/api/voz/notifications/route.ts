@@ -50,7 +50,6 @@ export async function POST(request: Request) {
         const recipientId = rawRecipientId.startsWith('@') ? rawRecipientId.slice(1) : rawRecipientId;
 
         const newNotification = {
-            id: 'nt-' + Date.now(),
             recipient_id: recipientId,
             type,
             title,
