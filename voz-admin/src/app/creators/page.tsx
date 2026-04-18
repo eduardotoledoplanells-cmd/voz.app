@@ -82,6 +82,11 @@ export default function CreatorsPage() {
 
     const [modal, setModal] = useState<ModalConfig>({ show: false, title: '', message: '', type: 'alert', onConfirm: null });
 
+    const [rejectModal, setRejectModal] = useState<{show: boolean, userId: string}>({show: false, userId: ''});
+    const [rejectReasons, setRejectReasons] = useState({
+        dniFront: false, dniBack: false, fullName: false, dniNumber: false, iban: false, address: false, phone: false, other: ''
+    });
+
     const showWin98Modal = (title: string, message: string, type: 'alert' | 'confirm' = 'alert', onConfirm: (() => any) | null = null) => {
         setModal({ show: true, title, message, type, onConfirm });
     };
@@ -311,8 +316,8 @@ export default function CreatorsPage() {
                                                                     <button 
                                                                         style={{ flex: 1, backgroundColor: '#ffcccc', height: 40 }}
                                                                         onClick={() => {
-                                                                            const reason = prompt("Indica el motivo del rechazo:");
-                                                                            if (reason) handleProcessVerification(selectedCreator.id, 'rejected', reason);
+                                                                            setRejectReasons({ dniFront: false, dniBack: false, fullName: false, dniNumber: false, iban: false, address: false, phone: false, other: '' });
+                                                                            setRejectModal({ show: true, userId: selectedCreator.id });
                                                                         }}
                                                                     >
                                                                         RECHAZAR
@@ -381,6 +386,62 @@ export default function CreatorsPage() {
                         <div className="window-body" style={{ textAlign: 'center', padding: 20 }}>
                             <p style={{ marginBottom: 20 }}>{modal.message}</p>
                             <button onClick={() => setModal({ ...modal, show: false })}>Aceptar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Rechazo Personalizado Win98 */}
+            {rejectModal.show && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                    <div className="window" style={{ width: 400 }}>
+                        <div className="title-bar">
+                            <div className="title-bar-text">Motivo del Rechazo</div>
+                            <div className="title-bar-controls">
+                                <button aria-label="Close" onClick={() => setRejectModal({ show: false, userId: '' })}></button>
+                            </div>
+                        </div>
+                        <div className="window-body" style={{ padding: 15 }}>
+                            <p>Selecciona los datos que el usuario debe corregir:</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10, marginBottom: 15 }}>
+                                <div className="field-row"><input type="checkbox" id="r-name" checked={rejectReasons.fullName} onChange={e => setRejectReasons({...rejectReasons, fullName: e.target.checked})} /><label htmlFor="r-name">Nombre Completo</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-dni" checked={rejectReasons.dniNumber} onChange={e => setRejectReasons({...rejectReasons, dniNumber: e.target.checked})} /><label htmlFor="r-dni">Número DNI/NIE</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-phone" checked={rejectReasons.phone} onChange={e => setRejectReasons({...rejectReasons, phone: e.target.checked})} /><label htmlFor="r-phone">Teléfono</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-address" checked={rejectReasons.address} onChange={e => setRejectReasons({...rejectReasons, address: e.target.checked})} /><label htmlFor="r-address">Dirección / C.P.</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-iban" checked={rejectReasons.iban} onChange={e => setRejectReasons({...rejectReasons, iban: e.target.checked})} /><label htmlFor="r-iban">IBAN Bancario</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-front" checked={rejectReasons.dniFront} onChange={e => setRejectReasons({...rejectReasons, dniFront: e.target.checked})} /><label htmlFor="r-front">Foto DNI (Anverso)</label></div>
+                                <div className="field-row"><input type="checkbox" id="r-back" checked={rejectReasons.dniBack} onChange={e => setRejectReasons({...rejectReasons, dniBack: e.target.checked})} /><label htmlFor="r-back">Foto DNI (Reverso)</label></div>
+                            </div>
+                            <div className="field-row-stacked" style={{ marginBottom: 15 }}>
+                                <label>Detalles adicionales (opcional):</label>
+                                <textarea rows={3} value={rejectReasons.other} onChange={e => setRejectReasons({...rejectReasons, other: e.target.value})} placeholder="Ej: Faltan números en tu teléfono..." style={{ resize: 'none' }}></textarea>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                                <button onClick={() => {
+                                    let reasons = [];
+                                    if (rejectReasons.fullName) reasons.push("Nombre Completo");
+                                    if (rejectReasons.dniNumber) reasons.push("Número de DNI/NIE");
+                                    if (rejectReasons.phone) reasons.push("Teléfono");
+                                    if (rejectReasons.address) reasons.push("Dirección");
+                                    if (rejectReasons.iban) reasons.push("IBAN Bancario");
+                                    if (rejectReasons.dniFront) reasons.push("Foto DNI (Anverso)");
+                                    if (rejectReasons.dniBack) reasons.push("Foto DNI (Reverso)");
+                                    
+                                    let finalReason = "";
+                                    if (reasons.length > 0) {
+                                        finalReason = `Revisa: ${reasons.join(', ')}.`;
+                                    }
+                                    if (rejectReasons.other) {
+                                        finalReason += finalReason ? `\nNota: ${rejectReasons.other}` : rejectReasons.other;
+                                    }
+                                    
+                                    if (!finalReason) finalReason = "Por favor, revisa tus datos.";
+                                    
+                                    handleProcessVerification(rejectModal.userId, 'rejected', finalReason);
+                                    setRejectModal({show: false, userId: ''});
+                                }}>Enviar Rechazo</button>
+                                <button onClick={() => setRejectModal({ show: false, userId: '' })}>Cancelar</button>
+                            </div>
                         </div>
                     </div>
                 </div>

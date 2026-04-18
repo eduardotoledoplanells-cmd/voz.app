@@ -5,17 +5,16 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         // SECURITY FIX: Removed walletBalance from allowed explicitly updated fields by the client
-        const { id, handle, name, bio, profile_image, profileImage } = body;
-
-        if (!id) {
-            return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
-        }
-
+        const { id, handle, name, bio, profile_image, profileImage, email, nationality, dob } = body;
+...
         const updates: any = {};
         if (handle) updates.handle = handle;
         if (name) updates.name = name;
         if (bio !== undefined) updates.bio = bio;
         if (profile_image || profileImage) updates.profile_image = profile_image || profileImage;
+        if (email) updates.email = email;
+        if (nationality) updates.nationality = nationality;
+        if (dob) updates.dob = dob;
 
         const updated = await updateAppUser(id, updates);
 

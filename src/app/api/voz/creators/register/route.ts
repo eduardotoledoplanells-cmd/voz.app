@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/db';
+import { supabaseAdmin, updateAppUser } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
@@ -48,6 +48,13 @@ export async function POST(request: Request) {
         if (error) {
             console.error('[CREATOR_REGISTER] DB Error:', error);
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        }
+
+        // Sync phone to app_users table for main profile visibility
+        try {
+            await updateAppUser(userId, { phone });
+        } catch (syncError) {
+            console.warn("[CREATOR_REGISTER] Failed to sync phone to app_users table:", syncError);
         }
 
         return NextResponse.json({ success: true, verification: data });

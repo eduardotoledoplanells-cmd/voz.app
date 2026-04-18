@@ -31,6 +31,8 @@ export interface AppUser {
     resetPin?: string;
     strikes?: number;
     phone?: string;
+    nationality?: string;
+    dob?: string;
 }
 
 export async function getAppUsers(): Promise<AppUser[]> {
@@ -58,7 +60,9 @@ export async function getAppUsers(): Promise<AppUser[]> {
         pushToken: u.push_token,
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
-        phone: u.phone
+        phone: u.phone,
+        nationality: u.nationality,
+        dob: u.dob
     }));
 }
 
@@ -77,7 +81,9 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
             profile_image: user.profileImage,
             is_creator: user.isCreator || false,
             push_token: user.pushToken,
-            phone: user.phone
+            phone: user.phone,
+            nationality: user.nationality,
+            dob: user.dob
         }])
         .select()
         .single();
@@ -101,7 +107,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token', 'phone'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token', 'phone', 'nationality', 'dob'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -119,6 +125,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
     if (updates.pushToken !== undefined) dbUpdates.push_token = updates.pushToken;
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.nationality !== undefined) dbUpdates.nationality = updates.nationality;
+    if (updates.dob !== undefined) dbUpdates.dob = updates.dob;
     if (updates.password !== undefined) dbUpdates.password = updates.password;
     if (updates.joinedAt !== undefined) dbUpdates.joined_at = updates.joinedAt;
 
@@ -180,7 +188,9 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         bio: data.bio,
         profileImage: data.profile_image,
         isCreator: data.is_creator,
-        phone: data.phone
+        phone: data.phone,
+        nationality: data.nationality,
+        dob: data.dob
     };
 }
 
