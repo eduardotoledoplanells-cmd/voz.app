@@ -84,3 +84,28 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'Failed to process message' }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request) {
+    try {
+        const body = await request.json();
+        const { userHandle } = body;
+
+        if (!userHandle) {
+            return NextResponse.json({ success: false, error: 'Missing userHandle' }, { status: 400 });
+        }
+
+        // Marcar como leídos todos los mensajes del usuario que NO sean del admin
+        const { error } = await supabaseAdmin
+            .from('support_messages')
+            .update({ read_status: true })
+            .eq('user_handle', userHandle)
+            .eq('is_from_admin', false);
+
+        if (error) throw error;
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Error updating read status:', error);
+        return NextResponse.json({ success: false, error: 'Failed to update read status' }, { status: 500 });
+    }
+}

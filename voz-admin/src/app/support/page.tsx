@@ -61,6 +61,27 @@ export default function SupportInbox() {
     const groupedUsers = Array.from(new Set(messages.map(m => m.user_handle)));
     const activeConversation = messages.filter(m => m.user_handle === selectedUser).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
+    const handleSelectUser = async (u: string) => {
+        setSelectedUser(u);
+        const hasUnread = messages.some(m => m.user_handle === u && !m.is_from_admin && !m.read_status);
+        if (hasUnread) {
+            // Actualizar el estado local para quitar el punto rojo rápido
+            setMessages(prev => prev.map(m => 
+                (m.user_handle === u && !m.is_from_admin) ? { ...m, read_status: true } : m
+            ));
+            // Actualizar la base de datos de manera asíncrona
+            try {
+                await fetch('/api/voz/support', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userHandle: u })
+                });
+            } catch (error) {
+                console.error("Error updating read status:", error);
+            }
+        }
+    };
+
     return (
         <div style={{ display: 'flex', height: '100%', gap: '10px' }}>
             {/* Left Panel: Contact List */}
@@ -79,7 +100,7 @@ export default function SupportInbox() {
                             return (
                                 <div 
                                     key={u}
-                                    onClick={() => setSelectedUser(u)}
+                                    onClick={() => handleSelectUser(u)}
                                     style={{
                                         padding: '5px 10px',
                                         cursor: 'pointer',
