@@ -24,6 +24,18 @@ export default function SupportInbox() {
     };
 
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlUser = params.get('user');
+        if (urlUser) {
+            setSelectedUser(urlUser);
+            // Marcar mensajes como leídos si hemos entrado directamente a este chat
+            fetch('/api/voz/support', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userHandle: urlUser })
+            }).catch(e => console.error("Error al marcar como leído inicial:", e));
+        }
+
         fetchMessages();
         const interval = setInterval(fetchMessages, 15000); // refresh every 15s
         return () => clearInterval(interval);
@@ -58,7 +70,10 @@ export default function SupportInbox() {
     };
 
     // Group messages by user
-    const groupedUsers = Array.from(new Set(messages.map(m => m.user_handle)));
+    const groupedUsersSet = new Set(messages.map(m => m.user_handle));
+    if (selectedUser) groupedUsersSet.add(selectedUser);
+    const groupedUsers = Array.from(groupedUsersSet);
+
     const activeConversation = messages.filter(m => m.user_handle === selectedUser).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     const handleSelectUser = async (u: string) => {
