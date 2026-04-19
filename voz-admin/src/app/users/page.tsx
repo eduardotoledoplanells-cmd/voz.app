@@ -14,6 +14,7 @@ export default function VozUsersPage() {
     const [loadingVideos, setLoadingVideos] = useState(false);
     const [showVideosModal, setShowVideosModal] = useState(false);
     const [currentVideoUser, setCurrentVideoUser] = useState<string>('');
+    const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
     // Stats State
     const [showStats, setShowStats] = useState(false);
@@ -60,15 +61,19 @@ export default function VozUsersPage() {
         setLoading(true);
         Promise.all([
             fetch('/api/voz/users').then(res => res.json()),
-            fetch('/api/voz/stats').then(res => res.json())
+            fetch('/api/voz/stats').then(res => res.json()),
+            fetch('/api/voz/wallet/withdrawals?t=' + Date.now()).then(res => res.json())
         ])
-            .then(([usersData, statsRes]) => {
+            .then(([usersData, statsRes, wRes]) => {
                 if (Array.isArray(usersData)) {
                     setUsers(usersData);
                     setFilteredUsers(usersData);
                 }
                 if (statsRes && !statsRes.error) {
                     setStatsData(statsRes);
+                }
+                if (wRes && wRes.success) {
+                    setWithdrawals(wRes.withdrawals);
                 }
                 setLoading(false);
             })
@@ -515,6 +520,41 @@ export default function VozUsersPage() {
                                             ⚡
                                         </button>
                                     </div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset style={{ marginTop: 15 }}>
+                                <legend>Historial de Cobros (Sincronizado)</legend>
+                                <div style={{ maxHeight: '100px', overflowY: 'auto', background: 'white', padding: 5 }} className="sunken-panel">
+                                    <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                                                <th>Fecha</th>
+                                                <th>Cant.</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {withdrawals
+                                                .filter(w => w.user_handle === selectedUser?.handle)
+                                                .map((w, i) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                        <td style={{ padding: '2px 0' }}>{new Date(w.created_at).toLocaleDateString()}</td>
+                                                        <td>{w.amount} 🪙</td>
+                                                        <td style={{ 
+                                                            fontWeight: 'bold',
+                                                            color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red'
+                                                        }}>
+                                                            {w.status.toUpperCase()}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            }
+                                            {withdrawals.filter(w => w.user_handle === selectedUser?.handle).length === 0 && (
+                                                <tr><td colSpan={3} style={{ textAlign: 'center', padding: 10, color: '#999' }}>Sin solicitudes registradas.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </fieldset>
 

@@ -66,6 +66,7 @@ interface RedemptionRequest {
 export default function CreatorsPage() {
     const [creators, setCreators] = useState<Creator[]>([]);
     const [redemptions, setRedemptions] = useState<RedemptionRequest[]>([]);
+    const [withdrawals, setWithdrawals] = useState<any[]>([]);
     const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'folders' | 'details'>('folders');
@@ -94,14 +95,20 @@ export default function CreatorsPage() {
     const fetchData = async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            const [cRes, rRes] = await Promise.all([
+            const [cRes, rRes, wRes] = await Promise.all([
                 fetch('/api/voz/creators'),
-                fetch('/api/voz/redemptions')
+                fetch('/api/voz/redemptions'),
+                fetch('/api/voz/wallet/withdrawals?t=' + Date.now())
             ]);
             const cData = await cRes.json();
             const rData = await rRes.json();
+            const wData = await wRes.json();
+            
             setCreators(cData);
             setRedemptions(rData);
+            if (wData.success) {
+                setWithdrawals(wData.withdrawals);
+            }
 
             if (selectedCreator) {
                 const refreshed = cData.find((c: any) => c.id === selectedCreator.id);
@@ -358,10 +365,42 @@ export default function CreatorsPage() {
                                                         <TextRow label="IBAN" value={selectedCreator.verificationData?.iban || 'Sin datos'} />
                                                     </fieldset>
                                                     <fieldset>
-                                                        <legend>Estadísticas de Canje</legend>
-                                                        <div className="field-row" style={{ justifyContent: 'space-between' }}>
+                                                        <legend>Estadísticas de Canje (Sincronizado)</legend>
+                                                        <div className="field-row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
                                                             <span>Disp. para Canje:</span>
                                                             <span style={{ fontWeight: 'bold' }}>{selectedCreator.withdrawableCoins.toFixed(2)} 🪙</span>
+                                                        </div>
+
+                                                        <div className="sunken-panel" style={{ backgroundColor: 'white', padding: 5, maxHeight: 150, overflowY: 'auto' }}>
+                                                            <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse' }}>
+                                                                <thead>
+                                                                    <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                                                                        <th>Fecha</th>
+                                                                        <th>Cant.</th>
+                                                                        <th>Estado</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {withdrawals
+                                                                        .filter(w => w.user_handle === selectedCreator.userHandle)
+                                                                        .map((w, i) => (
+                                                                            <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                                                <td style={{ padding: '2px 0' }}>{new Date(w.created_at).toLocaleDateString()}</td>
+                                                                                <td>{w.amount} 🪙</td>
+                                                                                <td style={{ 
+                                                                                    fontWeight: 'bold',
+                                                                                    color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red'
+                                                                                }}>
+                                                                                    {w.status.toUpperCase()}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))
+                                                                    }
+                                                                    {withdrawals.filter(w => w.user_handle === selectedCreator.userHandle).length === 0 && (
+                                                                        <tr><td colSpan={3} style={{ textAlign: 'center', padding: 10, color: '#999' }}>Sin historial de cobros.</td></tr>
+                                                                    )}
+                                                                </tbody>
+                                                            </table>
                                                         </div>
                                                     </fieldset>
                                                 </div>
