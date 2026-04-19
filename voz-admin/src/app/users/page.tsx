@@ -525,8 +525,8 @@ export default function VozUsersPage() {
 
                             <fieldset style={{ marginTop: 15 }}>
                                 <legend>Historial de Cobros (Sincronizado)</legend>
-                                <div style={{ maxHeight: '100px', overflowY: 'auto', background: 'white', padding: 5 }} className="sunken-panel">
-                                    <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse' }}>
+                                <div style={{ maxHeight: '120px', overflowY: 'auto', background: 'white', padding: 5, border: '1px solid #7f7f7f' }} className="sunken-panel">
+                                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', color: 'black' }}>
                                         <thead>
                                             <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
                                                 <th>Fecha</th>

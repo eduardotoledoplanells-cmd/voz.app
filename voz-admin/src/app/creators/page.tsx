@@ -372,7 +372,7 @@ export default function CreatorsPage() {
                                                         </div>
 
                                                         <div className="sunken-panel" style={{ backgroundColor: 'white', padding: 5, maxHeight: 150, overflowY: 'auto' }}>
-                                                            <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse' }}>
+                                                            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                                                                 <thead>
                                                                     <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
                                                                         <th>Fecha</th>

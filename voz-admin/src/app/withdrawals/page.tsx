@@ -126,14 +126,14 @@ export default function WithdrawalsPage() {
                                             <td style={{ padding: '8px', fontWeight: 'bold' }}>{w.user_handle}</td>
                                             <td style={{ padding: '8px' }}>{w.amount} 🪙</td>
                                             <td style={{ padding: '8px' }}>
-                                                <span style={{ textTransform: 'uppercase', fontSize: '10px', padding: '2px 5px', backgroundColor: '#e1e1e1', borderRadius: '3px' }}>
+                                                <span style={{ textTransform: 'uppercase', fontSize: '12px', padding: '2px 5px', backgroundColor: '#e1e1e1', borderRadius: '3px', fontWeight: 'bold' }}>
                                                     {w.method}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '8px', fontSize: '11px' }}>
+                                            <td style={{ padding: '8px', fontSize: '13px' }}>
                                                 {w.details?.info || JSON.stringify(w.details)}
                                             </td>
-                                            <td style={{ padding: '8px', fontSize: '11px', color: 'gray' }}>
+                                            <td style={{ padding: '8px', fontSize: '13px', color: '#444' }}>
                                                 {new Date(w.created_at).toLocaleString()}
                                             </td>
                                             <td style={{ padding: '8px' }}>
