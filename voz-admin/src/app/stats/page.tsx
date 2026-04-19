@@ -235,14 +235,14 @@ export default function ViralRankingPage() {
 
                         <div style={{ display: 'flex', gap: '20px', fontSize: '12px', marginTop: '10px' }}>
                             <div>
-                                <strong>Ventas Oficiales (Stripe):</strong> {auditData.globalMath.totalCoinsFromStripe.toFixed(2)} 🪙
+                                <strong>Ventas Oficiales (Stripe):</strong> {auditData.globalMath.totalCoinsFromStripe.toFixed(2)} €
                                 <br />
-                                <strong>Bonos de Admin:</strong> {auditData.globalMath.totalCoinsFromAdmins.toFixed(2)} 🪙
-                            </div>
-                            <div>
-                                <strong>Total Esperado (Matemático):</strong> {auditData.globalMath.totalExpectedSupply.toFixed(2)} 🪙
+                                <strong>Bonos de Admin:</strong> {auditData.globalMath.totalCoinsFromAdmins.toFixed(2)} €
                                 <br />
-                                <strong>Monedas Reales en Carteras:</strong> {auditData.globalMath.totalRealCirculatingSupply.toFixed(2)} 🪙
+                                <br />
+                                <strong>Total Esperado (Matemático):</strong> {auditData.globalMath.totalExpectedSupply.toFixed(2)} €
+                                <br />
+                                <strong>Monedas Reales en Carteras:</strong> {auditData.globalMath.totalRealCirculatingSupply.toFixed(2)} €
                             </div>
                             <div>
                                 <strong>Descuadre Global:</strong> <span style={{ color: auditData.globalMath.globalDiscrepancy > 0.1 ? 'red' : 'green', fontWeight: 'bold' }}>{auditData.globalMath.globalDiscrepancy.toFixed(2)}</span>
@@ -367,7 +367,7 @@ export default function ViralRankingPage() {
                                             alignItems: 'center',
                                             gap: '4px'
                                         }}>
-                                            🪙 {donor.donation.toLocaleString()}
+                                            € {donor.donation.toLocaleString()}
                                         </div>
                                         <div style={{ fontSize: '12px', color: '#222' }}>Monedas donadas</div>
                                     </div>
@@ -442,7 +442,7 @@ export default function ViralRankingPage() {
                         Total Videos Trackeados: <strong>{videoRanking.length}</strong>
                     </span>
                     <span style={{ borderRight: '1px solid #808080', paddingRight: '15px' }}>
-                        Donaciones Hoy: <strong>{summary.donationsToday} 🪙</strong>
+                        Donaciones Hoy: <strong>{summary.donationsToday} €</strong>
                     </span>
                     <span>
                         Usuarios Activos: <strong>{summary.activeUsers}</strong>

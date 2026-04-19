@@ -369,7 +369,7 @@ export default function CreatorsPage() {
                                                         <div className="field-row" style={{ justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
                                                             <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#444' }}>Disp. para Canje:</span>
                                                             <span style={{ fontSize: '20px', fontWeight: '900', color: '#000080', backgroundColor: '#ffffcc', padding: '2px 8px', border: '1px inset #808080' }}>
-                                                                {selectedCreator.withdrawableCoins.toFixed(2)} 🪙
+                                                                {selectedCreator.withdrawableCoins.toFixed(2)} €
                                                             </span>
                                                         </div>
 
@@ -388,7 +388,7 @@ export default function CreatorsPage() {
                                                                         .map((w, i) => (
                                                                             <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                                                                 <td style={{ padding: '4px 0', fontSize: '13px' }}>{new Date(w.created_at).toLocaleDateString()}</td>
-                                                                                <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} 🪙</td>
+                                                                                <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} €</td>
                                                                                 <td style={{ 
                                                                                     fontSize: '13px',
                                                                                     fontWeight: 'bold',

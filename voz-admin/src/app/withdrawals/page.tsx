@@ -109,7 +109,7 @@ export default function WithdrawalsPage() {
                                 <thead>
                                     <tr style={{ textAlign: 'left', borderBottom: '1px solid #ccc' }}>
                                         <th style={{ padding: '8px' }}>Usuario</th>
-                                        <th style={{ padding: '8px' }}>Cantidad (🪙)</th>
+                                        <th style={{ padding: '8px' }}>Cantidad (€)</th>
                                         <th style={{ padding: '8px' }}>Método</th>
                                         <th style={{ padding: '8px' }}>Detalles de Pago</th>
                                         <th style={{ padding: '8px' }}>Fecha</th>
@@ -130,7 +130,7 @@ export default function WithdrawalsPage() {
                                                     fontSize: '18px',
                                                     color: '#000'
                                                 }}>
-                                                    {w.amount} 🪙
+                                                    {w.amount} €
                                                 </span>
                                             </td>
                                             <td style={{ padding: '8px' }}>

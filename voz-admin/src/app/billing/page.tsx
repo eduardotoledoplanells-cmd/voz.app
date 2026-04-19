@@ -113,7 +113,7 @@ export default function BillingPage() {
         }}>
             {[
                 { id: 'summary', name: 'Resumen General.doc', icon: '📄' },
-                { id: 'wallet', name: 'Monedas en el Aire.exe', icon: '🪙' },
+                { id: 'wallet', name: 'Monedas en el Aire.exe', icon: '€' },
                 { id: 'packs', name: 'Ventas por Packs.xls', icon: '📊' },
                 { id: 'journal', name: 'Libro Diario.log', icon: '📑' },
                 { id: 'payouts', name: 'Pagos Pendientes.exe', icon: '🏦' },
@@ -309,7 +309,7 @@ export default function BillingPage() {
                             </p>
                             <div className="sunken-panel" style={{ display: 'inline-block', padding: '20px 40px', backgroundColor: '#fff' }}>
                                 <div style={{ fontSize: '14px', marginBottom: 5 }}>TOTAL CIRCULANTE:</div>
-                                <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#000080' }}>{(stats.totalCirculatingCoins || 0).toLocaleString()} 🪙</div>
+                                <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#000080' }}>{(stats.totalCirculatingCoins || 0).toLocaleString()} €</div>
                             </div>
                         </div>
                     )}
@@ -414,7 +414,7 @@ export default function BillingPage() {
                                                     <h3 style={{ margin: '0 0 10px 0', color: '#008000', fontSize: '18px' }}>Importe: {req.amountEuro},00€</h3>
                                                     <div className="field-row" style={{ fontSize: '13px' }}>
                                                         <label>Monto en Monedas:</label>
-                                                        <span>{req.amountCoins} 🪙</span>
+                                                        <span>{req.amountCoins} €</span>
                                                     </div>
                                                 </div>
 

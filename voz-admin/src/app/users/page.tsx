@@ -540,7 +540,7 @@ export default function VozUsersPage() {
                                                 .map((w, i) => (
                                                 <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                                     <td style={{ padding: '4px 0', fontSize: '13px' }}>{new Date(w.created_at).toLocaleDateString()}</td>
-                                                    <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} 🪙</td>
+                                                    <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} €</td>
                                                     <td style={{ 
                                                         fontSize: '13px',
                                                         fontWeight: 'bold',

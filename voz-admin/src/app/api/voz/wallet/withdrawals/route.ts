@@ -88,8 +88,8 @@ export async function PATCH(request: Request) {
         // 4. Send Notification to User
         const notifTitle = status === 'approved' ? '¡Retiro Aprobado!' : 'Retiro Rechazado';
         const notifMessage = status === 'approved' 
-            ? `Tu solicitud de retiro de ${withdrawal.amount} 🪙 ha sido aprobada. El dinero llegará pronto a tu cuenta.` 
-            : `Tu solicitud de retiro de ${withdrawal.amount} 🪙 ha sido rechazada. Las monedas han sido devueltas a tu cartera.`;
+            ? `Tu solicitud de retiro de ${withdrawal.amount} € ha sido aprobada. El dinero llegará pronto a tu cuenta.` 
+            : `Tu solicitud de retiro de ${withdrawal.amount} € ha sido rechazada. Las monedas han sido devueltas a tu cartera.`;
 
         await addNotification({
             id: Date.now().toString(),
