@@ -33,13 +33,16 @@ export default function WithdrawalsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status: newStatus })
             });
-            if (res.ok) {
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert('Solicitud actualizada correctamente');
                 fetchWithdrawals();
             } else {
-                alert('Error al actualizar');
+                alert('Error al actualizar: ' + (data.error || 'Respuesta no válida'));
             }
-        } catch (e) {
-            alert('Fallo de red');
+        } catch (e: any) {
+            alert('Fallo de red: ' + e.message);
         }
     };
 
