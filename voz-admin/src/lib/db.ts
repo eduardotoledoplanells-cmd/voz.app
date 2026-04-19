@@ -46,6 +46,7 @@ export interface AppUser {
     resetPin?: string;
     strikes?: number;
     phone?: string;
+    earningsBalance?: number;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -185,7 +186,8 @@ export async function getAppUsers(): Promise<AppUser[]> {
         isCreator: u.is_creator,
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
-        phone: u.phone
+        phone: u.phone,
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance)
     }));
 }
 
@@ -221,8 +223,8 @@ export async function getCreators(): Promise<Creator[]> {
             const creator: Creator = {
                 ...u,
                 totalCoins: u.walletBalance || 0,
-                withdrawableCoins: u.walletBalance || 0,
-                earnedEuro: (u.walletBalance || 0) * 0.05,
+                withdrawableCoins: u.earningsBalance || 0,
+                earnedEuro: (u.earningsBalance || 0) * 0.05,
                 stats: {
                     totalGifts: Math.floor((u.walletBalance || 0) / 10),
                     totalPMs: 0,
