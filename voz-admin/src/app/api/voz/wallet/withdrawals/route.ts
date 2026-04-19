@@ -25,7 +25,57 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ success: false, error: 'Missing id or status' }, { status: 400 });
         }
 
-        const { error } = await supabaseAdmin
+        // 1. Fetch current request to get user and amount
+        const { data: withdrawal, error: fetchError } = await supabaseAdmin
+            .from('withdrawal_requests')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !withdrawal) {
+            return NextResponse.json({ success: false, error: 'Request not found' }, { status: 404 });
+        }
+
+        // Prevent processing if already completed/rejected
+        if (withdrawal.status !== 'pending') {
+            return NextResponse.json({ success: false, error: 'Request already processed' }, { status: 400 });
+        }
+
+        // 2. If REJECTED, refund money to user
+        if (status === 'rejected') {
+            // Get current user balance
+            const { data: user, error: userError } = await supabaseAdmin
+                .from('app_users')
+                .select('id, earnings_balance')
+                .eq('id', withdrawal.user_id)
+                .single();
+
+            if (userError || !user) throw new Error('User not found for refund');
+
+            const newBalance = (Number(user.earnings_balance) || 0) + Number(withdrawal.amount);
+
+            // Refund balance
+            const { error: updateError } = await supabaseAdmin
+                .from('app_users')
+                .update({ earnings_balance: newBalance })
+                .eq('id', user.id);
+
+            if (updateError) throw updateError;
+
+            // Optional: Log refund as a transaction
+            await supabaseAdmin
+                .from('transactions')
+                .insert([{
+                    sender_handle: 'SYSTEM',
+                    receiver_handle: withdrawal.user_handle,
+                    amount: withdrawal.amount,
+                    type: 'refund',
+                    timestamp: new Date().toISOString()
+                }]);
+        }
+
+        // 3. Update withdrawal request status
+        const { error: updateExtError } = await supabaseAdmin
             .from('withdrawal_requests')
             .update({ 
                 status: status,
@@ -33,9 +83,11 @@ export async function PATCH(request: Request) {
             })
             .eq('id', id);
 
-        if (error) throw error;
-        return NextResponse.json({ success: true });
-    } catch (e) {
-        return NextResponse.json({ success: false, error: 'Failed to update withdrawal' }, { status: 500 });
+        if (updateExtError) throw updateExtError;
+        
+        return NextResponse.json({ success: true, refunded: status === 'rejected' });
+    } catch (e: any) {
+        console.error('PATCH withdrawals error:', e);
+        return NextResponse.json({ success: false, error: e.message || 'Failed to update withdrawal' }, { status: 500 });
     }
 }

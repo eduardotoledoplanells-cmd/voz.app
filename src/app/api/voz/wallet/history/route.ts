@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         const activity = [
             ...transactions.map(t => ({
                 id: t.id,
-                type: t.type === 'gift' ? 'RECOMPENSA' : 'TRASPASO',
+                type: t.type === 'gift' ? 'RECOMPENSA' : t.type === 'refund' ? 'DEVOLUCIÓN' : 'TRASPASO',
                 kind: t.receiver_handle === handle ? 'in' : 'out',
                 amount: t.amount,
                 date: t.timestamp,
