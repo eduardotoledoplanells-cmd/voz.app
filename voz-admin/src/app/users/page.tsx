@@ -308,7 +308,7 @@ export default function VozUsersPage() {
                                         <span style={{ fontWeight: 'bold' }}>
                                             {u.name && u.name !== 'null' && u.name !== 'Sin nombre' ? u.name : (u.handle ? u.handle.replace('@', '') : 'Sin nombre')}
                                         </span>
-                                        <span style={{ fontSize: '10px', color: '#666' }}>{u.handle}</span>
+                                        <span style={{ fontSize: '13px', color: '#444', fontWeight: '500' }}>{u.handle}</span>
                                     </div>
                                 </td>
                                 <td style={{ padding: '5px', position: 'relative' }}>
@@ -661,17 +661,17 @@ export default function VozUsersPage() {
                                                     <h4>Usuarios Activos y Engagement</h4>
                                                     <div style={{ marginBottom: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                                                         <div className="sunken-panel" style={{ padding: 10, background: '#dfdfdf' }}>
-                                                            <div style={{ fontSize: 11 }}>ACTIVOS (24h)</div>
+                                                            <div style={{ fontSize: 13 }}>ACTIVOS (24h)</div>
                                                             <div style={{ fontSize: 24, fontWeight: 'bold', color: '#000080' }}>{statsData.totals?.activeUsers || 0}</div>
                                                         </div>
                                                         <div className="sunken-panel" style={{ padding: 10, background: '#dfdfdf' }}>
-                                                            <div style={{ fontSize: 11 }}>CONTENIDO TOTAL</div>
+                                                            <div style={{ fontSize: 13 }}>CONTENIDO TOTAL</div>
                                                             <div style={{ fontSize: 24, fontWeight: 'bold', color: '#008000' }}>{statsData.totals?.videos || 0}</div>
                                                         </div>
                                                     </div>
 
                                                     <p style={{ fontWeight: 'bold' }}>Top Videos por Visualizaciones:</p>
-                                                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                                                    <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                                                         <thead>
                                                             <tr style={{ textAlign: 'left', borderBottom: '1px solid #000' }}>
                                                                 <th>Creador</th>

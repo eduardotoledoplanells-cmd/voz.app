@@ -126,7 +126,7 @@ export default function WithdrawalsPage() {
                                             <td style={{ padding: '8px', fontWeight: 'bold' }}>{w.user_handle}</td>
                                             <td style={{ padding: '8px' }}>{w.amount} 🪙</td>
                                             <td style={{ padding: '8px' }}>
-                                                <span style={{ textTransform: 'uppercase', fontSize: '12px', padding: '2px 5px', backgroundColor: '#e1e1e1', borderRadius: '3px', fontWeight: 'bold' }}>
+                                                <span style={{ textTransform: 'uppercase', fontSize: '13px', padding: '2px 5px', backgroundColor: '#e1e1e1', borderRadius: '3px', fontWeight: 'bold' }}>
                                                     {w.method}
                                                 </span>
                                             </td>
@@ -177,7 +177,7 @@ export default function WithdrawalsPage() {
                                                         )}
                                                     </div>
                                                 )}
-                                                {w.status !== 'pending' && <span style={{ color: 'gray', fontSize: '10px' }}>Procesado</span>}
+                                                {w.status !== 'pending' && <span style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>PROCESADO</span>}
                                             </td>
                                         </tr>
                                     ))}

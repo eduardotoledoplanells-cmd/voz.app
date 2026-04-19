@@ -271,7 +271,7 @@ export default function CreatorsPage() {
                                                         <div>
                                                             <h3 style={{ margin: 0 }}>{selectedCreator.realName || selectedCreator.userHandle}</h3>
                                                             <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>ID: {selectedCreator.id}</p>
-                                                            <span style={{ fontSize: '10px', fontWeight: 'bold', color: selectedCreator.isCreator ? 'green' : 'orange' }}>
+                                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: selectedCreator.isCreator ? 'green' : '#ff9800' }}>
                                                                 {selectedCreator.isCreator ? "✓ CREADOR ACTIVO" : "⚠ ASPIRANTE PENDIENTE"}
                                                             </span>
                                                         </div>
