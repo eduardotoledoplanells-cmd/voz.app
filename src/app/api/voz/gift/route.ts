@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
         if (receiver) {
             await updateAppUser(receiver.id, {
-                walletBalance: (receiver.walletBalance || 0) + payoutAmount
+                earningsBalance: (receiver.earningsBalance || 0) + payoutAmount
             });
         } else {
             // Auto-create user if it doesn't exist
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
                 email: 'temp@voz.app',
                 status: 'active',
                 joinedAt: new Date().toISOString(),
-                walletBalance: payoutAmount
+                earningsBalance: payoutAmount
             });
         }
 

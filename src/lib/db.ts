@@ -22,6 +22,7 @@ export interface AppUser {
     password?: string;
     status: 'active' | 'banned' | 'verified';
     walletBalance?: number;
+    earningsBalance?: number;
     joinedAt: string;
     name?: string;
     bio?: string;
@@ -52,6 +53,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
         password: u.password,
         status: u.status,
         walletBalance: parseFloat(u.wallet_balance),
+        earningsBalance: parseFloat(u.earnings_balance || 0),
         joinedAt: u.joined_at,
         name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
         bio: u.bio,
@@ -107,7 +109,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token', 'phone', 'nationality', 'dob'];
+    const allowedKeys = ['name', 'handle', 'email', 'status', 'wallet_balance', 'earnings_balance', 'bio', 'profile_image', 'is_creator', 'password', 'joined_at', 'push_token', 'phone', 'nationality', 'dob'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -118,6 +120,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
+    if (updates.earningsBalance !== undefined) dbUpdates.earnings_balance = updates.earningsBalance;
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
         dbUpdates.profile_image = updates.profileImage || (updates as any).profile_image;
@@ -184,6 +187,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         email: data.email,
         status: data.status,
         walletBalance: parseFloat(data.wallet_balance),
+        earningsBalance: parseFloat(data.earnings_balance || 0),
         joinedAt: data.joined_at,
         bio: data.bio,
         profileImage: data.profile_image,
@@ -698,6 +702,38 @@ export async function getRedemptionRequests(): Promise<any[]> {
         details: r.details,
         timestamp: r.timestamp
     }));
+}
+
+// --- Withdrawal Requests Logic ---
+export interface WithdrawalRequest {
+    id?: string;
+    userId: string;
+    userHandle: string;
+    amount: number;
+    method: 'paypal' | 'bank';
+    details: any;
+    status?: 'pending' | 'approved' | 'rejected';
+    createdAt?: string;
+    processedAt?: string;
+}
+
+export async function addWithdrawalRequest(req: WithdrawalRequest): Promise<boolean> {
+    const { error } = await supabaseAdmin
+        .from('withdrawal_requests')
+        .insert([{
+            user_id: req.userId,
+            user_handle: req.userHandle,
+            amount: req.amount,
+            method: req.method,
+            details: req.details,
+            status: 'pending'
+        }]);
+
+    if (error) {
+        console.error('Error adding withdrawal request:', error);
+        return false;
+    }
+    return true;
 }
 
 // --- Health Check ---

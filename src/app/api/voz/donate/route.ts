@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
         if (creator) {
             await updateAppUser(creator.id, {
-                walletBalance: (creator.walletBalance || 0) + payoutAmount
+                earningsBalance: (creator.earningsBalance || 0) + payoutAmount
             });
         }
 

@@ -20,12 +20,13 @@ export default function VozAdminDashboard() {
 
     const fetchData = async () => {
         try {
-            const [uRes, mRes, bRes, rRes, sRes] = await Promise.all([
+            const [uRes, mRes, bRes, rRes, sRes, wRes] = await Promise.all([
                 fetch('/api/voz/users'),
                 fetch('/api/voz/moderation'),
                 fetch('/api/voz/billing'),
                 fetch('/api/voz/redemptions'),
-                fetch('/api/voz/stats')
+                fetch('/api/voz/stats'),
+                fetch('/api/voz/wallet/withdrawals')
             ]);
 
             const users = await uRes.json();
@@ -33,12 +34,21 @@ export default function VozAdminDashboard() {
             const billing = await bRes.json();
             const redemptions = await rRes.json();
             const serverStats = await sRes.json();
+            const withdrawalsData = await wRes.json();
+
+            const pendingWithdrawals = Array.isArray(withdrawalsData.withdrawals) 
+                ? withdrawalsData.withdrawals.filter((w: any) => w.status === 'pending').length 
+                : 0;
+
+            const pendingOldRedemptions = Array.isArray(redemptions) 
+                ? redemptions.filter((r: any) => r.status === 'pending').length 
+                : 0;
 
             setStats({
                 users: serverStats?.totals?.users || (Array.isArray(users) ? users.length : 0),
                 pendingVideos: Array.isArray(mod) ? mod.filter((m: any) => m.status === 'pending').length : 0,
                 revenue: serverStats?.totals?.revenue || billing?.stats?.totalRevenue || 0,
-                pendingRedemptions: Array.isArray(redemptions) ? redemptions.filter((r: any) => r.status === 'pending').length : 0,
+                pendingRedemptions: pendingWithdrawals + pendingOldRedemptions,
                 vozInteractions: serverStats?.interactions?.totalTips || 0,
                 vozDistributed: serverStats?.interactions?.totalRevenueShared || 0
             });
@@ -194,6 +204,23 @@ export default function VozAdminDashboard() {
                             </div>
                         </div>
                     </fieldset>
+
+                    {/* Quick Shortcuts */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div className="window" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/creators'}>
+                            <div className="window-body" style={{ textAlign: 'center', padding: '10px' }}>
+                                <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" alt="" style={{ width: '32px', marginBottom: '5px' }} />
+                                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>📂 Creadores</div>
+                            </div>
+                        </div>
+                        <div className="window" style={{ cursor: 'pointer', border: '2px solid navy' }} onClick={() => window.location.href = '/withdrawals'}>
+                            <div className="window-body" style={{ textAlign: 'center', padding: '10px' }}>
+                                <img src="https://win98icons.alexmeub.com/icons/png/shell_window_banking-0.png" alt="" style={{ width: '32px', marginBottom: '5px' }} />
+                                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>🏦 Cobros</div>
+                                {stats.pendingRedemptions > 0 && <span style={{ backgroundColor: 'red', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '9px', marginLeft: '5px' }}>!</span>}
+                            </div>
+                        </div>
+                    </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
