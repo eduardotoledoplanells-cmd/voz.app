@@ -7,14 +7,21 @@ export default function WithdrawalsPage() {
     const [loading, setLoading] = useState(true);
 
     const fetchWithdrawals = async () => {
+        setLoading(true);
         try {
-            const res = await fetch('/api/voz/wallet/withdrawals');
+            const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
             const data = await res.json();
             if (data.success) {
                 setWithdrawals(data.withdrawals);
             }
         } catch (e) {
-            console.error(e);
+            console.error('Fetch error:', e);
         } finally {
             setLoading(false);
         }
