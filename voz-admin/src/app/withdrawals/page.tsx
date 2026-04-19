@@ -34,27 +34,44 @@ export default function WithdrawalsPage() {
     const [processingId, setProcessingId] = useState<string | null>(null);
 
     const handleUpdateStatus = async (id: string, newStatus: string) => {
-        if (!confirm(`¿Estás seguro de marcar esta solicitud como ${newStatus}?`)) return;
+        console.info(`[ADMIN] handleUpdateStatus starting for ID: ${id}, Status: ${newStatus}`);
         
-        setProcessingId(id);
+        // Window check for safe execution in Next.js client
+        if (typeof window === 'undefined') {
+            console.error('[ADMIN] window is undefined - client side only!');
+            return;
+        }
+
         try {
+            const confirmed = window.confirm(`¿Estás seguro de marcar esta solicitud como ${newStatus}?`);
+            console.info('[ADMIN] User confirmation result:', confirmed);
+            if (!confirmed) return;
+            
+            setProcessingId(id);
+            console.info(`[ADMIN] Sending PATCH to /api/voz/wallet/withdrawals for ${id}`);
+            
             const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status: newStatus })
             });
 
+            console.info('[ADMIN] Fetch completed with status:', res.status);
             const data = await res.json();
+            console.info('[ADMIN] Server response data:', data);
+
             if (res.ok && data.success) {
-                alert('Solicitud actualizada correctamente');
-                fetchWithdrawals();
+                window.alert('✅ Solicitud procesada correctamente');
+                await fetchWithdrawals();
             } else {
-                alert('Error al actualizar: ' + (data.error || 'Respuesta no válida'));
+                window.alert('❌ Error: ' + (data.error || 'Respuesta no válida del servidor'));
             }
         } catch (e: any) {
-            alert('Fallo de red: ' + e.message);
+            console.error('[ADMIN] FATAL ERROR in handleUpdateStatus:', e);
+            window.alert('🚨 Fallo crítico: ' + e.message);
         } finally {
             setProcessingId(null);
+            console.info('[ADMIN] handleUpdateStatus finished');
         }
     };
 
