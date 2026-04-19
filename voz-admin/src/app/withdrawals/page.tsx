@@ -90,7 +90,7 @@ export default function WithdrawalsPage() {
                                                     fontWeight: 'bold', 
                                                     color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red' 
                                                 }}>
-                                                    {w.status.toUpperCase()}
+                                                    {w.status === 'pending' ? 'PENDIENTE' : w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '8px', display: 'flex', gap: '5px' }}>
