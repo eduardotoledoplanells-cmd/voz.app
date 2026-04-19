@@ -124,10 +124,18 @@ export default function WithdrawalsPage() {
                                     {withdrawals.map((w) => (
                                         <tr key={w.id} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '8px', fontWeight: 'bold' }}>{w.user_handle}</td>
-                                            <td style={{ padding: '8px' }}>{w.amount} 🪙</td>
+                                            <td style={{ padding: '8px' }}>
+                                                <span style={{ 
+                                                    fontWeight: 'bold', 
+                                                    fontSize: '18px',
+                                                    color: '#000'
+                                                }}>
+                                                    {w.amount} 🪙
+                                                </span>
+                                            </td>
                                             <td style={{ padding: '8px' }}>
                                                 <span style={{ textTransform: 'uppercase', fontSize: '13px', padding: '2px 5px', backgroundColor: '#e1e1e1', borderRadius: '3px', fontWeight: 'bold' }}>
-                                                    {w.method}
+                                                    {w.method === 'bank' ? 'BANCO / IBAN' : w.method.toUpperCase()}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '8px', fontSize: '13px' }}>
@@ -139,7 +147,8 @@ export default function WithdrawalsPage() {
                                             <td style={{ padding: '8px' }}>
                                                 <span style={{ 
                                                     fontWeight: 'bold', 
-                                                    color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red' 
+                                                    fontSize: '13px',
+                                                    color: w.status === 'pending' ? '#e65100' : w.status === 'approved' ? '#2e7d32' : '#c62828' 
                                                 }}>
                                                     {w.status === 'pending' ? 'PENDIENTE' : w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
                                                 </span>

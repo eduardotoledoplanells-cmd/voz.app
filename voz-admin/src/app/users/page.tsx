@@ -538,16 +538,18 @@ export default function VozUsersPage() {
                                             {withdrawals
                                                 .filter(w => w.user_handle === selectedUser?.handle)
                                                 .map((w, i) => (
-                                                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                                        <td style={{ padding: '2px 0' }}>{new Date(w.created_at).toLocaleDateString()}</td>
-                                                        <td>{w.amount} 🪙</td>
-                                                        <td style={{ 
-                                                            fontWeight: 'bold',
-                                                            color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red'
-                                                        }}>
-                                                            {w.status.toUpperCase()}
-                                                        </td>
-                                                    </tr>
+                                                <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                                    <td style={{ padding: '4px 0', fontSize: '13px' }}>{new Date(w.created_at).toLocaleDateString()}</td>
+                                                    <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} 🪙</td>
+                                                    <td style={{ 
+                                                        fontSize: '13px',
+                                                        fontWeight: 'bold',
+                                                        color: w.status === 'pending' ? '#e65100' : w.status === 'approved' ? '#2e7d32' : '#c62828'
+                                                    }}>
+                                                        {w.status === 'pending' ? 'PENDIENTE' : 
+                                                         w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
+                                                    </td>
+                                                </tr>
                                                 ))
                                             }
                                             {withdrawals.filter(w => w.user_handle === selectedUser?.handle).length === 0 && (

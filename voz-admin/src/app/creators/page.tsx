@@ -366,9 +366,11 @@ export default function CreatorsPage() {
                                                     </fieldset>
                                                     <fieldset>
                                                         <legend>Estadísticas de Canje (Sincronizado)</legend>
-                                                        <div className="field-row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-                                                            <span>Disp. para Canje:</span>
-                                                            <span style={{ fontWeight: 'bold' }}>{selectedCreator.withdrawableCoins.toFixed(2)} 🪙</span>
+                                                        <div className="field-row" style={{ justifyContent: 'space-between', marginBottom: 15, alignItems: 'center' }}>
+                                                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#444' }}>Disp. para Canje:</span>
+                                                            <span style={{ fontSize: '20px', fontWeight: '900', color: '#000080', backgroundColor: '#ffffcc', padding: '2px 8px', border: '1px inset #808080' }}>
+                                                                {selectedCreator.withdrawableCoins.toFixed(2)} 🪙
+                                                            </span>
                                                         </div>
 
                                                         <div className="sunken-panel" style={{ backgroundColor: 'white', padding: 5, maxHeight: 150, overflowY: 'auto' }}>
@@ -385,13 +387,15 @@ export default function CreatorsPage() {
                                                                         .filter(w => w.user_handle === selectedCreator.userHandle)
                                                                         .map((w, i) => (
                                                                             <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                                                                <td style={{ padding: '2px 0' }}>{new Date(w.created_at).toLocaleDateString()}</td>
-                                                                                <td>{w.amount} 🪙</td>
+                                                                                <td style={{ padding: '4px 0', fontSize: '13px' }}>{new Date(w.created_at).toLocaleDateString()}</td>
+                                                                                <td style={{ fontSize: '15px', fontWeight: 'bold', color: '#000' }}>{w.amount} 🪙</td>
                                                                                 <td style={{ 
+                                                                                    fontSize: '13px',
                                                                                     fontWeight: 'bold',
-                                                                                    color: w.status === 'pending' ? 'orange' : w.status === 'approved' ? 'green' : 'red'
+                                                                                    color: w.status === 'pending' ? '#e65100' : w.status === 'approved' ? '#2e7d32' : '#c62828'
                                                                                 }}>
-                                                                                    {w.status.toUpperCase()}
+                                                                                    {w.status === 'pending' ? 'PENDIENTE' : 
+                                                                                     w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
                                                                                 </td>
                                                                             </tr>
                                                                         ))
