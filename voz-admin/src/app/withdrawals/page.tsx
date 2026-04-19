@@ -52,7 +52,11 @@ export default function WithdrawalsPage() {
             
             const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
+                },
                 body: JSON.stringify({ id, status: newStatus })
             });
 
@@ -79,7 +83,7 @@ export default function WithdrawalsPage() {
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="window">
                 <div className="title-bar">
-                    <div className="title-bar-text">Gestión de Cobros / Retiros (Doble Cartera)</div>
+                    <div className="title-bar-text">Gestión de Cobros / Retiros (v1.3 - Reembolsos Activos)</div>
                 </div>
                 <div className="window-body">
                     <p>Aquí aparecen las solicitudes de creadores que quieren retirar dinero real de su <b>Cartera de Ingresos</b>.</p>
