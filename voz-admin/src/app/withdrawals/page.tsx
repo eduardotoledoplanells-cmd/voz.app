@@ -5,9 +5,14 @@ import '98.css';
 export default function WithdrawalsPage() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [processingId, setProcessingId] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ id: string, status: string } | null>(null);
+    const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string>('');
 
     const fetchWithdrawals = async () => {
         setLoading(true);
+        setDebugInfo('Fetching withdrawals...');
         try {
             const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 cache: 'no-store',
@@ -19,9 +24,13 @@ export default function WithdrawalsPage() {
             const data = await res.json();
             if (data.success) {
                 setWithdrawals(data.withdrawals);
+                setDebugInfo(`Fetched ${data.withdrawals.length} records.`);
+            } else {
+                setDebugInfo(`Error fetching: ${JSON.stringify(data)}`);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Fetch error:', e);
+            setDebugInfo(`Exception fetching: ${e.message}`);
         } finally {
             setLoading(false);
         }
@@ -31,51 +40,43 @@ export default function WithdrawalsPage() {
         fetchWithdrawals();
     }, []);
 
-    const [processingId, setProcessingId] = useState<string | null>(null);
-
     const handleUpdateStatus = async (id: string, newStatus: string) => {
-        console.info(`[ADMIN] handleUpdateStatus starting for ID: ${id}, Status: ${newStatus}`);
-        
-        // Window check for safe execution in Next.js client
-        if (typeof window === 'undefined') {
-            console.error('[ADMIN] window is undefined - client side only!');
-            return;
-        }
+        setConfirmAction(null);
+        setProcessingId(id);
+        setStatusMessage({ text: `Procesando ${newStatus}...`, type: 'info' });
+        setDebugInfo(`Starting PATCH for ${id} -> ${newStatus}`);
 
         try {
-            const confirmed = window.confirm(`¿Estás seguro de marcar esta solicitud como ${newStatus}?`);
-            console.info('[ADMIN] User confirmation result:', confirmed);
-            if (!confirmed) return;
-            
-            setProcessingId(id);
-            console.info(`[ADMIN] Sending PATCH to /api/voz/wallet/withdrawals for ${id}`);
-            
             const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
                 },
                 body: JSON.stringify({ id, status: newStatus })
             });
 
-            console.info('[ADMIN] Fetch completed with status:', res.status);
-            const data = await res.json();
-            console.info('[ADMIN] Server response data:', data);
+            const rawText = await res.text();
+            setDebugInfo(`Raw Response: ${rawText}`);
+
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch (jsE) {
+                throw new Error(`Invalid JSON response: ${rawText.substring(0, 50)}...`);
+            }
 
             if (res.ok && data.success) {
-                window.alert('✅ Solicitud procesada correctamente');
+                setStatusMessage({ text: `✅ Solicitud ${newStatus} procesada correctamente.`, type: 'success' });
                 await fetchWithdrawals();
             } else {
-                window.alert('❌ Error: ' + (data.error || 'Respuesta no válida del servidor'));
+                setStatusMessage({ text: `❌ Error: ${data.error || 'Fallo desconocido'}`, type: 'error' });
             }
         } catch (e: any) {
-            console.error('[ADMIN] FATAL ERROR in handleUpdateStatus:', e);
-            window.alert('🚨 Fallo crítico: ' + e.message);
+            console.error('[ADMIN] FATAL ERROR:', e);
+            setStatusMessage({ text: `🚨 Fallo crítico: ${e.message}`, type: 'error' });
         } finally {
             setProcessingId(null);
-            console.info('[ADMIN] handleUpdateStatus finished');
         }
     };
 
@@ -83,9 +84,23 @@ export default function WithdrawalsPage() {
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="window">
                 <div className="title-bar">
-                    <div className="title-bar-text">Gestión de Cobros / Retiros (v1.3 - Reembolsos Activos)</div>
+                    <div className="title-bar-text">Gestión de Cobros / Retiros (v1.4 - UI Confirmation)</div>
                 </div>
                 <div className="window-body">
+                    {statusMessage && (
+                        <div style={{ 
+                            padding: '10px', 
+                            marginBottom: '15px', 
+                            border: '2px solid',
+                            borderColor: statusMessage.type === 'success' ? 'green' : (statusMessage.type === 'error' ? 'red' : 'blue'),
+                            backgroundColor: statusMessage.type === 'success' ? '#e6fffa' : (statusMessage.type === 'error' ? '#fff5f5' : '#ebf8ff'),
+                            fontWeight: 'bold'
+                        }}>
+                            {statusMessage.text}
+                            <button style={{ float: 'right', padding: '0 5px' }} onClick={() => setStatusMessage(null)}>X</button>
+                        </div>
+                    )}
+
                     <p>Aquí aparecen las solicitudes de creadores que quieren retirar dinero real de su <b>Cartera de Ingresos</b>.</p>
                     
                     <div className="sunken-panel" style={{ backgroundColor: 'white', marginTop: '10px', minHeight: '300px', padding: '10px', overflowX: 'auto' }}>
@@ -129,24 +144,38 @@ export default function WithdrawalsPage() {
                                                     {w.status === 'pending' ? 'PENDIENTE' : w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '8px', display: 'flex', gap: '5px' }}>
+                                            <td style={{ padding: '8px', position: 'relative' }}>
                                                 {w.status === 'pending' && (
-                                                    <>
-                                                        <button 
-                                                            disabled={processingId === w.id}
-                                                            onClick={() => handleUpdateStatus(w.id, 'approved')}
-                                                        >
-                                                            {processingId === w.id ? '...' : 'Aprobar'}
-                                                        </button>
-                                                        <button 
-                                                            className="row-reject-btn"
-                                                            disabled={processingId === w.id}
-                                                            onClick={() => handleUpdateStatus(w.id, 'rejected')}
-                                                            style={{ backgroundColor: '#ffcccc', color: 'red' }}
-                                                        >
-                                                            {processingId === w.id ? '...' : 'Rechazar'}
-                                                        </button>
-                                                    </>
+                                                    <div style={{ display: 'flex', gap: '5px' }}>
+                                                        {confirmAction?.id === w.id ? (
+                                                            <div style={{ backgroundColor: '#ffeb3b', padding: '5px', borderRadius: '4px', display: 'flex', gap: '5px', zIndex: 10 }}>
+                                                                <button 
+                                                                    className="confirm-btn"
+                                                                    onClick={() => handleUpdateStatus(w.id, confirmAction.status)}
+                                                                    style={{ backgroundColor: confirmAction.status === 'approved' ? 'green' : 'red', color: 'white' }}
+                                                                >
+                                                                    SÍ, {confirmAction.status.toUpperCase()}
+                                                                </button>
+                                                                <button onClick={() => setConfirmAction(null)}>NO</button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <button 
+                                                                    disabled={processingId === w.id}
+                                                                    onClick={() => setConfirmAction({ id: w.id, status: 'approved' })}
+                                                                >
+                                                                    {processingId === w.id && confirmAction === null ? '...' : 'Aprobar'}
+                                                                </button>
+                                                                <button 
+                                                                    disabled={processingId === w.id}
+                                                                    onClick={() => setConfirmAction({ id: w.id, status: 'rejected' })}
+                                                                    style={{ backgroundColor: '#ffcccc', color: 'red' }}
+                                                                >
+                                                                    {processingId === w.id && confirmAction === null ? '...' : 'Rechazar'}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 )}
                                                 {w.status !== 'pending' && <span style={{ color: 'gray', fontSize: '10px' }}>Procesado</span>}
                                             </td>
@@ -159,18 +188,39 @@ export default function WithdrawalsPage() {
                 </div>
             </div>
 
-            <div className="window" style={{ width: '400px' }}>
-                <div className="title-bar">
-                    <div className="title-bar-text">Aviso al Administrador</div>
+            <div style={{ display: 'flex', gap: '20px' }}>
+                <div className="window" style={{ width: '400px' }}>
+                    <div className="title-bar">
+                        <div className="title-bar-text">Aviso al Administrador</div>
+                    </div>
+                    <div className="window-body">
+                        <p style={{ color: 'blue' }}><b>Proceso sugerido:</b></p>
+                        <ol>
+                            <li>Revisa el email o cuenta bancaria del usuario.</li>
+                            <li>Realiza la transferencia MANUAL.</li>
+                            <li>Pulsa "Aprobar" para cerrar el ticket.</li>
+                            <li>Si el usuario tiene datos falsos, pulsa "Rechazar". <b>Ahora el sistema devuelve las monedas automáticamente.</b></li>
+                        </ol>
+                    </div>
                 </div>
-                <div className="window-body">
-                    <p style={{ color: 'blue' }}><b>Proceso sugerido:</b></p>
-                    <ol>
-                        <li>Revisa el email o cuenta bancaria del usuario.</li>
-                        <li>Realiza la transferencia MANUAL desde tu cuenta de PayPal o Banco.</li>
-                        <li>Una vez enviado el dinero real, pulsa "Aprobar" aquí para cerrar el ticket.</li>
-                        <li>Si el usuario tiene datos falsos, pulsa "Rechazar". <b>Ahora el sistema devuelve las monedas automáticamente al usuario y le envía una notificación.</b></li>
-                    </ol>
+
+                <div className="window" style={{ flex: 1 }}>
+                    <div className="title-bar">
+                        <div className="title-bar-text">Diagnóstico del Servidor (DEBUG)</div>
+                    </div>
+                    <div className="window-body">
+                        <pre style={{ 
+                            backgroundColor: '#000', 
+                            color: '#0f0', 
+                            padding: '10px', 
+                            fontSize: '10px', 
+                            height: '100px', 
+                            overflowY: 'auto',
+                            margin: 0
+                        }}>
+                            {debugInfo}
+                        </pre>
+                    </div>
                 </div>
             </div>
         </div>
