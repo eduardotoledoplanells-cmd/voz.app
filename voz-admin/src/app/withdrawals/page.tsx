@@ -151,10 +151,10 @@ export default function WithdrawalsPage() {
                                                             <div style={{ backgroundColor: '#ffeb3b', padding: '5px', borderRadius: '4px', display: 'flex', gap: '5px', zIndex: 10 }}>
                                                                 <button 
                                                                     className="confirm-btn"
-                                                                    onClick={() => handleUpdateStatus(w.id, confirmAction.status)}
-                                                                    style={{ backgroundColor: confirmAction.status === 'approved' ? 'green' : 'red', color: 'white' }}
+                                                                    onClick={() => confirmAction && handleUpdateStatus(w.id, confirmAction.status)}
+                                                                    style={{ backgroundColor: confirmAction?.status === 'approved' ? 'green' : 'red', color: 'white' }}
                                                                 >
-                                                                    SÍ, {confirmAction.status.toUpperCase()}
+                                                                    SÍ, {confirmAction?.status.toUpperCase()}
                                                                 </button>
                                                                 <button onClick={() => setConfirmAction(null)}>NO</button>
                                                             </div>
