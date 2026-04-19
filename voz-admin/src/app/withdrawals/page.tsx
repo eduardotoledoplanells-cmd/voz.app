@@ -31,11 +31,14 @@ export default function WithdrawalsPage() {
         fetchWithdrawals();
     }, []);
 
+    const [processingId, setProcessingId] = useState<string | null>(null);
+
     const handleUpdateStatus = async (id: string, newStatus: string) => {
         if (!confirm(`¿Estás seguro de marcar esta solicitud como ${newStatus}?`)) return;
         
+        setProcessingId(id);
         try {
-            const res = await fetch('/api/voz/wallet/withdrawals', {
+            const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status: newStatus })
@@ -50,6 +53,8 @@ export default function WithdrawalsPage() {
             }
         } catch (e: any) {
             alert('Fallo de red: ' + e.message);
+        } finally {
+            setProcessingId(null);
         }
     };
 
@@ -106,8 +111,20 @@ export default function WithdrawalsPage() {
                                             <td style={{ padding: '8px', display: 'flex', gap: '5px' }}>
                                                 {w.status === 'pending' && (
                                                     <>
-                                                        <button onClick={() => handleUpdateStatus(w.id, 'approved')}>Aprobar</button>
-                                                        <button onClick={() => handleUpdateStatus(w.id, 'rejected')}>Rechazar</button>
+                                                        <button 
+                                                            disabled={processingId === w.id}
+                                                            onClick={() => handleUpdateStatus(w.id, 'approved')}
+                                                        >
+                                                            {processingId === w.id ? '...' : 'Aprobar'}
+                                                        </button>
+                                                        <button 
+                                                            className="row-reject-btn"
+                                                            disabled={processingId === w.id}
+                                                            onClick={() => handleUpdateStatus(w.id, 'rejected')}
+                                                            style={{ backgroundColor: '#ffcccc', color: 'red' }}
+                                                        >
+                                                            {processingId === w.id ? '...' : 'Rechazar'}
+                                                        </button>
                                                     </>
                                                 )}
                                                 {w.status !== 'pending' && <span style={{ color: 'gray', fontSize: '10px' }}>Procesado</span>}
@@ -131,7 +148,7 @@ export default function WithdrawalsPage() {
                         <li>Revisa el email o cuenta bancaria del usuario.</li>
                         <li>Realiza la transferencia MANUAL desde tu cuenta de PayPal o Banco.</li>
                         <li>Una vez enviado el dinero real, pulsa "Aprobar" aquí para cerrar el ticket.</li>
-                        <li>Si el usuario tiene datos falsos, pulsa "Rechazar" (esto NO devuelve el dinero automáticamente, deberás gestionarlo con soporte).</li>
+                        <li>Si el usuario tiene datos falsos, pulsa "Rechazar". <b>Ahora el sistema devuelve las monedas automáticamente al usuario y le envía una notificación.</b></li>
                     </ol>
                 </div>
             </div>

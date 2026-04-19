@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/db';
+import { supabaseAdmin, addNotification } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +84,22 @@ export async function PATCH(request: Request) {
             .eq('id', id);
 
         if (updateExtError) throw updateExtError;
+
+        // 4. Send Notification to User
+        const notifTitle = status === 'approved' ? '¡Retiro Aprobado!' : 'Retiro Rechazado';
+        const notifMessage = status === 'approved' 
+            ? `Tu solicitud de retiro de ${withdrawal.amount} 🪙 ha sido aprobada. El dinero llegará pronto a tu cuenta.` 
+            : `Tu solicitud de retiro de ${withdrawal.amount} 🪙 ha sido rechazada. Las monedas han sido devueltas a tu cartera.`;
+
+        await addNotification({
+            id: Date.now().toString(),
+            recipientId: withdrawal.user_handle,
+            type: 'billing',
+            title: notifTitle,
+            message: notifMessage,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
         
         return NextResponse.json({ success: true, refunded: status === 'rejected' });
     } catch (e: any) {
