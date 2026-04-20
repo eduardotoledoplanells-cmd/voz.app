@@ -144,6 +144,19 @@ export interface ModerationItem {
     moderatedBy?: string;
 }
 
+// --- Withdrawal Requests Logic ---
+export interface WithdrawalRequest {
+    id?: string;
+    userId: string;
+    userHandle: string;
+    amount: number;
+    method: 'paypal' | 'bank';
+    details: any;
+    status?: 'pending' | 'approved' | 'rejected';
+    createdAt?: string;
+    processedAt?: string;
+}
+
 export interface VideoPost {
     id: string;
     videoUrl: string;
@@ -1308,6 +1321,58 @@ export async function addRedemptionRequest(req: any): Promise<any | null> {
     }]).select().single();
     if (error) return null;
     return data;
+}
+
+export async function addWithdrawalRequest(req: WithdrawalRequest): Promise<boolean> {
+    const { error } = await supabaseAdmin
+        .from('withdrawal_requests')
+        .insert([{
+            user_id: req.userId,
+            user_handle: req.userHandle,
+            amount: req.amount,
+            method: req.method,
+            details: req.details,
+            status: 'pending'
+        }]);
+
+    if (error) {
+        console.error('Error adding withdrawal request:', error);
+        return false;
+    }
+    return true;
+}
+
+export async function addTransaction(tx: any) {
+    const { error } = await supabaseAdmin
+        .from('transactions')
+        .insert([{
+            sender_handle: tx.senderHandle || tx.senderId,
+            receiver_handle: tx.receiverHandle || tx.receiverId,
+            amount: tx.amount,
+            type: tx.type,
+            video_id: tx.videoId || null
+        }]);
+
+    if (error) {
+        console.error('Error adding transaction:', error);
+    }
+}
+
+export async function addCoinSale(sale: any) {
+    const { error } = await supabaseAdmin
+        .from('coin_sales')
+        .insert([{
+            user_handle: sale.userHandle,
+            pack_type: sale.packType,
+            price: sale.price,
+            coins: sale.coins,
+            stripe_payment_intent_id: sale.stripePaymentIntentId,
+            status: sale.status || 'succeeded'
+        }]);
+
+    if (error) {
+        console.error('Error adding coin sale:', error);
+    }
 }
 
 export async function updateRedemptionStatus(id: string, status: string, employeeName: string): Promise<any | null> {
