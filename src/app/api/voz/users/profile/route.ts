@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
         }
 
         const users = await getAppUsers();
-        const user = users.find(u => u.handle === handle);
+
+        const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
+        const searchNormalized = normalize(handle);
+
+        const user = users.find(u => normalize(u.handle) === searchNormalized);
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -28,21 +32,21 @@ export async function GET(request: NextRequest) {
             const { count: fCount, error: fErr } = await supabaseAdmin
                 .from("user_follows")
                 .select("*", { count: "exact", head: true })
-                .eq("following_handle", handle);
+                .eq("following_handle", user.handle);
             if (!fErr) fansCount = fCount || 0;
 
             // Fetch Following Count
             const { count: flwCount, error: flwErr } = await supabaseAdmin
                 .from("user_follows")
                 .select("*", { count: "exact", head: true })
-                .eq("follower_handle", handle);
+                .eq("follower_handle", user.handle);
             if (!flwErr) followingCount = flwCount || 0;
 
             // Fetch Total Likes across all their videos
             const { data: userVideos, error: vErr } = await supabaseAdmin
                 .from("videos")
                 .select("likes")
-                .eq("user_handle", handle);
+                .eq("user_handle", user.handle);
 
             if (!vErr && userVideos) {
                 totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);

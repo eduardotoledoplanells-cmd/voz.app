@@ -159,6 +159,8 @@ export interface VideoPost {
     thumbnailUrl?: string;
     filterConfig?: any;
     isMuted?: boolean;
+    userName?: string;
+    userImage?: string;
 }
 
 // --- App Users / Creators ---
@@ -1067,45 +1069,71 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
 
 // --- Videos ---
 export async function getVideos(): Promise<VideoPost[]> {
-    const { data, error } = await supabaseAdmin.from('videos').select('*').order('created_at', { ascending: false });
-    if (error) return [];
-    return data.map(v => ({
-        id: v.id,
-        videoUrl: v.video_url,
-        user: v.user_handle,
-        description: v.description,
-        likes: v.likes,
-        shares: v.shares,
-        commentsCount: v.comments_count,
-        views: v.views,
-        createdAt: v.created_at,
-        music: v.music,
-        isAd: v.is_ad,
-        thumbnailUrl: v.thumbnail_url,
-        filterConfig: v.filter_config,
-        isMuted: v.is_muted
-    }));
+    const { data, error } = await supabaseAdmin
+        .from('videos')
+        .select('*, app_users:user_handle(name, handle, profile_image)')
+        .order('created_at', { ascending: false });
+    
+    if (error) {
+        console.error("[db] getVideos error:", error);
+        return [];
+    }
+
+    return (data as any[]).map(v => {
+        const u = v.app_users || {};
+        return {
+            id: v.id,
+            videoUrl: v.video_url,
+            user: v.user_handle,
+            description: v.description,
+            likes: v.likes,
+            shares: v.shares,
+            commentsCount: v.comments_count,
+            views: v.views,
+            createdAt: v.created_at,
+            music: v.music,
+            isAd: v.is_ad,
+            thumbnailUrl: v.thumbnail_url,
+            filterConfig: v.filter_config,
+            isMuted: v.is_muted,
+            userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
+            userImage: u.profile_image
+        };
+    });
 }
 
 export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
-    const { data, error } = await supabaseAdmin.from('videos').select('*').eq('user_handle', handle);
-    if (error) return [];
-    return data.map(v => ({
-        id: v.id,
-        videoUrl: v.video_url,
-        user: v.user_handle,
-        description: v.description,
-        likes: v.likes,
-        shares: v.shares,
-        commentsCount: v.comments_count,
-        views: v.views,
-        createdAt: v.created_at,
-        music: v.music,
-        isAd: v.is_ad,
-        thumbnailUrl: v.thumbnail_url,
-        filterConfig: v.filter_config,
-        isMuted: v.is_muted
-    }));
+    const { data, error } = await supabaseAdmin
+        .from('videos')
+        .select('*, app_users:user_handle(name, handle, profile_image)')
+        .eq('user_handle', handle);
+
+    if (error) {
+        console.error("[db] getVideosByUser error:", error);
+        return [];
+    }
+
+    return (data as any[]).map(v => {
+        const u = v.app_users || {};
+        return {
+            id: v.id,
+            videoUrl: v.video_url,
+            user: v.user_handle,
+            description: v.description,
+            likes: v.likes,
+            shares: v.shares,
+            commentsCount: v.comments_count,
+            views: v.views,
+            createdAt: v.created_at,
+            music: v.music,
+            isAd: v.is_ad,
+            thumbnailUrl: v.thumbnail_url,
+            filterConfig: v.filter_config,
+            isMuted: v.is_muted,
+            userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
+            userImage: u.profile_image
+        };
+    });
 }
 
 export async function addVideo(video: VideoPost): Promise<VideoPost | null> {

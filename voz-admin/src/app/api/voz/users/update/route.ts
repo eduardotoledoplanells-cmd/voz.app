@@ -6,14 +6,18 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { id, handle, name, bio, profile_image, profileImage } = body;
 
+        console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
+        console.log(`[API Update] Payload:`, JSON.stringify({ handle, name, bio, profile_image, profileImage }));
+
         if (!id) {
+            console.error("[API Update] Error: Missing user ID in request body");
             return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
         }
 
         const updates: any = {};
-        if (handle) updates.handle = handle;
-        if (name) updates.name = name;
-        if (bio) updates.bio = bio;
+        if (handle !== undefined) updates.handle = handle;
+        if (name !== undefined) updates.name = name;
+        if (bio !== undefined) updates.bio = bio;
         
         // Handle both snake_case and camelCase
         if (profile_image || profileImage) {
