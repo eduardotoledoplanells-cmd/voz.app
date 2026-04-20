@@ -534,8 +534,8 @@ export interface VoiceComment {
     created_at: string;
 }
 
-export async function getVoiceComments(videoId: string): Promise<any[]> {
-    // Cargar comentarios principales
+export async function getVoiceComments(videoId: string, currentUserHandle?: string): Promise<any[]> {
+    // 1. Cargar comentarios principales (parent_id = null)
     const { data: parentComments, error: parentsError } = await supabaseAdmin
         .from('voice_comments')
         .select('*')
@@ -543,19 +543,25 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
         .is('parent_id', null)
         .order('created_at', { ascending: false });
 
-    if (parentsError || !parentComments) return [];
+    if (parentsError || !parentComments) {
+        console.error('Error fetching parent comments:', parentsError);
+        return [];
+    }
 
     const parentIds = parentComments.map(c => c.id);
 
-    // Cargar respuestas
+    // 2. Para cada comentario cargar sus respuestas
     let replies: any[] = [];
     if (parentIds.length > 0) {
-        const { data: repliesData } = await supabaseAdmin
+        const { data: repliesData, error: repliesError } = await supabaseAdmin
             .from('voice_comments')
             .select('*')
             .in('parent_id', parentIds)
             .order('created_at', { ascending: true });
-        if (repliesData) replies = repliesData;
+
+        if (!repliesError && repliesData) {
+            replies = repliesData;
+        }
     }
 
     const allComments = [...parentComments, ...replies];
@@ -567,15 +573,20 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
     let likesData: any[] = [];
     const { data: fetchedLikes } = await supabaseAdmin
         .from('voice_comment_likes')
-        .select('comment_id')
+        .select('comment_id, user_handle')
         .in('comment_id', allCommentIds);
 
     if (fetchedLikes) likesData = fetchedLikes;
 
     const likesCountMap = new Map<string, number>();
+    const likedByMeSet = new Set<string>();
+
     likesData.forEach(like => {
         const cId = like.comment_id;
         likesCountMap.set(cId, (likesCountMap.get(cId) || 0) + 1);
+        if (currentUserHandle && like.user_handle === currentUserHandle) {
+            likedByMeSet.add(cId);
+        }
     });
 
     // Fetch user profiles to get up-to-date avatars
@@ -586,19 +597,22 @@ export async function getVoiceComments(videoId: string): Promise<any[]> {
             .from('app_users')
             .select('handle, profile_image')
             .in('handle', handles);
+
         users?.forEach(u => userMap.set(u.handle, u.profile_image));
     }
 
+    // Formatear la respuesta con el conteo dinámico de likes
     const enrichedComments = allComments.map(c => ({
         ...c,
-        avatar_url: userMap.get(c.user_handle) || null,
-        likes: likesCountMap.get(c.id) || 0
+        avatar_url: userMap.get(c.user_handle) || c.avatar_url || null,
+        likes: likesCountMap.get(c.id) || 0, // Conteo dinámico calculado
+        isLikedByMe: likedByMeSet.has(c.id)
     }));
 
     return enrichedComments;
 }
 
-export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<VoiceComment | null> {
+export async function addVoiceComment(comment: any): Promise<any> {
     const { data, error } = await supabaseAdmin
         .from('voice_comments')
         .insert([comment])
@@ -610,7 +624,103 @@ export async function addVoiceComment(comment: Partial<VoiceComment>): Promise<V
         return null;
     }
 
+    // Increment comments_count in videos table
+    if (comment.video_id) {
+        const { error: updateError } = await supabaseAdmin.rpc('increment_video_comments', { vid: comment.video_id });
+        if (updateError) {
+            // Fallback if RPC doesn't exist: Manual update
+            console.warn('RPC increment_video_comments failed, falling back to manual update');
+            const { data: videoData } = await supabaseAdmin.from('videos').select('comments_count').eq('id', comment.video_id).single();
+            await supabaseAdmin.from('videos').update({ comments_count: (videoData?.comments_count || 0) + 1 }).eq('id', comment.video_id);
+        }
+    }
+
     return data;
+}
+
+export async function toggleVideoLike(videoId: string, userHandle: string, isLiked: boolean): Promise<boolean> {
+    if (isLiked) {
+        const { error: likeError } = await supabaseAdmin
+            .from('video_likes')
+            .upsert([{ video_id: videoId, user_handle: userHandle }], { onConflict: 'video_id,user_handle' });
+
+        if (likeError) {
+            console.error('Error recording video like persistence:', likeError);
+            return false;
+        }
+    } else {
+        const { error: unlikeError } = await supabaseAdmin
+            .from('video_likes')
+            .delete()
+            .match({ video_id: videoId, user_handle: userHandle });
+
+        if (unlikeError) {
+            console.error('Error removing video like persistence:', unlikeError);
+            return false;
+        }
+    }
+
+    const { data: videoData } = await supabaseAdmin.from('videos').select('likes').eq('id', videoId).single();
+    const currentLikes = videoData?.likes || 0;
+    const newLikes = isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+
+    const { error: updateError } = await supabaseAdmin
+        .from('videos')
+        .update({ likes: newLikes })
+        .eq('id', videoId);
+
+    return !updateError;
+}
+
+export async function incrementVideoView(videoId: string, userHandle: string): Promise<boolean> {
+    const { error: viewError } = await supabaseAdmin
+        .from('video_views')
+        .insert([{ video_id: videoId, user_handle: userHandle }]);
+
+    if (viewError) {
+        if (viewError.code === '23505') return true;
+        return false;
+    }
+
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_video_views', { vid: videoId });
+
+    if (rpcError) {
+        const { data: videoData } = await supabaseAdmin.from('videos').select('views').eq('id', videoId).single();
+        const currentViews = videoData?.views || 0;
+        await supabaseAdmin.from('videos').update({ views: currentViews + 1 }).eq('id', videoId);
+    }
+
+    return true;
+}
+
+export async function toggleVideoBookmark(videoId: string, userHandle: string, isBookmarked: boolean): Promise<boolean> {
+    if (isBookmarked) {
+        const { error } = await supabaseAdmin
+            .from('video_bookmarks')
+            .upsert([{ video_id: videoId, user_handle: userHandle }], { onConflict: 'video_id,user_handle' });
+        return !error;
+    } else {
+        const { error } = await supabaseAdmin
+            .from('video_bookmarks')
+            .delete()
+            .match({ video_id: videoId, user_handle: userHandle });
+        return !error;
+    }
+}
+
+export async function incrementVoiceCommentLike(commentId: string, userHandle: string): Promise<boolean> {
+    const { error: likeError } = await supabaseAdmin
+        .from('voice_comment_likes')
+        .insert([{ comment_id: commentId, user_handle: userHandle }]);
+    return !likeError;
+}
+
+export async function removeVoiceCommentLike(commentId: string, userHandle: string): Promise<boolean> {
+    const { error: unlikeError } = await supabaseAdmin
+        .from('voice_comment_likes')
+        .delete()
+        .match({ comment_id: commentId, user_handle: userHandle });
+    return !unlikeError;
 }
 
 // --- User Penalties ---
