@@ -1191,19 +1191,56 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
 }
 
 // --- Videos ---
-export async function getVideos(): Promise<VideoPost[]> {
-    const { data, error } = await supabaseAdmin
+export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]> {
+    // 1. Fetch raw videos
+    const { data: videos, error: videosError } = await supabaseAdmin
         .from('videos')
-        .select('*, app_users:user_handle(name, handle, profile_image)')
+        .select('*')
         .order('created_at', { ascending: false });
     
-    if (error) {
-        console.error("[db] getVideos error:", error);
+    if (videosError) {
+        console.error("[db] getVideos error:", videosError);
         return [];
     }
 
-    return (data as any[]).map(v => {
-        const u = v.app_users || {};
+    if (!videos || videos.length === 0) return [];
+
+    // 2. Fetch corresponding users to perform manual join
+    const handles = [...new Set(videos.map(v => v.user_handle))];
+    const { data: users, error: usersError } = await supabaseAdmin
+        .from('app_users')
+        .select('name, handle, profile_image')
+        .in('handle', handles);
+
+    if (usersError) {
+        console.error("[db] Error fetching users for join:", usersError);
+    }
+
+    const userMap = new Map();
+    users?.forEach(u => userMap.set(u.handle, u));
+
+    // 3. Handle personal state (likes/bookmarks)
+    let likedSet = new Set<string>();
+    let bookmarkedSet = new Set<string>();
+
+    if (currentUserHandle) {
+        const { data: likes } = await supabaseAdmin
+            .from('video_likes')
+            .select('video_id')
+            .eq('user_handle', currentUserHandle);
+
+        const { data: bookmarks } = await supabaseAdmin
+            .from('video_bookmarks')
+            .select('video_id')
+            .eq('user_handle', currentUserHandle);
+
+        likes?.forEach((l: any) => likedSet.add(l.video_id));
+        bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
+    }
+
+    // 4. Merge data
+    return (videos as any[]).map(v => {
+        const u = userMap.get(v.user_handle) || {};
         return {
             id: v.id,
             videoUrl: v.video_url,
@@ -1220,24 +1257,60 @@ export async function getVideos(): Promise<VideoPost[]> {
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
-            userImage: u.profile_image
+            userImage: u.profile_image,
+            isLikedByMe: likedSet.has(v.id),
+            isBookmarkedByMe: bookmarkedSet.has(v.id)
         };
     });
 }
 
-export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
-    const { data, error } = await supabaseAdmin
+export async function getVideosByUser(handle: string, currentUserHandle?: string): Promise<VideoPost[]> {
+    // 1. Fetch raw videos
+    const { data: videos, error: videosError } = await supabaseAdmin
         .from('videos')
-        .select('*, app_users:user_handle(name, handle, profile_image)')
+        .select('*')
         .eq('user_handle', handle);
 
-    if (error) {
-        console.error("[db] getVideosByUser error:", error);
+    if (videosError) {
+        console.error("[db] getVideosByUser error:", videosError);
         return [];
     }
 
-    return (data as any[]).map(v => {
-        const u = v.app_users || {};
+    if (!videos || videos.length === 0) return [];
+
+    // 2. Fetch specific user data
+    const { data: userData, error: userError } = await supabaseAdmin
+        .from('app_users')
+        .select('name, handle, profile_image')
+        .eq('handle', handle)
+        .single();
+
+    if (userError) {
+        console.warn("[db] Could not fetch user data for handle:", handle);
+    }
+
+    // 3. Handle personal state
+    let likedSet = new Set<string>();
+    let bookmarkedSet = new Set<string>();
+
+    if (currentUserHandle) {
+        const { data: likes } = await supabaseAdmin
+            .from('video_likes')
+            .select('video_id')
+            .eq('user_handle', currentUserHandle);
+
+        const { data: bookmarks } = await supabaseAdmin
+            .from('video_bookmarks')
+            .select('video_id')
+            .eq('user_handle', currentUserHandle);
+
+        likes?.forEach((l: any) => likedSet.add(l.video_id));
+        bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
+    }
+
+    // 4. Merge
+    return (videos as any[]).map(v => {
+        const u = userData || {};
         return {
             id: v.id,
             videoUrl: v.video_url,
@@ -1254,7 +1327,9 @@ export async function getVideosByUser(handle: string): Promise<VideoPost[]> {
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
-            userImage: u.profile_image
+            userImage: u.profile_image,
+            isLikedByMe: likedSet.has(v.id),
+            isBookmarkedByMe: bookmarkedSet.has(v.id)
         };
     });
 }
