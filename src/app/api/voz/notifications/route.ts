@@ -10,10 +10,9 @@ export async function GET(request: Request) {
     try {
         let query = supabaseAdmin.from('notifications').select('*');
         if (rawRecipientId) {
-            // Support both formats (with and without '@') to ensure delivery
-            const cleanId = rawRecipientId.startsWith('@') ? rawRecipientId.slice(1) : rawRecipientId;
-            const atId = '@' + cleanId;
-            query = query.or(`recipient_id.eq.${cleanId},recipient_id.eq.${atId}`);
+            // Normalize recipientId: remove '@' and toLowerCase()
+            const cleanId = rawRecipientId.replace('@', '').toLowerCase();
+            query = query.eq('recipient_id', cleanId);
         }
         
         const { data, error } = await query.order('timestamp', { ascending: false });
@@ -46,8 +45,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // Sanitize input: remove '@' if present
-        const recipientId = rawRecipientId.startsWith('@') ? rawRecipientId.slice(1) : rawRecipientId;
+        // Sanitize input: remove '@' and lowercase to maintain DB consistency
+        const recipientId = rawRecipientId.replace('@', '').toLowerCase();
 
         const newNotification = {
             recipient_id: recipientId,
@@ -107,8 +106,8 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Missing recipientId' }, { status: 400 });
         }
 
-        // Sanitize recipientId: remove '@' if present to match stored format
-        const cleanRecipientId = recipientId.startsWith('@') ? recipientId.slice(1) : recipientId;
+        // Sanitize recipientId: remove '@' and lowercase to match normalized DB format
+        const cleanRecipientId = recipientId.replace('@', '').toLowerCase();
 
         // Mark all as read for this user
         const { error } = await supabaseAdmin
