@@ -331,14 +331,11 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
+    const allowedKeys = ['name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
     const dbUpdates: any = {};
 
     // Map fields
     if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.realName !== undefined || (updates as any).real_name !== undefined) {
-        dbUpdates.real_name = updates.realName || (updates as any).real_name;
-    }
     if (updates.dni !== undefined) dbUpdates.dni = updates.dni;
     if (updates.iban !== undefined) dbUpdates.iban = updates.iban;
     if (updates.paymentInfo !== undefined || (updates as any).payment_info !== undefined) {
@@ -378,7 +375,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         const authUpdates: any = {};
         if (updates.email !== undefined) authUpdates.email = updates.email;
         if (updates.password !== undefined) authUpdates.password = updates.password;
-        if (updates.handle !== undefined) authUpdates.user_metadata = { handle: updates.handle };
+        if (updates.name !== undefined) authUpdates.user_metadata = { ...(authUpdates.user_metadata || {}), name: updates.name };
+        if (updates.handle !== undefined) authUpdates.user_metadata = { ...(authUpdates.user_metadata || {}), handle: updates.handle };
         
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, authUpdates);
         if (authError) {

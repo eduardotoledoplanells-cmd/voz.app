@@ -1,3 +1,6 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Client } from 'pg';
+
 export async function OPTIONS() {
     return new NextResponse(null, {
         status: 200,
