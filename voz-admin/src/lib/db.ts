@@ -1238,7 +1238,7 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
 
     // 4. Merge data
     return (videos as any[]).map(v => {
-        const u = userMap.get(v.user_handle) || {};
+        const u: any = userMap.get(v.user_handle) || {};
         return {
             id: v.id,
             videoUrl: v.video_url,
@@ -1308,7 +1308,7 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
 
     // 4. Merge
     return (videos as any[]).map(v => {
-        const u = userData || {};
+        const u: any = userData || {};
         return {
             id: v.id,
             videoUrl: v.video_url,
