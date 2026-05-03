@@ -169,14 +169,13 @@ export default function VozUsersPage() {
                 if (updatedUser && !updatedUser.error) {
                     // Notify user if strikes changed
                     if (newStrikes !== oldStrikes) {
-                        const cleanHandle = userHandle.replace('@', '');
                         const isIncrease = newStrikes > oldStrikes;
                         
                         fetch('/api/voz/notifications', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                recipientId: cleanHandle,
+                                recipientId: userHandle,
                                 type: 'moderation',
                                 title: 'VOZ',
                                 message: isIncrease 

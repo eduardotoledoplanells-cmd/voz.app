@@ -15,12 +15,9 @@ export async function POST(request: Request) {
         // 1. Add penalty (increments strikes and checks for auto-ban)
         await addPenaltyToUser(handle, { reason });
 
-        // Sanitize handle for notification delivery by removing the '@' prefix
-        const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-
         // 2. Send professional notification to the user
         const notifResult = await addNotification({
-            recipientId: cleanHandle,
+            recipientId: handle,
             type: 'moderation',
             title: 'VOZ',
             message: `Has sido penalizado con un strike debido a un incumplimiento de las normas de la comunidad (${reason}). Recuerda que al acumular 3 strikes, tu cuenta será suspendida permanentemente.`,
@@ -28,7 +25,7 @@ export async function POST(request: Request) {
             readStatus: false
         } as any);
 
-        console.log(`[STRIKE] Notification sent to ${cleanHandle}. Result: ${notifResult ? "SUCCESS" : "FAILED"}`);
+        console.log(`[STRIKE] Notification sent to ${handle}. Result: ${notifResult ? "SUCCESS" : "FAILED"}`);
 
         return NextResponse.json({ 
             success: true, 
