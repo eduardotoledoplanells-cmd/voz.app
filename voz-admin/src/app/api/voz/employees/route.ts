@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getEmployees, addEmployee, updateEmployee, addLog, Employee } from '@/lib/db';
+import { getEmployees, addEmployee, updateEmployee, deleteEmployee, addLog, Employee } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
@@ -94,6 +94,22 @@ export async function PATCH(request: Request) {
         return NextResponse.json(updated);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+
+        if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
+        const success = await deleteEmployee(id);
+        if (!success) return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
     }
 }
 

@@ -65,6 +65,25 @@ export default function VozHrPage() {
             });
     };
 
+    const handleDeleteEmployee = (id: string, username: string) => {
+        if (!confirm(`¿Estás seguro de que quieres eliminar al empleado ${username}? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        fetch(`/api/voz/employees?id=${id}`, {
+            method: 'DELETE'
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error al eliminar: ' + data.error);
+                } else {
+                    fetchEmployees();
+                }
+            })
+            .catch(() => alert('Error de conexión al eliminar.'));
+    };
+
     if (!isAuthorized) return <div style={{ padding: 10 }}>Verificando credenciales de Director...</div>;
     if (loading && employees.length === 0) return <div style={{ padding: 10 }}>Cargando HR...</div>;
 
@@ -130,6 +149,7 @@ export default function VozHrPage() {
                             <th style={{ padding: '2px 5px' }}>Rol</th>
                             <th style={{ padding: '2px 5px' }}>Último Acceso</th>
                             <th style={{ padding: '2px 5px' }}>Estado</th>
+                            <th style={{ padding: '2px 5px', textAlign: 'center' }}>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,6 +164,14 @@ export default function VozHrPage() {
                                         <input type="checkbox" checked={e.active} disabled />
                                         <label>Activo</label>
                                     </div>
+                                </td>
+                                <td style={{ padding: '2px 5px', textAlign: 'center' }}>
+                                    <button 
+                                        onClick={() => handleDeleteEmployee(e.id, e.username)}
+                                        style={{ color: 'red', fontWeight: 'bold' }}
+                                    >
+                                        Eliminar
+                                    </button>
                                 </td>
                             </tr>
                         ))}

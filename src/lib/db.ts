@@ -782,6 +782,12 @@ export async function updateEmployee(id: string, updates: Partial<Employee>): Pr
     return data;
 }
 
+export async function deleteEmployee(id: string): Promise<boolean> {
+    const { error } = await supabaseAdmin.from('employees').delete().eq('id', id);
+    if (error) return false;
+    return true;
+}
+
 export async function deleteAppUser(id: string): Promise<boolean> {
     await supabaseAdmin.auth.admin.deleteUser(id); // Sync with Auth
     const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
