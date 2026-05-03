@@ -155,7 +155,7 @@ export default function VozHrPage() {
                     <tbody>
                         {employees.map(e => (
                             <tr key={e.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '2px 5px' }}>{e.workerNumber || '---'}</td>
+                                <td style={{ padding: '2px 5px' }}>{e.worker_number || '---'}</td>
                                 <td style={{ padding: '2px 5px', fontWeight: 'bold' }}>{e.username}</td>
                                 <td style={{ padding: '2px 5px' }}>{e.role}</td>
                                 <td style={{ padding: '2px 5px' }}>{e.lastLogin}</td>

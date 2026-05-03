@@ -151,6 +151,10 @@ export default function VozUsersPage() {
         const newStrikes = tempUser.strikes || 0;
         const userHandle = tempUser.handle;
 
+        const stored = localStorage.getItem('vozEmployee');
+        const emp = stored ? JSON.parse(stored) : null;
+        const empLogName = emp ? `[${emp.worker_number || '???'}] ${emp.username}` : 'Admin';
+
         fetch('/api/voz/users', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -161,7 +165,7 @@ export default function VozUsersPage() {
                 status: tempUser.status,
                 strikes: tempUser.strikes,
                 phone: tempUser.phone,
-                employeeName: 'Admin'
+                employeeName: empLogName
             })
         })
             .then(res => res.json())
@@ -207,7 +211,11 @@ export default function VozUsersPage() {
 
     const handleDeleteVideo = (videoId: string, userHandle: string) => {
         showConfirm('¿Seguro que quieres borrar este video del servidor permanentemente?', () => {
-            fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(userHandle)}`, { method: 'DELETE' })
+            const stored = localStorage.getItem('vozEmployee');
+            const emp = stored ? JSON.parse(stored) : null;
+            const empLogName = emp ? `[${emp.worker_number || '???'}] ${emp.username}` : 'Admin';
+
+            fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(userHandle)}&employeeName=${encodeURIComponent(empLogName)}`, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -232,10 +240,14 @@ export default function VozUsersPage() {
         if (!userToStrike || !strikeReason) return;
         const targetHandle = userToStrike.handle;
 
+        const stored = localStorage.getItem('vozEmployee');
+        const emp = stored ? JSON.parse(stored) : null;
+        const empLogName = emp ? `[${emp.worker_number || '???'}] ${emp.username}` : 'Admin';
+
         fetch('/api/voz/users/strike', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ handle: targetHandle, reason: strikeReason })
+            body: JSON.stringify({ handle: targetHandle, reason: strikeReason, employeeName: empLogName })
         })
             .then(res => res.json())
             .then(data => {

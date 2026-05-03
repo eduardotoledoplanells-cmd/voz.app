@@ -288,7 +288,7 @@ export default function VozModerationPage() {
         setLoading(true);
         const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
         const employee = JSON.parse(stored || '{}');
-        const employeeName = `[${employee.workerNumber || '???'}] ${employee.username || 'unknown'}`;
+        const employeeName = `[${employee.worker_number || '???'}] ${employee.username || 'unknown'}`;
 
         fetch(`/api/voz/moderation?employee=${encodeURIComponent(employeeName)}`)
             .then(res => res.json())
@@ -338,7 +338,7 @@ export default function VozModerationPage() {
             body: JSON.stringify({
                 id: selectedItem.id,
                 status,
-                employeeName: `[${employee.workerNumber || '???'}] ${employee.username}`,
+                employeeName: `[${employee.worker_number || '???'}] ${employee.username}`,
                 cycleVideos: reviewedInCycle + 1,
                 totalVideos: totalToday + 1,
                 skipPenalty

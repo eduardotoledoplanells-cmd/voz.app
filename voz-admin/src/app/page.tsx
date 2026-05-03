@@ -110,7 +110,7 @@ export default function VozAdminDashboard() {
                     id: emp.id,
                     username: emp.username,
                     role: emp.role,
-                    workerNumber: emp.workerNumber || '???'
+                    worker_number: emp.worker_number || '???'
                 };
 
                 // Save session (simulated)
@@ -121,7 +121,7 @@ export default function VozAdminDashboard() {
                 fetch('/api/voz/logs', {
                     method: 'POST',
                     body: JSON.stringify({
-                        employeeName: `[${emp.workerNumber || '???'}] ${emp.username}`,
+                        employeeName: `[${emp.worker_number || '???'}] ${emp.username}`,
                         action: 'Inicio de Sesión',
                         details: `Rol: ${emp.role}. Inicio de jornada.`
                     }),
@@ -138,7 +138,7 @@ export default function VozAdminDashboard() {
                     headers: { 'Content-Type': 'application/json' }
                 }).then(() => {
                     fetchLogs();
-                    alert(`Bienvenido, [${emp.workerNumber}] ${emp.username}. Jornada iniciada.`);
+                    alert(`Bienvenido, [${emp.worker_number || '???'}] ${emp.username}. Jornada iniciada.`);
                     setUsername('');
                     setEmployeeId('');
                 });

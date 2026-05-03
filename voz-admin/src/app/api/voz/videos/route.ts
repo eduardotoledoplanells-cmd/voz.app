@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideos, addVideo, deleteVideo, VideoPost } from "@/lib/db";
+import { getVideos, addVideo, deleteVideo, addLog, VideoPost } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +81,15 @@ export async function DELETE(request: NextRequest) {
         if (!success) {
             return corsHeaders(NextResponse.json({ error: "Failed to delete video" }, { status: 500 }));
         }
+
+        const employeeName = searchParams.get('employeeName') || 'Sistema';
+        await addLog({
+            id: 'log-' + Date.now(),
+            employeeName,
+            action: `ELIMINADO VIDEO de ${userHandle}`,
+            timestamp: new Date().toISOString(),
+            details: `Video ID: ${id} borrado permanentemente del servidor.`
+        });
 
         return corsHeaders(NextResponse.json({ success: true }));
     } catch (error) {

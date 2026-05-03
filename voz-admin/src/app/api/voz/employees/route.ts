@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         // AUTO-GENERATE workerNumber with Gap Filling
         let nextNum = 1;
         const sortedNums = employees
-            .map((e: any) => parseInt(e.workerNumber))
+            .map((e: any) => parseInt(e.worker_number))
             .filter((n: any) => !isNaN(n))
             .sort((a: number, b: number) => a - b);
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         const newEmployee: any = {
             id: uuidv4(),
             username,
-            workerNumber: nextNumber,
+            worker_number: nextNumber,
             password: password || '123',
             role: parseInt(role) as any,
             lastLogin: 'Nunca',

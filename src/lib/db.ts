@@ -120,6 +120,7 @@ export interface Employee {
     role: number;
     lastLogin: string;
     active: boolean;
+    worker_number?: string;
 }
 
 export interface AppLog {
@@ -756,7 +757,8 @@ export async function getEmployees(): Promise<Employee[]> {
         password: e.password,
         role: e.role,
         lastLogin: e.last_login || 'Nunca',
-        active: e.active
+        active: e.active,
+        worker_number: e.worker_number
     }));
 }
 
@@ -765,7 +767,8 @@ export async function addEmployee(employee: Employee): Promise<Employee | null> 
         username: employee.username,
         password: employee.password,
         role: employee.role,
-        active: employee.active
+        active: employee.active,
+        worker_number: employee.worker_number
     }]).select().single();
     if (error) return null;
     return data;
