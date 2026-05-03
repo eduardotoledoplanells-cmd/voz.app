@@ -10,9 +10,8 @@ export async function GET(request: Request) {
     try {
         let query = supabaseAdmin.from('notifications').select('*');
         if (rawRecipientId) {
-            // Normalize recipientId: remove '@' and toLowerCase()
-            const cleanId = rawRecipientId.replace('@', '').toLowerCase();
-            query = query.eq('recipient_id', cleanId);
+            const cleanId = rawRecipientId.replace('@', '');
+            query = query.or(`recipient_id.ilike.${cleanId},recipient_id.ilike.@${cleanId}`);
         }
         
         const { data, error } = await query.order('timestamp', { ascending: false });
@@ -107,13 +106,13 @@ export async function PUT(request: Request) {
         }
 
         // Sanitize recipientId: remove '@' and lowercase to match normalized DB format
-        const cleanRecipientId = recipientId.replace('@', '').toLowerCase();
+        const cleanRecipientId = recipientId.replace('@', '');
 
         // Mark all as read for this user
         const { error } = await supabaseAdmin
             .from('notifications')
             .update({ read_status: true })
-            .eq('recipient_id', cleanRecipientId)
+            .or(`recipient_id.ilike.${cleanRecipientId},recipient_id.ilike.@${cleanRecipientId}`)
             .eq('read_status', false);
 
         if (error) throw error;
