@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, updateAppUser, addTransaction } from '@/lib/db';
+import { getAppUsers, updateAppUser, addTransaction, addNotification } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/db';
 
 // POST /api/voz/pm
@@ -8,123 +8,199 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { action } = body;
+        const PM_COST = 5; // Coste fijo por mensaje/inicio
+        const CREATOR_SHARE = 0.7; // 70% para el creador (3.50 monedas)
 
         if (action === 'start') {
-            const { senderHandle, creatorHandle, amount } = body;
+            const { senderHandle, creatorHandle } = body;
 
-            if (!senderHandle || !creatorHandle || !amount) {
-                return NextResponse.json({ error: 'Faltan campos (senderHandle, creatorHandle, amount)' }, { status: 400 });
+            if (!senderHandle || !creatorHandle) {
+                return NextResponse.json({ error: 'Faltan campos (senderHandle, creatorHandle)' }, { status: 400 });
             }
 
             const users = await getAppUsers();
             const sender = users.find(u => u.handle === senderHandle);
+            const creator = users.find(u => u.handle === creatorHandle);
 
-            if (!sender || (sender.walletBalance || 0) < amount) {
-                return NextResponse.json({ error: 'Saldo insuficiente' }, { status: 400 });
+            if (!sender || (sender.walletBalance || 0) < PM_COST) {
+                return NextResponse.json({ error: 'Saldo insuficiente (Necesitas 5 monedas)' }, { status: 400 });
             }
 
-            // 1. Descontar 100% al sender
+            // 1. Descontar 5 monedas al usuario
             await updateAppUser(sender.id, {
-                walletBalance: (sender.walletBalance || 0) - amount
+                walletBalance: (sender.walletBalance || 0) - PM_COST
             });
 
-            // 2. Registrar en Escrow (pm_escrows)
-            const { data, error } = await supabaseAdmin
-                .from('pm_escrows')
-                .insert([{
-                    sender_handle: senderHandle,
-                    creator_handle: creatorHandle,
-                    amount_locked: amount,
-                    creator_replies: 0,
-                    status: 'locked'
-                }])
-                .select()
-                .single();
-
-            if (error) {
-                // If table doesn't exist, fallback to logging
-                console.warn('pm_escrows table might not exist. Please create it.', error);
+            // 1.5. Pagar el 70% al creador de forma inmediata
+            if (creator) {
+                const payoutAmount = PM_COST * CREATOR_SHARE;
+                await updateAppUser(creator.id, {
+                    earningsBalance: (creator.earningsBalance || 0) + payoutAmount
+                });
             }
 
-            // Registrar transacción inicial (tipo pm_locked)
+            // 2. Crear o buscar chat activo (pm_escrows)
+            const { data: existingEscrow } = await supabaseAdmin
+                .from('pm_escrows')
+                .select('*')
+                .eq('sender_handle', senderHandle)
+                .eq('creator_handle', creatorHandle)
+                .eq('status', 'completed')
+                .single();
+
+            let escrowId;
+            if (existingEscrow) {
+                escrowId = existingEscrow.id;
+            } else {
+                const { data: newEscrow, error } = await supabaseAdmin
+                    .from('pm_escrows')
+                    .insert([{
+                        sender_handle: senderHandle,
+                        creator_handle: creatorHandle,
+                        amount_locked: PM_COST,
+                        creator_replies: 0,
+                        status: 'completed' // Ya se pagó la comisión
+                    }])
+                    .select()
+                    .single();
+                if (error) throw error;
+                escrowId = newEscrow.id;
+            }
+
+            // 3. Guardar el mensaje inicial para empezar el hilo
+            await supabaseAdmin.from('pm_messages').insert([{
+                escrow_id: escrowId,
+                sender_handle: senderHandle,
+                content: body.message || "Hola, ¿podemos hablar?"
+            }]);
+
+            // Enviar notificación al creador
+            await addNotification({
+                id: Date.now().toString(),
+                recipientId: creatorHandle,
+                type: 'pm',
+                title: 'Nuevo Chat Privado 💬',
+                message: `${senderHandle} ha iniciado un chat privado contigo.`,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
+
+            // Registrar transacción
             await addTransaction({
                 senderHandle: senderHandle,
                 receiverHandle: creatorHandle,
-                amount: amount,
-                type: 'pm_locked'
+                amount: PM_COST,
+                type: 'pm_locked' // O pm_started
             });
 
-            return NextResponse.json({ success: true, escrow: data });
+            return NextResponse.json({ success: true, escrowId });
 
         } else if (action === 'reply') {
-            const { escrowId, creatorHandle } = body;
+            const { escrowId, senderHandle, content } = body;
 
-            if (!escrowId || !creatorHandle) {
-                return NextResponse.json({ error: 'Faltan campos (escrowId, creatorHandle)' }, { status: 400 });
+            if (!escrowId || !senderHandle || !content) {
+                return NextResponse.json({ error: 'Faltan campos' }, { status: 400 });
             }
 
-            // Obtener el Escrow actual
-            const { data: escrow, error: fetchError } = await supabaseAdmin
-                .from('pm_escrows')
-                .select('*')
-                .eq('id', escrowId)
-                .single();
+            // Fetch escrow to know who should receive the notification
+            const { data: escrow } = await supabaseAdmin.from('pm_escrows').select('*').eq('id', escrowId).single();
 
-            if (fetchError || !escrow) {
-                return NextResponse.json({ error: 'Escrow no encontrado' }, { status: 404 });
-            }
+            // Guardar el nuevo mensaje
+            await supabaseAdmin.from('pm_messages').insert([{
+                escrow_id: escrowId,
+                sender_handle: senderHandle,
+                content: content
+            }]);
 
-            if (escrow.status === 'completed') {
-                return NextResponse.json({ success: true, message: 'Escrow ya estaba completado' });
-            }
-
-            // Incrementar respuestas
-            const newRepliesCount = escrow.creator_replies + 1;
-
-            if (newRepliesCount >= 50) {
-                // Liberar fondos: 3.50 por cada 5.00 (70%) para el creador, el resto para la app
-                const payoutAmount = Number(escrow.amount_locked) * 0.7;
-
-                const users = await getAppUsers();
-                const receiver = users.find(u => u.handle === creatorHandle);
-
-                if (receiver) {
-                    await updateAppUser(receiver.id, {
-                        walletBalance: (receiver.walletBalance || 0) + payoutAmount
-                    });
-                }
-
-                // Actualizar estado del Escrow
-                await supabaseAdmin
-                    .from('pm_escrows')
-                    .update({ creator_replies: newRepliesCount, status: 'completed' })
-                    .eq('id', escrowId);
-
-                // Registrar transacción completada
-                await addTransaction({
-                    senderHandle: escrow.sender_handle,
-                    receiverHandle: creatorHandle,
-                    amount: payoutAmount,
-                    type: 'pm_completed'
+            // Enviar notificación al receptor
+            if (escrow) {
+                const recipientHandle = senderHandle === escrow.sender_handle ? escrow.creator_handle : escrow.sender_handle;
+                await addNotification({
+                    id: Date.now().toString(),
+                    recipientId: recipientHandle,
+                    type: 'pm',
+                    title: 'Nuevo Mensaje 💬',
+                    message: `Tienes un nuevo mensaje de ${senderHandle}`,
+                    timestamp: new Date().toISOString(),
+                    readStatus: false
                 });
-
-                return NextResponse.json({ success: true, unlocked: true, payoutText: `Liberados ${payoutAmount} al creador` });
-            } else {
-                // Solo actualizar el contador
-                await supabaseAdmin
-                    .from('pm_escrows')
-                    .update({ creator_replies: newRepliesCount })
-                    .eq('id', escrowId);
-
-                return NextResponse.json({ success: true, unlocked: false, repliesCount: newRepliesCount });
             }
 
+            return NextResponse.json({ success: true, message: 'Mensaje enviado' });
         } else {
             return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });
         }
-
     } catch (error) {
-        console.error('Error procesando PM:', error);
+        console.error('Error en PM POST:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+// GET /api/voz/pm?escrowId=...
+export async function GET(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const escrowId = searchParams.get('escrowId');
+        const userHandle = searchParams.get('userHandle');
+
+        if (escrowId) {
+            // Obtener mensajes de un chat específico
+            const { data: messages, error } = await supabaseAdmin
+                .from('pm_messages')
+                .select('*')
+                .eq('escrow_id', escrowId)
+                .order('created_at', { ascending: true });
+            
+            if (error) throw error;
+            return NextResponse.json(messages);
+        } else if (userHandle) {
+            // Obtener lista de conversaciones (escrows) de un usuario
+            const { data: escrows, error } = await supabaseAdmin
+                .from('pm_escrows')
+                .select('*')
+                .or(`sender_handle.eq.${userHandle},creator_handle.eq.${userHandle}`)
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (escrows && escrows.length > 0) {
+                const uniqueHandles = Array.from(new Set(
+                    escrows.flatMap(e => [e.sender_handle, e.creator_handle])
+                ));
+                const { data: usersData } = await supabaseAdmin
+                    .from('app_users')
+                    .select('handle, name, profile_image')
+                    .in('handle', uniqueHandles);
+                
+                const userMap = new Map();
+                usersData?.forEach(u => {
+                    userMap.set(u.handle, {
+                        name: u.name || u.handle.replace('@', ''),
+                        profileImage: u.profile_image
+                    });
+                });
+
+                const enrichedEscrows = escrows.map(e => {
+                    const senderDetails = userMap.get(e.sender_handle) || { name: e.sender_handle.replace('@', ''), profileImage: null };
+                    const creatorDetails = userMap.get(e.creator_handle) || { name: e.creator_handle.replace('@', ''), profileImage: null };
+                    return {
+                        ...e,
+                        sender_name: senderDetails.name,
+                        sender_avatar: senderDetails.profileImage,
+                        creator_name: creatorDetails.name,
+                        creator_avatar: creatorDetails.profileImage
+                    };
+                });
+
+                return NextResponse.json(enrichedEscrows);
+            }
+
+            return NextResponse.json(escrows);
+        }
+
+        return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+    } catch (error) {
+        console.error('Error recuperando PMs:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
