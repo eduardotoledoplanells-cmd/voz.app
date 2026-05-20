@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateAppUser, getAppUsers, addCoinSale } from "@/lib/db";
+import { getAppUsers, addCoinSale } from "@/lib/db";
 import { stripe } from '@/lib/stripe';
+import { processCoinPurchase } from '@/lib/ledger';
 
 export const dynamic = 'force-dynamic';
 
 const COIN_PACKS_SERVER = {
-    'p2': { price: 10, coins: 8 },
-    'p3': { price: 20, coins: 17 },
-    'p4': { price: 50, coins: 42 },
-    'ps': { price: 100, coins: 80 },
-    'pVIP': { price: 500, coins: 420 },
+    'p2': { price: 12.10, coins: 10 },
+    'p3': { price: 24.20, coins: 20 },
+    'p4': { price: 60.50, coins: 50 },
+    'ps': { price: 121.00, coins: 100 },
+    'pVIP': { price: 605.00, coins: 500 },
 };
 
 export async function POST(request: NextRequest) {
@@ -33,30 +34,26 @@ export async function POST(request: NextRequest) {
             if (paymentIntent.status !== 'succeeded') {
                 return NextResponse.json({ error: "Payment not successful" }, { status: 402 });
             }
-            // Enhance Security: Check if this intent was already redeemed (requires DB setup, but we'll add the sale record)
         } catch (stripeError) {
             console.error("Stripe validation error:", stripeError);
             return NextResponse.json({ error: "Failed to validate payment" }, { status: 500 });
         }
 
-        // 3. Get Current Balance
+        // 3. Process coin purchase via Ledger
+        let ledgerResult;
+        try {
+            ledgerResult = await processCoinPurchase(userId, Number(amount), paymentIntentId);
+        } catch (ledgerError: any) {
+            console.error("Ledger transaction failed:", ledgerError);
+            return NextResponse.json({ error: `Ledger error: ${ledgerError.message}` }, { status: 500 });
+        }
+
+        // 4. Get updated user balance
         const users = await getAppUsers();
         const user = users.find(u => u.id === userId);
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        const currentBalance = Number(user.walletBalance || 0);
-        const newBalance = currentBalance + Number(amount);
-
-        // 4. Update DB
-        const updated = await updateAppUser(userId, {
-            walletBalance: newBalance
-        });
-
-        if (!updated) {
-            return NextResponse.json({ error: "Failed to update balance" }, { status: 500 });
         }
 
         // 5. Record the sale to prevent double-spending in the future
@@ -75,7 +72,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            newBalance: updated.walletBalance
+            newBalance: user.walletBalance
         });
 
     } catch (error) {

@@ -9,6 +9,16 @@ export default function WithdrawalsPage() {
     const [confirmAction, setConfirmAction] = useState<{ id: string, status: string } | null>(null);
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
     const [debugInfo, setDebugInfo] = useState<string>('');
+    const [employee, setEmployee] = useState<any>(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('vozEmployee');
+        if (stored) {
+            try {
+                setEmployee(JSON.parse(stored));
+            } catch (e) {}
+        }
+    }, []);
 
     const fetchWithdrawals = async () => {
         setLoading(true);
@@ -44,14 +54,25 @@ export default function WithdrawalsPage() {
         setConfirmAction(null);
         setProcessingId(id);
         setStatusMessage({ text: `Procesando ${newStatus}...`, type: 'info' });
-        setDebugInfo(`Starting PATCH for ${id} -> ${newStatus}`);
+        setDebugInfo(`Starting POST for ${id} -> ${newStatus}`);
 
         try {
-            const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
-                method: 'PATCH',
+            const stored = localStorage.getItem('vozEmployee');
+            if (!stored) {
+                setStatusMessage({ text: '🚨 Error: Debes iniciar sesión como empleado para realizar esta acción.', type: 'error' });
+                setProcessingId(null);
+                return;
+            }
+            const emp = JSON.parse(stored);
+
+            const res = await fetch(`/api/voz/admin/approve-withdrawal`, {
+                method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'x-employee-id': emp.id || '',
+                    'x-employee-username': emp.username || '',
+                    'x-employee-password': emp.password || ''
                 },
                 body: JSON.stringify({ id, status: newStatus })
             });
@@ -139,54 +160,129 @@ export default function WithdrawalsPage() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '8px', fontSize: '13px' }}>
-                                                {w.details?.info || JSON.stringify(w.details)}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+                                                    <span style={{ wordBreak: 'break-all', flex: 1 }}>{w.details?.info || JSON.stringify(w.details)}</span>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const textToCopy = w.details?.info || JSON.stringify(w.details);
+                                                            navigator.clipboard.writeText(textToCopy);
+                                                        }}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: '1px solid #ccc',
+                                                            borderRadius: '4px',
+                                                            cursor: 'pointer',
+                                                            padding: '4px 8px',
+                                                            fontSize: '11px',
+                                                            backgroundColor: '#f9f9f9',
+                                                            flexShrink: 0
+                                                        }}
+                                                        title="Copiar detalles"
+                                                    >
+                                                        📋 Copiar
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td style={{ padding: '8px', fontSize: '13px', color: '#444' }}>
                                                 {new Date(w.created_at).toLocaleString()}
                                             </td>
                                             <td style={{ padding: '8px' }}>
-                                                <span style={{ 
-                                                    fontWeight: 'bold', 
-                                                    fontSize: '13px',
-                                                    color: w.status === 'pending' ? '#e65100' : w.status === 'approved' ? '#2e7d32' : '#c62828' 
-                                                }}>
-                                                    {w.status === 'pending' ? 'PENDIENTE' : w.status === 'approved' ? 'APROBADO' : 'RECHAZADO'}
-                                                </span>
+                                                {(() => {
+                                                    switch (w.status) {
+                                                        case 'pending':
+                                                            return <span style={{ color: '#e65100', fontWeight: 'bold', fontSize: '13px' }}>PENDIENTE</span>;
+                                                        case 'employee_approved':
+                                                            return (
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ color: '#ff9800', fontWeight: 'bold', fontSize: '13px' }}>PENDIENTE DIR</span>
+                                                                    <span style={{ fontSize: '10px', color: '#666' }}>Aprobó: {w.details?.approved_by_employee || 'Empleado'}</span>
+                                                                </div>
+                                                            );
+                                                        case 'director_approved':
+                                                            return (
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '13px' }}>PENDIENTE EMP</span>
+                                                                    <span style={{ fontSize: '10px', color: '#666' }}>Aprobó: {w.details?.approved_by_director || 'Director'}</span>
+                                                                </div>
+                                                            );
+                                                        case 'approved':
+                                                            return <span style={{ color: '#2e7d32', fontWeight: 'bold', fontSize: '13px' }}>LIQUIDADO</span>;
+                                                        case 'rejected':
+                                                            return <span style={{ color: '#c62828', fontWeight: 'bold', fontSize: '13px' }}>RECHAZADO</span>;
+                                                        default:
+                                                            return <span style={{ color: '#666', fontWeight: 'bold', fontSize: '13px' }}>{w.status.toUpperCase()}</span>;
+                                                    }
+                                                })()}
                                             </td>
                                             <td style={{ padding: '8px', position: 'relative' }}>
-                                                {w.status === 'pending' && (
-                                                    <div style={{ display: 'flex', gap: '5px' }}>
-                                                        {confirmAction?.id === w.id ? (
-                                                            <div style={{ backgroundColor: '#ffeb3b', padding: '5px', borderRadius: '4px', display: 'flex', gap: '5px', zIndex: 10 }}>
-                                                                <button 
-                                                                    className="confirm-btn"
-                                                                    onClick={() => confirmAction && handleUpdateStatus(w.id, confirmAction.status)}
-                                                                    style={{ backgroundColor: confirmAction?.status === 'approved' ? 'green' : 'red', color: 'white' }}
-                                                                >
-                                                                    SÍ, {confirmAction?.status.toUpperCase()}
-                                                                </button>
-                                                                <button onClick={() => setConfirmAction(null)}>NO</button>
+                                                {(() => {
+                                                    const isCompleted = w.status === 'approved' || w.status === 'rejected';
+                                                    if (isCompleted) {
+                                                        return <span style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>PROCESADO</span>;
+                                                    }
+
+                                                    const isDirector = employee?.role === 1;
+                                                    const requiresDual = Number(w.amount) > 1000;
+                                                    
+                                                    let canApproveThis = true;
+                                                    let disabledMessage = '';
+
+                                                    if (requiresDual) {
+                                                        if (w.status === 'employee_approved' && !isDirector) {
+                                                            canApproveThis = false;
+                                                            disabledMessage = 'Espera firma Director';
+                                                        } else if (w.status === 'director_approved' && isDirector) {
+                                                            canApproveThis = false;
+                                                            disabledMessage = 'Espera firma Empleado';
+                                                        }
+                                                    }
+
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            {requiresDual && (
+                                                                <span style={{ fontSize: '9px', backgroundColor: '#e1f5fe', color: '#0288d1', padding: '2px', borderRadius: '3px', fontWeight: 'bold', width: 'fit-content' }}>
+                                                                    🔒 Dual ({w.amount} €)
+                                                                </span>
+                                                            )}
+                                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                                {confirmAction?.id === w.id ? (
+                                                                    <div style={{ backgroundColor: '#ffeb3b', padding: '5px', borderRadius: '4px', display: 'flex', gap: '5px', zIndex: 10 }}>
+                                                                        <button 
+                                                                            className="confirm-btn"
+                                                                            onClick={() => confirmAction && handleUpdateStatus(w.id, confirmAction.status)}
+                                                                            style={{ backgroundColor: confirmAction?.status === 'approved' ? 'green' : 'red', color: 'white' }}
+                                                                        >
+                                                                            SÍ, {confirmAction?.status === 'approved' ? 'APROBAR' : 'RECHAZAR'}
+                                                                        </button>
+                                                                        <button onClick={() => setConfirmAction(null)}>NO</button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        {canApproveThis ? (
+                                                                            <button 
+                                                                                disabled={processingId === w.id}
+                                                                                onClick={() => setConfirmAction({ id: w.id, status: 'approved' })}
+                                                                            >
+                                                                                {processingId === w.id && confirmAction === null ? '...' : 'Aprobar'}
+                                                                            </button>
+                                                                        ) : (
+                                                                            <span style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', alignSelf: 'center' }}>
+                                                                                {disabledMessage}
+                                                                            </span>
+                                                                        )}
+                                                                        <button 
+                                                                            disabled={processingId === w.id}
+                                                                            onClick={() => setConfirmAction({ id: w.id, status: 'rejected' })}
+                                                                            style={{ backgroundColor: '#ffcccc', color: 'red' }}
+                                                                        >
+                                                                            {processingId === w.id && confirmAction === null ? '...' : 'Rechazar'}
+                                                                        </button>
+                                                                    </>
+                                                                )}
                                                             </div>
-                                                        ) : (
-                                                            <>
-                                                                <button 
-                                                                    disabled={processingId === w.id}
-                                                                    onClick={() => setConfirmAction({ id: w.id, status: 'approved' })}
-                                                                >
-                                                                    {processingId === w.id && confirmAction === null ? '...' : 'Aprobar'}
-                                                                </button>
-                                                                <button 
-                                                                    disabled={processingId === w.id}
-                                                                    onClick={() => setConfirmAction({ id: w.id, status: 'rejected' })}
-                                                                    style={{ backgroundColor: '#ffcccc', color: 'red' }}
-                                                                >
-                                                                    {processingId === w.id && confirmAction === null ? '...' : 'Rechazar'}
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {w.status !== 'pending' && <span style={{ color: '#666', fontSize: '13px', fontWeight: 'bold' }}>PROCESADO</span>}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                         </tr>
                                     ))}

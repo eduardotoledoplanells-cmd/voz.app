@@ -37,24 +37,34 @@ export async function GET(request: NextRequest) {
 
         const { password, ...userWithoutPassword } = user;
 
+        let fansHandles: string[] = [];
+        let followingHandles: string[] = [];
         let fansCount = 0;
         let followingCount = 0;
         let totalLikes = 0;
 
         try {
-            // Fetch Fans Count
-            const { count: fCount, error: fErr } = await supabaseAdmin
+            // Fetch Fans (Handles and Count)
+            const { data: fansData, error: fErr } = await supabaseAdmin
                 .from("user_follows")
-                .select("*", { count: "exact", head: true })
+                .select("follower_handle")
                 .eq("following_handle", user.handle);
-            if (!fErr) fansCount = fCount || 0;
+            
+            if (!fErr && fansData) {
+                fansHandles = fansData.map(f => f.follower_handle);
+                fansCount = fansHandles.length;
+            }
 
-            // Fetch Following Count
-            const { count: flwCount, error: flwErr } = await supabaseAdmin
+            // Fetch Following (Handles and Count)
+            const { data: followingData, error: flwErr } = await supabaseAdmin
                 .from("user_follows")
-                .select("*", { count: "exact", head: true })
+                .select("following_handle")
                 .eq("follower_handle", user.handle);
-            if (!flwErr) followingCount = flwCount || 0;
+            
+            if (!flwErr && followingData) {
+                followingHandles = followingData.map(f => f.following_handle);
+                followingCount = followingHandles.length;
+            }
 
             // Fetch Total Likes across all their videos
             const { data: userVideos, error: vErr } = await supabaseAdmin
@@ -66,7 +76,7 @@ export async function GET(request: NextRequest) {
                 totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
             }
         } catch (e) {
-            console.error("Enrichment error (likely missing table):", e);
+            console.error("Enrichment error:", e);
         }
 
         const enrichedProfile = {
@@ -76,7 +86,12 @@ export async function GET(request: NextRequest) {
             likes: totalLikes.toString()
         };
 
-        return NextResponse.json({ success: true, user: enrichedProfile });
+        return NextResponse.json({ 
+            success: true, 
+            user: enrichedProfile,
+            fans: fansHandles,
+            following: followingHandles
+        });
 
     } catch (error) {
         console.error("GET profile error:", error);

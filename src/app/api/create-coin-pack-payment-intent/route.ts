@@ -6,34 +6,34 @@ export const dynamic = 'force-dynamic';
 
 const COIN_PACKS_SERVER = {
     'p2': {
-        price: 10,
-        coins: 8,
+        price: 12.10,
+        coins: 10,
         stripeProductId: 'prod_TjX4aO2Rxu7RSa',
-        stripePriceId: 'price_1Sm40J3BtXxsW9ynEAGu8d6c'
+        stripePriceId: 'price_1TYvEz3BtXxsW9ynSoyhq42g'
     },
     'p3': {
-        price: 20,
-        coins: 17,
+        price: 24.20,
+        coins: 20,
         stripeProductId: 'prod_TjXAsO4jaiFnzH',
-        stripePriceId: 'price_1Sm45l3BtXxsW9ynBndJo74C'
+        stripePriceId: 'price_1TYvF03BtXxsW9yn6DhWHs6R'
     },
     'p4': {
-        price: 50,
-        coins: 42,
+        price: 60.50,
+        coins: 50,
         stripeProductId: 'prod_TjXCeIKcU0gyzp',
-        stripePriceId: 'price_1Sm48N3BtXxsW9ynavqHmSPs'
+        stripePriceId: 'price_1TYvF03BtXxsW9ynVddbrspc'
     },
     'ps': {
-        price: 100,
-        coins: 80,
+        price: 121.00,
+        coins: 100,
         stripeProductId: 'prod_TjXF3kLaarGv61',
-        stripePriceId: 'price_1Sm4B43BtXxsW9ynuXyq8awR'
+        stripePriceId: 'price_1TYvF03BtXxsW9ynfl7DBKlq'
     },
     'pVIP': {
-        price: 500,
-        coins: 420,
+        price: 605.00,
+        coins: 500,
         stripeProductId: 'prod_UB9JjJ8h8p1YDe',
-        stripePriceId: 'price_1TCn0l3BtXxsW9ynqgqoPVX4'
+        stripePriceId: 'price_1TYvF03BtXxsW9ynCXsvvVTh'
     },
 };
 

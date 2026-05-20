@@ -32,15 +32,45 @@ export async function GET(request: NextRequest) {
 
         // 3. Merge and unify format
         const activity = [
-            ...transactions.map(t => ({
-                id: t.id,
-                type: t.type === 'gift' ? 'RECOMPENSA' : t.type === 'refund' ? 'DEVOLUCIÓN' : 'TRASPASO',
-                kind: t.receiver_handle === handle ? 'in' : 'out',
-                amount: t.amount,
-                date: t.timestamp,
-                status: 'COMPLETADO',
-                details: t.type === 'gift' ? 'Regalo recibido' : 'Enviado a Saldo'
-            })),
+            ...transactions.map(t => {
+                const isReceiver = t.receiver_handle === handle;
+                let displayAmount = Number(t.amount);
+                let labelType = 'TRASPASO';
+                let detailsLabel = 'Traspaso de saldo';
+
+                if (t.type === 'gift') {
+                    labelType = 'RECOMPENSA';
+                    detailsLabel = isReceiver ? 'Regalo recibido' : 'Regalo enviado';
+                    if (isReceiver) {
+                        displayAmount = displayAmount * 0.65; // Creador recibe el 65%
+                    }
+                } else if (t.type === 'donation') {
+                    labelType = 'DONACIÓN';
+                    detailsLabel = isReceiver ? 'Donación recibida' : 'Donación enviada';
+                    if (isReceiver) {
+                        displayAmount = displayAmount * 0.75; // Creador recibe el 75%
+                    }
+                } else if (t.type === 'pm_locked' || t.type === 'pm') {
+                    labelType = 'MENSAJE PRIVADO';
+                    detailsLabel = isReceiver ? 'Chat privado iniciado' : 'Chat privado enviado';
+                    if (isReceiver) {
+                        displayAmount = displayAmount * 0.60; // Creador recibe el 60% (3€ de 5 monedas)
+                    }
+                } else if (t.type === 'refund') {
+                    labelType = 'DEVOLUCIÓN';
+                    detailsLabel = 'Devolución de monedas';
+                }
+
+                return {
+                    id: t.id,
+                    type: labelType,
+                    kind: isReceiver ? 'in' : 'out',
+                    amount: displayAmount,
+                    date: t.timestamp,
+                    status: 'COMPLETADO',
+                    details: detailsLabel
+                };
+            }),
             ...withdrawals.map(w => ({
                 id: w.id,
                 type: 'RETIRO',

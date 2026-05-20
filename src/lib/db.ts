@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendNativePush } from './firebaseAdmin';
+import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from './ledger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -40,13 +42,14 @@ export interface AppUser {
     bio?: string;
     profileImage?: string;
     isCreator?: boolean;
-    status: 'active' | 'banned' | 'verified';
+    status: 'active' | 'banned' | 'verified' | 'unverified';
     walletBalance?: number;
     joinedAt: string;
     resetPin?: string;
     strikes?: number;
     phone?: string;
     earningsBalance?: number;
+    notificationSettings?: any;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -203,8 +206,42 @@ export async function getAppUsers(): Promise<AppUser[]> {
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
-        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance)
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
+        notificationSettings: u.notification_settings || {}
     }));
+}
+
+async function getSignedKycUrl(urlOrPath: string | undefined): Promise<string | undefined> {
+    if (!urlOrPath) return undefined;
+    
+    // Extrae la ruta de almacenamiento de la URL o ruta
+    // Ejemplo URL pública: https://project.supabase.co/storage/v1/object/public/kyc_documents/folder/file.jpg
+    // Ejemplo URL firmada: https://project.supabase.co/storage/v1/object/sign/kyc_documents/folder/file.jpg
+    let path = urlOrPath;
+    if (urlOrPath.includes('/kyc_documents/')) {
+        path = urlOrPath.split('/kyc_documents/')[1];
+        // Quita parámetros de consulta si existen (?token=...)
+        path = path.split('?')[0];
+    } else if (urlOrPath.startsWith('http')) {
+        // Si no es parte de nuestro bucket de Supabase pero es una URL externa, la retornamos tal cual
+        return urlOrPath;
+    }
+    
+    try {
+        const { data, error } = await supabaseAdmin
+            .storage
+            .from('kyc_documents')
+            .createSignedUrl(path, 3600); // 1 hora de expiración
+            
+        if (error || !data?.signedUrl) {
+            console.error(`[KYC STORAGE] No se pudo crear la URL firmada para ${path}:`, error);
+            return urlOrPath; // Fallback
+        }
+        return data.signedUrl;
+    } catch (err) {
+        console.error(`[KYC STORAGE] Excepción al crear URL firmada para ${path}:`, err);
+        return urlOrPath;
+    }
 }
 
 export async function getCreators(): Promise<Creator[]> {
@@ -232,9 +269,20 @@ export async function getCreators(): Promise<Creator[]> {
             }
         });
 
-        const mappedCreators = users.map(u => {
+        const mappedCreators = await Promise.all(users.map(async (u) => {
             const cleanUserId = u.id.trim();
             const v = verifMap.get(cleanUserId);
+            
+            let verificationData: CreatorVerification | undefined = undefined;
+            if (v) {
+                const signedFront = await getSignedKycUrl(v.dni_front_url);
+                const signedBack = await getSignedKycUrl(v.dni_back_url);
+                verificationData = {
+                    ...v,
+                    dni_front_url: signedFront,
+                    dni_back_url: signedBack
+                };
+            }
             
             const creator: Creator = {
                 ...u,
@@ -248,11 +296,11 @@ export async function getCreators(): Promise<Creator[]> {
                     earnedFromPMs: 0,
                     totalVideos: 0
                 },
-                verificationData: v || undefined
+                verificationData: verificationData
             };
             
             return creator;
-        });
+        }));
 
         return mappedCreators;
     } catch (error) {
@@ -327,12 +375,12 @@ export async function processCreatorVerification(userId: string, status: 'approv
 export async function updateAppUser(id: string, updates: Partial<AppUser>): Promise<AppUser | null> {
     // Get current handle if changing
     let oldHandle = '';
-    if (updates.handle !== undefined) {
+    if (id && updates.handle !== undefined) {
         const { data: current } = await supabaseAdmin.from('app_users').select('handle').eq('id', id).single();
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'push_token'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -349,6 +397,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.walletBalance !== undefined) dbUpdates.wallet_balance = updates.walletBalance;
+    if (updates.earningsBalance !== undefined) dbUpdates.earnings_balance = updates.earningsBalance;
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
         dbUpdates.profile_image = updates.profileImage || (updates as any).profile_image;
@@ -358,6 +407,9 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.resetPin !== undefined) dbUpdates.reset_pin = updates.resetPin;
     if (updates.strikes !== undefined) dbUpdates.strikes = updates.strikes;
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.notificationSettings !== undefined) dbUpdates.notification_settings = updates.notificationSettings;
+    if ((updates as any).pushToken !== undefined) dbUpdates.push_token = (updates as any).pushToken;
+
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -368,7 +420,17 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
 
     if (Object.keys(dbUpdates).length === 0) return null;
 
-    const { data, error } = await supabaseAdmin.from('app_users').update(dbUpdates).eq('id', id).select().single();
+    let query = supabaseAdmin.from('app_users').update(dbUpdates);
+    if (id) {
+        query = query.eq('id', id);
+    } else if (updates.handle) {
+        const clean = updates.handle.replace('@', '');
+        query = query.or(`handle.ilike.${clean},handle.ilike.@${clean}`);
+    } else {
+        return null;
+    }
+
+    const { data, error } = await query.select().single();
     if (error) {
         console.error('Update User Error:', error);
         return null;
@@ -428,7 +490,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         isCreator: data.is_creator,
         resetPin: data.reset_pin,
         strikes: data.strikes || 0,
-        phone: data.phone
+        phone: data.phone,
+        notificationSettings: data.notification_settings || {}
     };
 }
 
@@ -506,21 +569,52 @@ export async function addCreatorCoinInteraction(creatorId: string, type: string,
     if (type === 'pm') amount = 5;
     if (type === 'verified_bonus') amount = 100;
 
-    // 3. Update Balance
-    const newBalance = (user.walletBalance || 0) + amount;
-    const updated = await updateAppUser(user.id, { walletBalance: newBalance });
+    if (amount <= 0) return null;
 
-    if (updated) {
-        await addLog({
-            id: Date.now().toString(),
-            employeeName,
-            action: `CREATOR_INTERACTION_${type.toUpperCase()}`,
-            timestamp: new Date().toISOString(),
-            details: `Creator: ${user.handle}, Detail: ${detail}, New Balance: ${newBalance}`
-        });
+    try {
+        // 3. Execute Ledger Transaction: MINT -> USER (available balance)
+        const userWalletId = await getOrCreateUserWallet(user.id);
+        const idempotencyKey = `interaction-${user.id}-${type}-${Date.now()}`;
+        
+        await executeLedgerTransaction(
+            'CREATOR_INTERACTION_BONUS',
+            [
+                {
+                    wallet_id: SYSTEM_WALLETS.MINT.id,
+                    entry_type: 'AVAILABLE',
+                    amount: -amount
+                },
+                {
+                    wallet_id: userWalletId,
+                    entry_type: 'AVAILABLE',
+                    amount: amount
+                }
+            ],
+            null,
+            idempotencyKey,
+            { type, employeeName, detail }
+        );
+
+        // Fetch user again to return the updated creator with updated balances
+        const updatedUsers = await getAppUsers();
+        const updatedUser = updatedUsers.find(u => u.id === user.id);
+        
+        if (updatedUser) {
+            await addLog({
+                id: Date.now().toString(),
+                employeeName,
+                action: `CREATOR_INTERACTION_${type.toUpperCase()}`,
+                timestamp: new Date().toISOString(),
+                details: `Creator: ${user.handle}, Detail: ${detail}, New Balance: ${updatedUser.walletBalance}`
+            });
+        }
+
+        const creators = await getCreators();
+        return creators.find(c => c.id === user.id) || null;
+    } catch (err: any) {
+        console.error('[LEDGER] Creator interaction error:', err);
+        return null;
     }
-
-    return updated as Creator;
 }
 
 // --- Voice Comments Logic ---
@@ -602,13 +696,16 @@ export async function getVoiceComments(videoId: string, currentUserHandle?: stri
         users?.forEach(u => userMap.set(u.handle, u.profile_image));
     }
 
-    // Formatear la respuesta con el conteo dinámico de likes
-    const enrichedComments = allComments.map(c => ({
-        ...c,
-        avatar_url: userMap.get(c.user_handle) || c.avatar_url || null,
-        likes: likesCountMap.get(c.id) || 0, // Conteo dinámico calculado
-        isLikedByMe: likedByMeSet.has(c.id)
-    }));
+    // Formatear la respuesta con el conteo dinámico de likes y avatar real del perfil
+    const enrichedComments = allComments.map(c => {
+        const profileImage = userMap.get(c.user_handle);
+        return {
+            ...c,
+            avatar_url: (profileImage && profileImage !== 'null') ? profileImage : (c.avatar_url || null),
+            likes: likesCountMap.get(c.id) || 0, // Conteo dinámico calculado
+            isLikedByMe: likedByMeSet.has(c.id)
+        };
+    });
 
     return enrichedComments;
 }
@@ -625,14 +722,11 @@ export async function addVoiceComment(comment: any): Promise<any> {
         return null;
     }
 
-    // Increment comments_count in videos table
+    // Increment comments_count in videos table atomically via RPC
     if (comment.video_id) {
         const { error: updateError } = await supabaseAdmin.rpc('increment_video_comments', { vid: comment.video_id });
         if (updateError) {
-            // Fallback if RPC doesn't exist: Manual update
-            console.warn('RPC increment_video_comments failed, falling back to manual update');
-            const { data: videoData } = await supabaseAdmin.from('videos').select('comments_count').eq('id', comment.video_id).single();
-            await supabaseAdmin.from('videos').update({ comments_count: (videoData?.comments_count || 0) + 1 }).eq('id', comment.video_id);
+            console.error('[db] RPC increment_video_comments failed:', updateError);
         }
     }
 
@@ -661,16 +755,16 @@ export async function toggleVideoLike(videoId: string, userHandle: string, isLik
         }
     }
 
-    const { data: videoData } = await supabaseAdmin.from('videos').select('likes').eq('id', videoId).single();
-    const currentLikes = videoData?.likes || 0;
-    const newLikes = isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+    // Atomic update of likes in videos table using the dedicated RPCs
+    const rpcName = isLiked ? 'increment_video_likes' : 'decrement_video_likes';
+    const { error: updateError } = await supabaseAdmin.rpc(rpcName, { vid: videoId });
 
-    const { error: updateError } = await supabaseAdmin
-        .from('videos')
-        .update({ likes: newLikes })
-        .eq('id', videoId);
+    if (updateError) {
+        console.error(`[db] RPC ${rpcName} failed:`, updateError);
+        return false;
+    }
 
-    return !updateError;
+    return true;
 }
 
 export async function incrementVideoView(videoId: string, userHandle: string): Promise<boolean> {
@@ -683,12 +777,12 @@ export async function incrementVideoView(videoId: string, userHandle: string): P
         return false;
     }
 
+    // Atomic update of views in videos table via RPC
     const { error: rpcError } = await supabaseAdmin.rpc('increment_video_views', { vid: videoId });
 
     if (rpcError) {
-        const { data: videoData } = await supabaseAdmin.from('videos').select('views').eq('id', videoId).single();
-        const currentViews = videoData?.views || 0;
-        await supabaseAdmin.from('videos').update({ views: currentViews + 1 }).eq('id', videoId);
+        console.error('[db] RPC increment_video_views failed:', rpcError);
+        return false;
     }
 
     return true;
@@ -743,6 +837,16 @@ export async function addPenaltyToUser(handle: string, penalty: { url?: string, 
             await banAppUserByHandle(handle);
         } else {
             await updateAppUser(user.id, { strikes: newStrikes } as any);
+            // Notify user about the strike
+            await addNotification({
+                id: Date.now().toString(),
+                recipientId: handle,
+                type: 'strike',
+                title: 'Aviso de Moderación (Strike) ⚠️',
+                message: `Has recibido un strike por: ${penalty.reason}. Al llegar a 3 strikes tu cuenta será baneada permanentemente.`,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
         }
     }
 }
@@ -834,6 +938,10 @@ export async function banAppUserByHandle(handle: string): Promise<boolean> {
     // Auth Delete Sync
     if (userData && userData.length > 0) {
         for (const u of userData) {
+            // Guardar el email y teléfono en la lista negra antes de borrarlo de Auth
+            if (u.email || u.phone) {
+                await addBannedEmail(u.email || 'N/A', 'Cuenta baneada permanentemente por moderación', u.phone);
+            }
             await supabaseAdmin.auth.admin.deleteUser(u.id);
         }
     }
@@ -956,36 +1064,80 @@ export async function addNotification(n: Notification): Promise<Notification | n
         return null;
     }
 
-    // --- NEW: Attempt Push Notification via Expo ---
     try {
-        const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId.substring(1) : n.recipientId;
+        const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId : `@${n.recipientId}`;
+        const rawHandle = cleanHandle.replace('@', '');
+
+        // Fetch user's notification settings first
+        const { data: userProfile } = await supabaseAdmin
+            .from('app_users')
+            .select('notification_settings')
+            .or(`handle.eq.${cleanHandle},handle.eq.${rawHandle}`)
+            .single();
+
+        const settings = userProfile?.notification_settings || {};
+
+        // Map notification type to setting key
+        let settingsKey = '';
+        if (n.type === 'comment') settingsKey = 'notify_comments';
+        else if (n.type === 'reply') settingsKey = 'notify_replies';
+        else if (n.type === 'pm') settingsKey = 'notify_pms';
+        else if (n.type === 'donation') settingsKey = 'notify_donations';
+        else if (n.type === 'gift') settingsKey = 'notify_gifts';
+        else if (n.type === 'like') settingsKey = 'notify_likes';
+        else if (n.type === 'follow') settingsKey = 'notify_followers';
+        else if (n.type === 'balance') settingsKey = 'notify_balance';
+        else if (n.type === 'strike') settingsKey = 'notify_strikes';
+        else if (['system', 'important', 'update', 'promo'].includes(n.type || '')) settingsKey = 'notify_system';
+
+        // Check if explicitly disabled
+        if (settingsKey && settings[settingsKey] === false) {
+            console.log(`[Push Blocked] User ${cleanHandle} has disabled push for type ${n.type} (${settingsKey})`);
+            return data;
+        }
+
+        // 1. Buscar en la tabla nativa push_tokens
+        const { data: fcmTokens } = await supabaseAdmin
+            .from('push_tokens')
+            .select('fcm_token, device_type')
+            .or(`user_id.eq.${cleanHandle},user_id.eq.${rawHandle}`);
+
+        let nativeSent = false;
+        if (fcmTokens && fcmTokens.length > 0) {
+            for (const item of fcmTokens) {
+                if (item.fcm_token) {
+                    console.log(`[Push FCM Nativo] Enviando a ${cleanHandle}...`);
+                    await sendNativePush(item.fcm_token, n.title, n.message, { type: n.type, notificationId: data?.id || '' });
+                    nativeSent = true;
+                }
+            }
+        }
+
+        // 2. Buscar en app_users.push_token (como fallback)
         const { data: userData } = await supabaseAdmin
             .from('app_users')
             .select('push_token')
-            .or(`handle.eq.${cleanHandle},handle.eq.@${cleanHandle}`)
+            .or(`handle.eq.${cleanHandle},handle.eq.${rawHandle}`)
             .single();
 
         if (userData && userData.push_token) {
-            console.log(`[Push] Sending to ${n.recipientId} via Expo...`);
-            await fetch('https://exp.host/--/api/v2/push/send', {
-                method: 'POST',
-                headers: { 
-                    'Accept': 'application/json', 
-                    'Accept-encoding': 'gzip, deflate', 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({
-                    to: userData.push_token,
-                    sound: 'default',
-                    title: n.title,
-                    body: n.message,
-                    data: { type: n.type, notificationId: data.id }
-                })
-            });
-            console.log(`[Push] Successfully sent to ${n.recipientId}`);
+            const token = userData.push_token;
+            if (token.includes('ExponentPush') || token.includes('ExpoPush')) {
+                console.log(`[Push Expo Fallback] Enviando a ${cleanHandle}...`);
+                await fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Accept-encoding': 'gzip, deflate', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: token, sound: 'default', title: n.title, body: n.message, data: { type: n.type, notificationId: data?.id || '' }
+                    })
+                });
+            } else if (!nativeSent) {
+                console.log(`[Push FCM Nativo desde app_users] Enviando a ${cleanHandle}...`);
+                await sendNativePush(token, n.title, n.message, { type: n.type, notificationId: data?.id || '' });
+            }
         }
     } catch (e: any) {
-        console.warn("[Push] Failed to send push notification:", e.message);
+        console.warn("[Push Dispatch Error]:", e.message || e);
     }
 
     return data;
@@ -1200,12 +1352,13 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
 }
 
 // --- Videos ---
-export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]> {
-    // 1. Fetch raw videos
+export async function getVideos(currentUserHandle?: string, limit: number = 10, offset: number = 0): Promise<VideoPost[]> {
+    // 1. Fetch raw videos with pagination
     const { data: videos, error: videosError } = await supabaseAdmin
         .from('videos')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
     
     if (videosError) {
         console.error("[db] getVideos error:", videosError);
@@ -1386,18 +1539,45 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
     };
 }
 
-export async function deleteVideo(id: string, userHandle: string): Promise<boolean> {
+export async function deleteVideo(id: string, userHandle?: string): Promise<boolean> {
     try {
         // 1. Get the video URL to know what to delete from storage
-        const { data: video, error: fetchError } = await supabaseAdmin
-            .from('videos')
-            .select('video_url')
-            .eq('id', id)
-            .single();
+        let query = supabaseAdmin.from('videos').select('video_url, user_handle').eq('id', id);
+        if (userHandle) {
+            query = query.eq('user_handle', userHandle);
+        }
+        const { data: video, error: fetchError } = await query.single();
 
         if (fetchError || !video) {
             console.error('Error fetching video for deletion:', fetchError);
             return false;
+        }
+
+        // 1.5. Find and delete voice comments (audio files from storage)
+        const { data: comments } = await supabaseAdmin
+            .from('voice_comments')
+            .select('id, audio_url')
+            .eq('video_id', id);
+
+        if (comments && comments.length > 0) {
+            const audioPaths: string[] = [];
+            const urlPart = '/storage/v1/object/public/media/';
+            for (const c of comments) {
+                if (c.audio_url) {
+                    if (c.audio_url.includes(urlPart)) {
+                        audioPaths.push(c.audio_url.split(urlPart)[1]);
+                    } else {
+                        const parts = c.audio_url.split('/');
+                        audioPaths.push(parts.slice(parts.indexOf('media') + 1).join('/'));
+                    }
+                }
+            }
+            if (audioPaths.length > 0) {
+                console.log(`[Storage] Deleting voice comments audio files: ${audioPaths.join(', ')}`);
+                await supabaseAdmin.storage.from('media').remove(audioPaths);
+            }
+            // Borrar de BD explícitamente por si acaso no hay CASCADE
+            await supabaseAdmin.from('voice_comments').delete().eq('video_id', id);
         }
 
         // 2. Extract relative path from URL
@@ -1426,11 +1606,11 @@ export async function deleteVideo(id: string, userHandle: string): Promise<boole
         }
 
         // 3. Delete from database
-        const { error: dbError } = await supabaseAdmin
-            .from('videos')
-            .delete()
-            .eq('id', id)
-            .eq('user_handle', userHandle);
+        let delQuery = supabaseAdmin.from('videos').delete().eq('id', id);
+        if (userHandle) {
+             delQuery = delQuery.eq('user_handle', userHandle);
+        }
+        const { error: dbError } = await delQuery;
 
         if (dbError) {
             console.error('Error deleting video from DB:', dbError);
@@ -1462,6 +1642,36 @@ export async function deleteVideoByUrl(url: string, userHandle: string): Promise
         return await deleteVideo(video.id, userHandle);
     } catch (err) {
         console.error('Exception in deleteVideoByUrl:', err);
+        return false;
+    }
+}
+
+export async function requestVideoRetention(videoId: string, userHandle: string): Promise<boolean> {
+    try {
+        const { data: video, error } = await supabaseAdmin
+            .from('videos')
+            .select('filter_config')
+            .eq('id', videoId)
+            .eq('user_handle', userHandle)
+            .single();
+
+        if (error || !video) return false;
+
+        const currentConfig = video.filter_config || {};
+        const newConfig = {
+            ...currentConfig,
+            retention_requested: true
+        };
+
+        const { error: updateError } = await supabaseAdmin
+            .from('videos')
+            .update({ filter_config: newConfig })
+            .eq('id', videoId)
+            .eq('user_handle', userHandle);
+
+        return !updateError;
+    } catch (err) {
+        console.error('Exception in requestVideoRetention:', err);
         return false;
     }
 }
@@ -1613,3 +1823,77 @@ export function generateMatricula(): string {
     for (let i = 0; i < 4; i++) res += numbers[Math.floor(Math.random() * numbers.length)];
     return res;
 }
+
+export async function addBannedEmail(email: string, reason: string, phone?: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+        .from('banned_emails')
+        .insert([{ email, reason, phone }]);
+    if (error) {
+        console.error('Error adding banned email:', error);
+        return false;
+    }
+    return true;
+}
+
+export async function isBlacklisted(email: string, phone?: string): Promise<boolean> {
+    let query = supabaseAdmin
+        .from('banned_emails')
+        .select('email, phone');
+    
+    if (phone) {
+        query = query.or(`email.eq.${email},phone.eq.${phone}`);
+    } else {
+        query = query.eq('email', email);
+    }
+
+    const { data } = await query.maybeSingle();
+    return !!data;
+}
+
+// --- Real FCM Push Tokens Management ---
+export interface PushTokenRecord {
+    id: string;
+    user_id: string;
+    fcm_token: string;
+    device_type?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export async function savePushToken(userId: string, fcmToken: string, deviceType: string = 'android'): Promise<boolean> {
+    try {
+        const { error } = await supabaseAdmin
+            .from('push_tokens')
+            .upsert(
+                { user_id: userId, fcm_token: fcmToken, device_type: deviceType, updated_at: new Date().toISOString() },
+                { onConflict: 'fcm_token' }
+            );
+        if (error) {
+            console.error("[db] Error saving push token:", error);
+            return false;
+        }
+        console.log(`[db] Push token guardado exitosamente para usuario: ${userId}`);
+        return true;
+    } catch (err) {
+        console.error("[db] Exception saving push token:", err);
+        return false;
+    }
+}
+
+export async function getUserPushTokens(userId: string): Promise<string[]> {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('push_tokens')
+            .select('fcm_token')
+            .eq('user_id', userId);
+        if (error) {
+            console.error("[db] Error getting user push tokens:", error);
+            return [];
+        }
+        return data ? data.map(t => t.fcm_token) : [];
+    } catch (err) {
+        console.error("[db] Exception getting user push tokens:", err);
+        return [];
+    }
+}
+

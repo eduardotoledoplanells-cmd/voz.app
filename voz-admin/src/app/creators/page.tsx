@@ -127,41 +127,74 @@ export default function CreatorsPage() {
 
     const handleProcessVerification = async (userId: string, status: 'approved' | 'rejected', reason?: string) => {
         try {
-            const response = await fetch('/api/voz/creators', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+            const stored = localStorage.getItem('vozEmployee');
+            if (!stored) {
+                showWin98Modal('Error', 'Debes iniciar sesión como empleado para realizar esta acción.');
+                return;
+            }
+            const emp = JSON.parse(stored);
+
+            const response = await fetch('/api/voz/admin/approve-kyc', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-employee-id': emp.id || '',
+                    'x-employee-username': emp.username || '',
+                    'x-employee-password': emp.password || ''
+                },
                 body: JSON.stringify({ 
-                    id: userId, 
-                    action: 'processVerification', 
+                    userId, 
                     status, 
                     reason 
                 })
             });
-            if (response.ok) {
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
                 showWin98Modal('Éxito', status === 'approved' ? 'El usuario ha sido aprobado como creador.' : 'La solicitud ha sido rechazada.');
                 fetchData(true);
                 if (selectedCreator?.id === userId) setSelectedCreator(null);
             } else {
-                showWin98Modal('Error', 'No se pudo procesar la verificación.');
+                showWin98Modal('Error', data.error || 'No se pudo procesar la verificación.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error processing verification:', error);
+            showWin98Modal('Error', `Excepción: ${error.message}`);
         }
     };
 
     const handleStatusChange = async (newStatus: string) => {
         if (!selectedCreator) return;
         try {
-            const response = await fetch('/api/voz/creators', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: selectedCreator.id, status: newStatus, employeeName: 'Admin' })
-            });
-            if (response.ok) {
-                fetchData(true);
+            const stored = localStorage.getItem('vozEmployee');
+            if (!stored) {
+                showWin98Modal('Error', 'Debes iniciar sesión como empleado para realizar esta acción.');
+                return;
             }
-        } catch (error) {
+            const emp = JSON.parse(stored);
+
+            const response = await fetch('/api/voz/admin/update-creator-status', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-employee-id': emp.id || '',
+                    'x-employee-username': emp.username || '',
+                    'x-employee-password': emp.password || ''
+                },
+                body: JSON.stringify({ id: selectedCreator.id, status: newStatus })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                fetchData(true);
+            } else {
+                showWin98Modal('Error', data.error || 'No se pudo actualizar el estado.');
+            }
+        } catch (error: any) {
             console.error('Error updating status:', error);
+            showWin98Modal('Error', `Excepción: ${error.message}`);
         }
     };
 

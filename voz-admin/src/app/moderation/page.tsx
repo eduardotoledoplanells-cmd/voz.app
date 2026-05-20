@@ -330,21 +330,34 @@ export default function VozModerationPage() {
         if (!selectedItem) return;
 
         const stored = typeof window !== 'undefined' ? localStorage.getItem('vozEmployee') : null;
-        const employee = JSON.parse(stored || '{}');
+        if (!stored) {
+            alert('🚨 Debes iniciar sesión como empleado para realizar esta acción.');
+            return;
+        }
+        const employee = JSON.parse(stored);
 
-        fetch('/api/voz/moderation', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+        fetch('/api/voz/admin/reject-video', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-employee-id': employee.id || '',
+                'x-employee-username': employee.username || '',
+                'x-employee-password': employee.password || ''
+            },
             body: JSON.stringify({
                 id: selectedItem.id,
                 status,
-                employeeName: `[${employee.worker_number || '???'}] ${employee.username}`,
                 cycleVideos: reviewedInCycle + 1,
                 totalVideos: totalToday + 1,
                 skipPenalty
             })
         })
-            .then(() => {
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(`Error: ${data.error}`);
+                    return;
+                }
                 setReviewedInCycle(prev => prev + 1);
                 setTotalToday(prev => prev + 1);
                 // Eliminar el item procesado del estado local inmediatamente

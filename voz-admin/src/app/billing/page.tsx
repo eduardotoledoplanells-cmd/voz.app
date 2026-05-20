@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import '98.css';
 
 export default function BillingPage() {
-    const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], creators: any[], campaigns: any[], companies: any[] } | null>(null);
+    const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], withdrawals?: any[], creators: any[], campaigns: any[], companies: any[] } | null>(null);
     const [stripeData, setStripeData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'folders' | 'summary' | 'wallet' | 'packs' | 'journal' | 'payouts' | 'history' | 'ads_payments' | 'stripe'>('folders');
@@ -98,7 +98,7 @@ export default function BillingPage() {
     if (isLoading) return <div style={{ padding: 20 }}>Cargando explorador de finanzas...</div>;
     if (!data) return <div style={{ padding: 20 }}>Error al cargar datos de facturación.</div>;
 
-    const { sales = [], stats = {}, redemptions = [], creators = [], campaigns = [], companies = [] } = data;
+    const { sales = [], stats = {}, redemptions = [], withdrawals = [], creators = [], campaigns = [], companies = [] } = data;
 
     const renderFolders = () => (
         <div style={{
@@ -530,17 +530,32 @@ export default function BillingPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {redemptions.filter(r => r.status === 'completed').map(req => {
-                                            const creator = creators.find(c => c.id === req.creatorId);
-                                            return (
-                                                <tr key={req.id} className="table-row-hover">
-                                                    <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf' }}>{creator?.userHandle || req.creatorId}</td>
-                                                    <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf', color: 'red' }}>-{req.amountEuro},00€</td>
-                                                    <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf' }}>{new Date(req.requestedAt).toLocaleDateString()}</td>
-                                                    <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf', color: 'green' }}>COMPLETADO</td>
-                                                </tr>
-                                            );
-                                        })}
+                                        {[
+                                            ...redemptions.filter(r => r.status === 'completed' || r.status === 'approved').map(req => {
+                                                const creator = creators.find(c => c.id === req.creatorId);
+                                                return {
+                                                    id: 'red_' + req.id,
+                                                    handle: creator?.userHandle || req.creatorId,
+                                                    amount: req.amountEuro || req.amount,
+                                                    date: req.requestedAt
+                                                };
+                                            }),
+                                            ...withdrawals.filter((w: any) => w.status === 'approved').map((req: any) => ({
+                                                id: 'wd_' + req.id,
+                                                handle: req.user_handle,
+                                                amount: req.amount,
+                                                date: req.created_at
+                                            }))
+                                        ]
+                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map(item => (
+                                            <tr key={item.id} className="table-row-hover">
+                                                <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf' }}>{item.handle}</td>
+                                                <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf', color: 'red' }}>-{item.amount},00€</td>
+                                                <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf' }}>{new Date(item.date).toLocaleDateString()}</td>
+                                                <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf', color: 'green' }}>COMPLETADO</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -568,10 +583,13 @@ export default function BillingPage() {
                                             amount: c.investment,
                                             date: c.createdAt
                                         })),
-                                        ...redemptions.filter(r => r.status === 'completed').map(r => {
+                                        ...redemptions.filter(r => r.status === 'completed' || r.status === 'approved').map(r => {
                                             const c = creators.find(cr => cr.id === r.creatorId);
-                                            return { type: 'OUT', title: 'Pago a Creador', user: c?.userHandle || r.creatorId, amount: r.amountEuro, date: r.requestedAt };
-                                        })
+                                            return { type: 'OUT', title: 'Pago a Creador (Antiguo)', user: c?.userHandle || r.creatorId, amount: r.amountEuro || r.amount, date: r.requestedAt };
+                                        }),
+                                        ...withdrawals.filter((w: any) => w.status === 'approved').map((w: any) => ({
+                                            type: 'OUT', title: 'Pago a Creador', user: w.user_handle, amount: w.amount, date: w.created_at
+                                        }))
                                     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((item, idx) => (
                                         <tr key={idx} className="table-row-hover">
                                             <td style={{ padding: '8px', borderBottom: '1px solid #dfdfdf' }}>{item.title}</td>

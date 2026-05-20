@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike, removeVoiceCommentLike } from "@/lib/db";
+import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike, removeVoiceCommentLike, addNotification, supabaseAdmin } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
     try {
@@ -44,6 +44,27 @@ export async function POST(request: NextRequest) {
         const savedComment = await addVoiceComment(commentData);
 
         if (!savedComment) throw new Error("Could not save comment");
+
+        let recipient = '';
+        if (parentId) {
+            const { data: parent } = await supabaseAdmin.from('voice_comments').select('user_handle').eq('id', parentId).single();
+            if (parent && parent.user_handle) recipient = parent.user_handle;
+        } else {
+            const { data: video } = await supabaseAdmin.from('videos').select('user_handle').eq('id', videoId).single();
+            if (video && video.user_handle) recipient = video.user_handle;
+        }
+
+        if (recipient && recipient !== userHandle) {
+            await addNotification({
+                id: Date.now().toString(),
+                recipientId: recipient,
+                type: 'comment',
+                title: 'Nuevo Comentario de Voz 🎙️',
+                message: `${userHandle} ha comentado en tu publicación.`,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
+        }
 
         return NextResponse.json({
             success: true,

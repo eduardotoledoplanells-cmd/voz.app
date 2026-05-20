@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Use Anon Key for server-side uploads since the media bucket is configured for public inserts
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const serviceKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB

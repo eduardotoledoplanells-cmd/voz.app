@@ -207,6 +207,39 @@ export async function getAppUsers(): Promise<AppUser[]> {
     }));
 }
 
+async function getSignedKycUrl(urlOrPath: string | undefined): Promise<string | undefined> {
+    if (!urlOrPath) return undefined;
+    
+    // Extrae la ruta de almacenamiento de la URL o ruta
+    // Ejemplo URL pública: https://project.supabase.co/storage/v1/object/public/kyc_documents/folder/file.jpg
+    // Ejemplo URL firmada: https://project.supabase.co/storage/v1/object/sign/kyc_documents/folder/file.jpg
+    let path = urlOrPath;
+    if (urlOrPath.includes('/kyc_documents/')) {
+        path = urlOrPath.split('/kyc_documents/')[1];
+        // Quita parámetros de consulta si existen (?token=...)
+        path = path.split('?')[0];
+    } else if (urlOrPath.startsWith('http')) {
+        // Si no es parte de nuestro bucket de Supabase pero es una URL externa, la retornamos tal cual
+        return urlOrPath;
+    }
+    
+    try {
+        const { data, error } = await supabaseAdmin
+            .storage
+            .from('kyc_documents')
+            .createSignedUrl(path, 3600); // 1 hora de expiración
+            
+        if (error || !data?.signedUrl) {
+            console.error(`[KYC STORAGE] No se pudo crear la URL firmada para ${path}:`, error);
+            return urlOrPath; // Fallback
+        }
+        return data.signedUrl;
+    } catch (err) {
+        console.error(`[KYC STORAGE] Excepción al crear URL firmada para ${path}:`, err);
+        return urlOrPath;
+    }
+}
+
 export async function getCreators(): Promise<Creator[]> {
     try {
         console.log("[db] Fetching creators and verifications...");
@@ -232,9 +265,20 @@ export async function getCreators(): Promise<Creator[]> {
             }
         });
 
-        const mappedCreators = users.map(u => {
+        const mappedCreators = await Promise.all(users.map(async (u) => {
             const cleanUserId = u.id.trim();
             const v = verifMap.get(cleanUserId);
+            
+            let verificationData: CreatorVerification | undefined = undefined;
+            if (v) {
+                const signedFront = await getSignedKycUrl(v.dni_front_url);
+                const signedBack = await getSignedKycUrl(v.dni_back_url);
+                verificationData = {
+                    ...v,
+                    dni_front_url: signedFront,
+                    dni_back_url: signedBack
+                };
+            }
             
             const creator: Creator = {
                 ...u,
@@ -248,11 +292,11 @@ export async function getCreators(): Promise<Creator[]> {
                     earnedFromPMs: 0,
                     totalVideos: 0
                 },
-                verificationData: v || undefined
+                verificationData: verificationData
             };
             
             return creator;
-        });
+        }));
 
         return mappedCreators;
     } catch (error) {
@@ -627,10 +671,7 @@ export async function addVoiceComment(comment: any): Promise<any> {
     if (comment.video_id) {
         const { error: updateError } = await supabaseAdmin.rpc('increment_video_comments', { vid: comment.video_id });
         if (updateError) {
-            // Fallback if RPC doesn't exist: Manual update
-            console.warn('RPC increment_video_comments failed, falling back to manual update');
-            const { data: videoData } = await supabaseAdmin.from('videos').select('comments_count').eq('id', comment.video_id).single();
-            await supabaseAdmin.from('videos').update({ comments_count: (videoData?.comments_count || 0) + 1 }).eq('id', comment.video_id);
+            console.error('RPC increment_video_comments failed:', updateError);
         }
     }
 
@@ -647,6 +688,9 @@ export async function toggleVideoLike(videoId: string, userHandle: string, isLik
             console.error('Error recording video like persistence:', likeError);
             return false;
         }
+
+        const { error: updateError } = await supabaseAdmin.rpc('increment_video_likes', { vid: videoId });
+        return !updateError;
     } else {
         const { error: unlikeError } = await supabaseAdmin
             .from('video_likes')
@@ -657,18 +701,10 @@ export async function toggleVideoLike(videoId: string, userHandle: string, isLik
             console.error('Error removing video like persistence:', unlikeError);
             return false;
         }
+
+        const { error: updateError } = await supabaseAdmin.rpc('decrement_video_likes', { vid: videoId });
+        return !updateError;
     }
-
-    const { data: videoData } = await supabaseAdmin.from('videos').select('likes').eq('id', videoId).single();
-    const currentLikes = videoData?.likes || 0;
-    const newLikes = isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
-
-    const { error: updateError } = await supabaseAdmin
-        .from('videos')
-        .update({ likes: newLikes })
-        .eq('id', videoId);
-
-    return !updateError;
 }
 
 export async function incrementVideoView(videoId: string, userHandle: string): Promise<boolean> {
@@ -682,14 +718,7 @@ export async function incrementVideoView(videoId: string, userHandle: string): P
     }
 
     const { error: rpcError } = await supabaseAdmin.rpc('increment_video_views', { vid: videoId });
-
-    if (rpcError) {
-        const { data: videoData } = await supabaseAdmin.from('videos').select('views').eq('id', videoId).single();
-        const currentViews = videoData?.views || 0;
-        await supabaseAdmin.from('videos').update({ views: currentViews + 1 }).eq('id', videoId);
-    }
-
-    return true;
+    return !rpcError;
 }
 
 export async function toggleVideoBookmark(videoId: string, userHandle: string, isBookmarked: boolean): Promise<boolean> {
@@ -1495,12 +1524,20 @@ export async function getRedemptionRequests(): Promise<any[]> {
     return data.map(r => ({
         id: r.id,
         userHandle: r.user_handle,
+        creatorId: r.user_handle,
         amount: parseFloat(r.amount),
+        amountCoins: parseFloat(r.amount),
+        amountEuro: parseFloat(r.amount) * 0.05,
         status: r.status,
-        method: r.method,
-        details: r.details,
-        timestamp: r.timestamp
+        timestamp: r.timestamp,
+        requestedAt: r.timestamp
     }));
+}
+
+export async function getWithdrawalRequests(): Promise<any[]> {
+    const { data, error } = await supabaseAdmin.from('withdrawal_requests').select('*').order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
 }
 
 export async function addRedemptionRequest(req: any): Promise<any | null> {
@@ -1512,7 +1549,17 @@ export async function addRedemptionRequest(req: any): Promise<any | null> {
         details: req.details || ''
     }]).select().single();
     if (error) return null;
-    return data;
+    return {
+        id: data.id,
+        userHandle: data.user_handle,
+        creatorId: data.user_handle,
+        amount: parseFloat(data.amount),
+        amountCoins: parseFloat(data.amount),
+        amountEuro: parseFloat(data.amount) * 0.05,
+        status: data.status,
+        timestamp: data.timestamp,
+        requestedAt: data.timestamp
+    };
 }
 
 export async function addWithdrawalRequest(req: WithdrawalRequest): Promise<boolean> {
@@ -1579,17 +1626,34 @@ export async function updateRedemptionStatus(id: string, status: string, employe
         details: `ID: ${id}`
     });
 
-    return data;
+    return {
+        id: data.id,
+        userHandle: data.user_handle,
+        creatorId: data.user_handle,
+        amount: parseFloat(data.amount),
+        amountCoins: parseFloat(data.amount),
+        amountEuro: parseFloat(data.amount) * 0.05,
+        status: data.status,
+        timestamp: data.timestamp,
+        requestedAt: data.timestamp
+    };
 }
 
 export async function getBillingStats() {
     const sales = await getCoinSales();
     const redemptions = await getRedemptionRequests();
+    const withdrawals = await getWithdrawalRequests();
     const users = await getAppUsers();
 
     const totalRevenue = sales.reduce((acc, s) => acc + (parseFloat(s.price) || 0), 0);
-    const totalRedeemed = redemptions.filter(r => r.status === 'approved').reduce((acc, r) => acc + (parseFloat(r.amount) || 0), 0);
-    const pendingRedemptions = redemptions.filter(r => r.status === 'pending').reduce((acc, r) => acc + (parseFloat(r.amount) || 0), 0);
+    const totalRedeemedOld = redemptions.filter(r => r.status === 'approved' || r.status === 'completed').reduce((acc, r) => acc + (parseFloat(r.amountEuro) || parseFloat(r.amount) || 0), 0);
+    const totalRedeemedNew = withdrawals.filter(w => w.status === 'approved').reduce((acc, w) => acc + (parseFloat(w.amount) || 0), 0);
+    const totalRedeemed = totalRedeemedOld + totalRedeemedNew;
+    
+    const pendingRedemptionsOld = redemptions.filter(r => r.status === 'pending').reduce((acc, r) => acc + (parseFloat(r.amountEuro) || parseFloat(r.amount) || 0), 0);
+    const pendingRedemptionsNew = withdrawals.filter(w => w.status === 'pending').reduce((acc, w) => acc + (parseFloat(w.amount) || 0), 0);
+    const pendingRedemptions = pendingRedemptionsOld + pendingRedemptionsNew;
+
     const totalCirculatingCoins = users.reduce((acc, u) => acc + (u.walletBalance || 0), 0);
 
     return {

@@ -55,3 +55,15 @@ voz-admin/public/uploads/
 
 .vercel
 .env*.local
+
+# Sensitive credentials - NEVER commit these
+service-account.json
+*.keystore
+credentials.json
+
+# Scratch/temp scripts
+/scratch/
+scratch_*.js
+seed_*.js
+send_*.js
+env.vercel

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin, addNotification } from "@/lib/db";
 
 // POST: Add or Remove a Follower
 export async function POST(req: NextRequest) {
     try {
-        const { follower_handle, following_handle, action } = await req.json();
+        const body = await req.json();
+        const follower_handle = body.follower_handle || body.followerHandle;
+        const following_handle = body.following_handle || body.followingHandle;
+        const action = body.action;
 
         if (!follower_handle || !following_handle || !action) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -18,6 +21,18 @@ export async function POST(req: NextRequest) {
 
                 if (error && error.code !== '23505') { // 23505 is unique violation (already following)
                     throw error;
+                }
+
+                if (!error) {
+                    await addNotification({
+                        id: Date.now().toString(),
+                        recipientId: following_handle,
+                        type: 'follow',
+                        title: 'Nuevo Seguidor 👤',
+                        message: `${follower_handle} ha comenzado a seguirte.`,
+                        timestamp: new Date().toISOString(),
+                        readStatus: false
+                    });
                 }
             } else if (action === 'unfollow') {
                 const { error } = await supabaseAdmin

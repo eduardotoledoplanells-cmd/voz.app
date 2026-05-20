@@ -6,14 +6,14 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, email, nationality, dob, phone } = body;
+        const { id, handle, name, bio, profile_image, profileImage, email, nationality, dob, phone, notificationSettings, pushToken } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, email, nationality, dob, phone }));
+        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, email, nationality, dob, phone, pushToken }));
 
-        if (!id) {
-            console.error("[API Update] Error: Missing user ID in request body");
-            return NextResponse.json({ error: "Missing user ID" }, { status: 400 });
+        if (!id && !handle) {
+            console.error("[API Update] Error: Missing user ID and handle in request body");
+            return NextResponse.json({ error: "Missing user ID and handle" }, { status: 400 });
         }
 
         const updates: any = {};
@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
         if (nationality !== undefined) updates.nationality = nationality;
         if (dob !== undefined) updates.dob = dob;
         if (phone !== undefined) updates.phone = phone;
+        if (notificationSettings !== undefined) updates.notificationSettings = notificationSettings;
+        if (pushToken !== undefined) updates.pushToken = pushToken;
 
         const updated = await updateAppUser(id, updates);
 

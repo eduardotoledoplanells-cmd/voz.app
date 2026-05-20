@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
-import { getAppUsers, updateAppUser, addCoinSale } from '@/lib/db';
+import { getAppUsers, addCoinSale } from '@/lib/db';
+import { processCoinPurchase } from '@/lib/ledger';
+import { Money } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,22 +63,20 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
     }
 
     try {
-        console.log(`Processing coin purchase for user ${userId}: ${coins} coins`);
+        const coinsMoney = Money.fromCoins(coins);
+        console.log(`Processing coin purchase for user ${userId}: ${coinsMoney.toString()}`);
 
-        // 1. Update user balance in Supabase
+        // 1. Update user balance in Supabase via Ledger
         const users = await getAppUsers();
-        // Resolve target user (by handle or id)
         const user = users.find(u => u.id === userId || u.handle === userHandle);
 
         if (user) {
-            const oldBalance = user.walletBalance || 0;
-            const newBalance = oldBalance + parseInt(coins);
-
-            await updateAppUser(user.id, {
-                walletBalance: newBalance
-            });
-
-            console.log(`✅ Credited ${coins} coins to user ${userId}. Old: ${oldBalance}, New: ${newBalance}`);
+            try {
+                await processCoinPurchase(user.id, coinsMoney.toCoins(), paymentIntent.id);
+                console.log(`✅ Ledger transaction succeeded: Credited ${coinsMoney.toCoins()} coins to user ${user.id}.`);
+            } catch (ledgerError) {
+                console.error(`❌ Ledger transaction failed for user ${user.id}:`, ledgerError);
+            }
         } else {
             console.error(`User ${userId} or handle ${userHandle} not found in Supabase`);
         }
@@ -85,8 +85,8 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
         await addCoinSale({
             userHandle: userHandle || userId,
             packType: packId,
-            price: paymentIntent.amount / 100,
-            coins: parseInt(coins),
+            price: Math.round(paymentIntent.amount) / 100,
+            coins: coinsMoney.toCoins(),
             stripePaymentIntentId: paymentIntent.id,
             status: 'succeeded'
         });

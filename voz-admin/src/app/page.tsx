@@ -110,6 +110,7 @@ export default function VozAdminDashboard() {
                     id: emp.id,
                     username: emp.username,
                     role: emp.role,
+                    password: expectedPass,
                     worker_number: emp.worker_number || '???'
                 };
 

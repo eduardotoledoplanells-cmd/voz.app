@@ -26,7 +26,13 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const userHandle = searchParams.get('userHandle') || undefined;
-        const videos = await getVideos(userHandle);
+        
+        const limitParam = searchParams.get('limit');
+        const offsetParam = searchParams.get('offset');
+        const limit = limitParam ? parseInt(limitParam, 10) : 10;
+        const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+        const videos = await getVideos(userHandle, limit, offset);
         return corsHeaders(NextResponse.json(videos));
     } catch (error) {
         console.error("Error fetching videos:", error);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
+import { decryptKYC } from '@/lib/kycCrypto';
 
 export async function GET(request: Request) {
     try {
@@ -19,6 +20,12 @@ export async function GET(request: Request) {
         if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found"
             console.error('[CREATOR_STATUS] DB Error:', error);
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        }
+
+        // Decrypt sensitive fields before returning to client
+        if (data) {
+            data.dni_number = decryptKYC(data.dni_number);
+            data.iban = decryptKYC(data.iban);
         }
 
         return NextResponse.json({ success: true, verification: data || null });

@@ -46,9 +46,9 @@ export async function GET() {
 
             // Find all gifts/bonuses received by this user
             const receivedTxs = allTransactions.filter(t => t.receiverId === user.handle);
-            // Normal gifts grant 75% commission
+            // Gifts and donations grant their respective creator splits (65% and 75%)
             const coinsReceived = receivedTxs.reduce((sum, t) => {
-                if (t.type === 'gift') return sum + (Number(t.amount) * 0.75);
+                if (t.type === 'gift') return sum + (Number(t.amount) * 0.65);
                 if (t.type === 'donation') return sum + (Number(t.amount) * 0.75);
                 if (t.type === 'pm_completed') return sum + Number(t.amount);
                 if (t.type === 'admin_bonus') return sum + Number(t.amount);

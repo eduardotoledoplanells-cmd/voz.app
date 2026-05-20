@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { addTransaction, getAppUsers, updateAppUser, addAppUser } from '@/lib/db';
+import { addTransaction, getAppUsers, addAppUser, addNotification } from '@/lib/db';
+import { processGift } from '@/lib/ledger';
 
 export async function POST(request: Request) {
     try {
@@ -9,33 +10,43 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Validate Sender Balance
-        const users = await getAppUsers();
-        const sender = users.find(u => u.handle === senderHandle);
-        const receiver = users.find(u => u.handle === receiverHandle);
-
-        if (!sender) {
-            return NextResponse.json({ error: 'Sender not found' }, { status: 404 });
-        }
-
         const giftAmount = Number(amount);
         if (isNaN(giftAmount) || giftAmount <= 0) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        if ((sender.walletBalance || 0) < giftAmount) {
-            return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
+        const users = await getAppUsers();
+        const sender = users.find(u => u.handle === senderHandle);
+        let receiver: any = users.find(u => u.handle === receiverHandle);
+
+        if (!sender) {
+            return NextResponse.json({ error: 'Sender not found' }, { status: 404 });
         }
 
-        // 2. Perform safe deduction from sender
-        const newSenderBalance = (sender.walletBalance || 0) - giftAmount;
-        const senderUpdated = await updateAppUser(sender.id, { walletBalance: newSenderBalance });
-
-        if (!senderUpdated) {
-            return NextResponse.json({ error: 'Failed to process transaction' }, { status: 500 });
+        if (!receiver) {
+            // Auto-create user if it doesn't exist to ensure wallet creation works
+            receiver = await addAppUser({
+                id: crypto.randomUUID(),
+                handle: receiverHandle,
+                email: 'temp@voz.app',
+                status: 'active',
+                joinedAt: new Date().toISOString()
+            });
+            if (!receiver) {
+                return NextResponse.json({ error: 'Failed to create receiver' }, { status: 500 });
+            }
         }
 
-        // 3. Add Transaction Log to Supabase
+        // 1. Process via Ledger
+        const idempotencyKey = `gift-${sender.id}-${receiver.id}-${Date.now()}`;
+        try {
+            await processGift(sender.id, receiver.id, giftAmount, idempotencyKey);
+        } catch (ledgerError: any) {
+            console.error("Ledger Gift transaction failed:", ledgerError);
+            return NextResponse.json({ error: ledgerError.message || 'Transaction failed' }, { status: 400 });
+        }
+
+        // 2. Add Transaction Log to Supabase
         await addTransaction({
             senderHandle,
             receiverHandle,
@@ -44,25 +55,23 @@ export async function POST(request: Request) {
             videoId
         });
 
-        // 4. Update Receiver Balance (75% Commission for Creator, 25% for App)
-        // Ensure atomic-style addition using the fresh receiver data
-        const payoutAmount = giftAmount * 0.75;
+        const payoutAmount = giftAmount * 0.65;
 
-        if (receiver) {
-            await updateAppUser(receiver.id, {
-                earningsBalance: (receiver.earningsBalance || 0) + payoutAmount
-            });
-        } else {
-            // Auto-create user if it doesn't exist
-            await addAppUser({
-                id: crypto.randomUUID(),
-                handle: receiverHandle,
-                email: 'temp@voz.app',
-                status: 'active',
-                joinedAt: new Date().toISOString(),
-                earningsBalance: payoutAmount
-            });
-        }
+        // Fetch updated sender balance
+        const updatedUsers = await getAppUsers();
+        const updatedSender = updatedUsers.find(u => u.id === sender.id);
+        const newSenderBalance = updatedSender ? updatedSender.walletBalance : 0;
+
+        // 5. Enviar notificación (El creador solo ve su parte)
+        await addNotification({
+            id: Date.now().toString(),
+            recipientId: receiverHandle,
+            type: 'gift',
+            title: '¡Te han enviado un regalo! 🎁',
+            message: `${senderHandle} te ha apoyado con ${payoutAmount.toFixed(2)} €.`,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
 
         return NextResponse.json({ success: true, newSenderBalance });
 

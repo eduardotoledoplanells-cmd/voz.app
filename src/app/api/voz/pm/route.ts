@@ -1,6 +1,89 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, updateAppUser, addTransaction, addNotification } from '@/lib/db';
+import { getAppUsers, addTransaction, addNotification } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/db';
+import { processPremiumMessage } from '@/lib/ledger';
+
+async function checkImageSafety(content: string): Promise<{ safe: boolean; reason?: string }> {
+    // Buscar si el contenido contiene etiquetas de imagen globalmente: [IMAGE: url]
+    const matches = [...content.matchAll(/\[IMAGE:\s*(https?:\/\/[^\]\s]+)\]/gi)];
+    if (matches.length === 0) {
+        return { safe: true };
+    }
+
+    const imageUrls = matches.map(m => m[1]);
+    console.log(`[Safety Filter] Analizando ${imageUrls.length} imágenes:`, imageUrls);
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        console.warn("[Safety Filter] OPENAI_API_KEY no configurado. Permitiendo imágenes por defecto.");
+        return { safe: true };
+    }
+
+    try {
+        // Ejecutar el análisis de seguridad para todas las imágenes en paralelo
+        const results = await Promise.all(
+            imageUrls.map(async (imageUrl) => {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: 'Analyze this image. Does it contain nudity, sexually explicit content, pornography, violence, or child exploitation? Answer strictly with either "SAFE" or "UNSAFE" and nothing else.'
+                                    },
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: imageUrl
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        max_tokens: 5,
+                        temperature: 0.0
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`[Safety Filter] Error de la API de OpenAI para ${imageUrl}: ${errorText}`);
+                    return { safe: false, reason: 'El contenido infringe las políticas de seguridad y protección de menores.' };
+                }
+
+                const data = await response.json();
+                const result = data.choices?.[0]?.message?.content?.trim()?.toUpperCase() || 'UNSAFE';
+                console.log(`[Safety Filter] Resultado del análisis para ${imageUrl}: ${result}`);
+
+                if (result === 'UNSAFE') {
+                    return { safe: false, reason: 'Imagen bloqueada: Detectado contenido no permitido (desnudez, violencia o material inapropiado).' };
+                }
+
+                return { safe: true };
+            })
+        );
+
+        // Si alguna imagen no es segura, fallamos inmediatamente
+        const unsafeResult = results.find(r => !r.safe);
+        if (unsafeResult) {
+            return unsafeResult;
+        }
+
+        return { safe: true };
+    } catch (err) {
+        console.error('[Safety Filter] Excepción durante el análisis de imagen:', err);
+        // Fail-closed por seguridad en el canal de mensajes privados
+        return { safe: false, reason: 'Error en la verificación de seguridad de la imagen.' };
+    }
+}
 
 // POST /api/voz/pm
 // Permite iniciar un PM (Escrow) o responder a un PM existente
@@ -9,7 +92,16 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { action } = body;
         const PM_COST = 5; // Coste fijo por mensaje/inicio
-        const CREATOR_SHARE = 0.7; // 70% para el creador (3.50 monedas)
+        const CREATOR_SHARE = 0.6; // 60% para el creador (3.00 monedas)
+
+        // 0. Filtro de seguridad de imágenes (porno/infantil/violencia) mediante IA
+        const textToCheck = action === 'start' ? (body.message || '') : (body.content || '');
+        if (textToCheck) {
+            const safety = await checkImageSafety(textToCheck);
+            if (!safety.safe) {
+                return NextResponse.json({ error: safety.reason }, { status: 400 });
+            }
+        }
 
         if (action === 'start') {
             const { senderHandle, creatorHandle } = body;
@@ -22,24 +114,18 @@ export async function POST(request: Request) {
             const sender = users.find(u => u.handle === senderHandle);
             const creator = users.find(u => u.handle === creatorHandle);
 
-            if (!sender || (sender.walletBalance || 0) < PM_COST) {
-                return NextResponse.json({ error: 'Saldo insuficiente (Necesitas 5 monedas)' }, { status: 400 });
+            if (!sender || !creator) {
+                return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
             }
 
-            // 1. Descontar 5 monedas al usuario
-            await updateAppUser(sender.id, {
-                walletBalance: (sender.walletBalance || 0) - PM_COST
-            });
-
-            // 1.5. Pagar el 70% al creador de forma inmediata
-            if (creator) {
-                const payoutAmount = PM_COST * CREATOR_SHARE;
-                await updateAppUser(creator.id, {
-                    earningsBalance: (creator.earningsBalance || 0) + payoutAmount
-                });
+            // 1. Process premium message via Ledger Contabilidad
+            try {
+                const idempotencyKey = body.idempotencyKey || `pm-start-${sender.id}-${creator.id}-${Date.now()}`;
+                await processPremiumMessage(sender.id, creator.id, idempotencyKey);
+            } catch (ledgerError: any) {
+                console.error("Ledger PM transaction failed:", ledgerError);
+                return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente' }, { status: 400 });
             }
-
-            // 2. Crear o buscar chat activo (pm_escrows)
             const { data: existingEscrow } = await supabaseAdmin
                 .from('pm_escrows')
                 .select('*')

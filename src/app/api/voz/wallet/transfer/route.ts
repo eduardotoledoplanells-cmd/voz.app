@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, updateAppUser } from '@/lib/db';
+import { getAppUsers } from '@/lib/db';
+import { executeLedgerTransaction, getOrCreateUserWallet } from '@/lib/ledger';
 
 export async function POST(request: Request) {
     try {
@@ -21,16 +22,43 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Saldo en cartera insuficiente' }, { status: 400 });
         }
 
-        // Transferencia: Restar de Cartera, Sumar a Saldo
-        await updateAppUser(user.id, {
-            earningsBalance: currentEarnings - amount,
-            walletBalance: (user.walletBalance || 0) + amount
-        });
+        // 1. Process via Ledger: Move from PENDING (earnings) to AVAILABLE (wallet balance)
+        const userWalletId = await getOrCreateUserWallet(user.id);
+        const idempotencyKey = `transfer-${user.id}-${Date.now()}`;
+        try {
+            await executeLedgerTransaction(
+                'EARNINGS_TRANSFER',
+                [
+                    {
+                        wallet_id: userWalletId,
+                        entry_type: 'PENDING',
+                        amount: -amount
+                    },
+                    {
+                        wallet_id: userWalletId,
+                        entry_type: 'AVAILABLE',
+                        amount: amount
+                    }
+                ],
+                null,
+                idempotencyKey,
+                { handle }
+            );
+        } catch (ledgerError: any) {
+            console.error("Ledger Transfer transaction failed:", ledgerError);
+            return NextResponse.json({ success: false, error: ledgerError.message || 'Saldo en cartera insuficiente' }, { status: 400 });
+        }
+
+        // Fetch updated user to get accurate balance
+        const updatedUsers = await getAppUsers();
+        const updatedUser = updatedUsers.find(u => u.id === user.id);
+        const finalEarnings = updatedUser ? updatedUser.earningsBalance : (currentEarnings - amount);
+        const finalWallet = updatedUser ? updatedUser.walletBalance : ((user.walletBalance || 0) + amount);
 
         return NextResponse.json({ 
             success: true, 
-            newEarnings: currentEarnings - amount,
-            newWallet: (user.walletBalance || 0) + amount
+            newEarnings: finalEarnings,
+            newWallet: finalWallet
         });
 
     } catch (error) {

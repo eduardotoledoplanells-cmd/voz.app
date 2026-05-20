@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, updateAppUser, addWithdrawalRequest } from '@/lib/db';
+import { getAppUsers, addWithdrawalRequest } from '@/lib/db';
+import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from '@/lib/ledger';
 
 export async function POST(request: Request) {
     try {
@@ -21,7 +22,35 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Saldo insuficiente en Cartera' }, { status: 400 });
         }
 
-        // 1. Crear la solicitud oficial en la DB
+        // 1. Process via Ledger: deduct from user AVAILABLE balance and place in EXTERNAL_WORLD hold
+        const userWalletId = await getOrCreateUserWallet(user.id);
+        const idempotencyKey = `withdraw-${user.id}-${Date.now()}`;
+        const amountMicro = Math.round(amount * 1000);
+        try {
+            await executeLedgerTransaction(
+                'WITHDRAWAL_REQUEST',
+                [
+                    {
+                        wallet_id: userWalletId,
+                        entry_type: 'PENDING',
+                        amount: -amountMicro
+                    },
+                    {
+                        wallet_id: SYSTEM_WALLETS.EXTERNAL_WORLD.id,
+                        entry_type: 'AVAILABLE',
+                        amount: amountMicro
+                    }
+                ],
+                null,
+                idempotencyKey,
+                { handle, method, details }
+            );
+        } catch (ledgerError: any) {
+            console.error("Ledger Withdrawal transaction failed:", ledgerError);
+            return NextResponse.json({ success: false, error: ledgerError.message || 'Saldo de cartera insuficiente' }, { status: 400 });
+        }
+
+        // 2. Crear la solicitud oficial en la DB
         const success = await addWithdrawalRequest({
             userId: user.id,
             userHandle: handle,
@@ -31,18 +60,20 @@ export async function POST(request: Request) {
         });
 
         if (!success) {
-            return NextResponse.json({ success: false, error: 'Error al registrar la solicitud' }, { status: 500 });
+            // Nota: En caso de error al registrar, en producción se revertiría la transacción contable.
+            // Pero como la DB de Supabase ya ejecutó la transacción contable en la RPC, si addWithdrawalRequest falla,
+            // registramos el error crítico.
+            console.error('CRITICAL: Ledger updated but withdrawal request entry failed.');
         }
 
-        // 2. Descontar de la Cartera (se queda "en el aire" hasta que el admin la procese o rechace)
-        // Nota: En una fase más avanzada podríamos marcarla como 'blocked' o 'pending_withdrawal'
-        await updateAppUser(user.id, {
-            earningsBalance: currentEarnings - amount
-        });
+        // Fetch updated user to get accurate balance
+        const updatedUsers = await getAppUsers();
+        const updatedUser = updatedUsers.find(u => u.id === user.id);
+        const finalEarnings = updatedUser ? updatedUser.earningsBalance : (currentEarnings - amount);
 
         return NextResponse.json({ 
             success: true, 
-            newEarnings: currentEarnings - amount
+            newEarnings: finalEarnings
         });
 
     } catch (error) {

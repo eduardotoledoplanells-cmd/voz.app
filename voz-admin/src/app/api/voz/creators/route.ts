@@ -31,45 +31,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-    try {
-        const body = await request.json();
-        const { id, employeeName = 'Admin', ...updates } = body;
-
-        console.log("PATCH /api/voz/creators - ID:", id, "Employee:", employeeName, "Updates:", JSON.stringify(updates));
-
-        if (!id) {
-            return corsHeaders(NextResponse.json({ error: 'Missing creator id' }, { status: 400 }));
-        }
-
-        if (updates.status === 'deleted') {
-            const deleted = await deleteCreatorCompletely(id, employeeName);
-            if (!deleted) {
-                return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));
-            }
-            return corsHeaders(NextResponse.json({ status: 'deleted', id }));
-        }
-
-        if (updates.action === 'processVerification') {
-            const success = await processCreatorVerification(id, updates.status, updates.reason);
-            if (!success) {
-                return corsHeaders(NextResponse.json({ error: 'Failed to process verification' }, { status: 500 }));
-            }
-            return corsHeaders(NextResponse.json({ success: true }));
-        }
-
-        const updated = await updateCreator(id, updates, employeeName);
-
-        if (!updated) {
-            console.error("PATCH /api/voz/creators - Creator not found with ID:", id);
-            return corsHeaders(NextResponse.json({ error: 'Creator not found' }, { status: 404 }));
-        }
-
-        console.log("PATCH /api/voz/creators - SUCCESS:", updated.id, "Status:", updated.status);
-        return corsHeaders(NextResponse.json(updated));
-    } catch (error) {
-        console.error("PATCH /api/voz/creators - ERROR:", error);
-        return corsHeaders(NextResponse.json({ error: 'Failed to update creator' }, { status: 500 }));
-    }
+    return corsHeaders(NextResponse.json({ 
+        error: 'Acceso no autorizado. Las modificaciones de creadores y verificaciones de KYC deben realizarse a través de la capa de comandos (/api/voz/admin/approve-kyc y /api/voz/admin/update-creator-status).' 
+    }, { status: 403 }));
 }
 export async function POST(request: Request) {
     try {

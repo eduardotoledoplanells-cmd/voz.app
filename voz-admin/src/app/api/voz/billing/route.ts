@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getCoinSales, getBillingStats, getRedemptionRequests, getCreators, getCampaigns, getCompanies } from '@/lib/db';
+import { getCoinSales, getBillingStats, getRedemptionRequests, getWithdrawalRequests, getCreators, getCampaigns, getCompanies } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const [sales, stats, redemptions, creators, campaigns, companies] = await Promise.all([
+        const [sales, stats, redemptions, withdrawals, creators, campaigns, companies] = await Promise.all([
             getCoinSales(),
             getBillingStats(),
             getRedemptionRequests(),
+            getWithdrawalRequests(),
             getCreators(),
             getCampaigns(),
             getCompanies()
@@ -18,6 +19,7 @@ export async function GET() {
             sales,
             stats,
             redemptions,
+            withdrawals,
             creators,
             campaigns,
             companies

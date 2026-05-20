@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, updateAppUser } from '@/lib/db';
+import { encryptKYC, computeBlindIndex } from '@/lib/kycCrypto';
 
 export async function POST(request: Request) {
     try {
@@ -24,16 +25,44 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (nombre, dni, iban o teléfono)' }, { status: 400 });
         }
 
-        // Upsert the verification data
+        const dniHash = computeBlindIndex(dniNumber);
+        const ibanHash = computeBlindIndex(iban);
+
+        // Encrypt sensitive data before persistence
+        const encryptedDni = encryptKYC(dniNumber);
+        const encryptedIban = encryptKYC(iban);
+
+        // Check if IBAN is already in use by another creator (anti-fraud check)
+        const { data: existingIban, error: lookupError } = await supabaseAdmin
+            .from('creator_verifications')
+            .select('user_id')
+            .eq('iban_hash', ibanHash)
+            .neq('user_id', userId)
+            .maybeSingle();
+
+        if (lookupError) {
+            console.error('[CREATOR_REGISTER] IBAN lookup error:', lookupError);
+        }
+
+        if (existingIban) {
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Este número de cuenta bancaria (IBAN) ya está registrado en otra solicitud de creador.' 
+            }, { status: 400 });
+        }
+
+        // Upsert the verification data including hashes and encrypted fields
         const { data, error } = await supabaseAdmin
             .from('creator_verifications')
             .upsert([{
                 user_id: userId,
                 full_name: fullName,
-                dni_number: dniNumber,
+                dni_number: encryptedDni,
+                dni_hash: dniHash,
                 dni_front_url: dniFrontUrl,
                 dni_back_url: dniBackUrl,
-                iban: iban,
+                iban: encryptedIban,
+                iban_hash: ibanHash,
                 address: address,
                 postal_code: postalCode,
                 country: country,

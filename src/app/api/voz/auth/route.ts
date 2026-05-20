@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, addAppUser, updateAppUser, AppUser, supabase } from "@/lib/db";
+import { getAppUsers, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
@@ -11,6 +11,24 @@ export async function POST(request: NextRequest) {
         if (action === 'register') {
             if (!email || !password || !username) {
                 return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+            }
+
+            // 0. Verificar si el email o teléfono están en la lista negra (baneado)
+            const banned = await isBlacklisted(email, phone);
+            if (banned) {
+                return NextResponse.json({ error: "Este email o teléfono ha sido bloqueado permanentemente por infringir las normas de la comunidad" }, { status: 403 });
+            }
+
+            // 0.1 Verificar si el email o teléfono ya existen en app_users (evitar duplicados manuales)
+            const allUsers = await getAppUsers();
+            const emailExists = allUsers.some(u => u.email?.toLowerCase() === email.toLowerCase());
+            const phoneExists = phone && allUsers.some(u => u.phone === phone);
+            
+            if (emailExists) {
+                return NextResponse.json({ error: "El email ya está registrado en otra cuenta" }, { status: 409 });
+            }
+            if (phoneExists) {
+                return NextResponse.json({ error: "El teléfono ya está registrado en otra cuenta" }, { status: 409 });
             }
 
             // 1. Registro en Supabase Auth (esto dispara el email de validación)
@@ -39,10 +57,10 @@ export async function POST(request: NextRequest) {
             const newUser: AppUser = {
                 id: authData.user?.id || uuidv4(),
                 handle: `@${username}`,
-                name: username, // Inicializamos el nombre real con el nombre de usuario
+                name: username,
                 email,
-                password: '', // No guardamos la password en la tabla pública por seguridad
-                status: 'active',
+                password: '',
+                status: 'unverified', // Nace bloqueado hasta poner el PIN
                 walletBalance: 0,
                 joinedAt: new Date().toISOString(),
                 phone: phone || ''
@@ -68,6 +86,13 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: error.message }, { status: 400 });
             }
 
+            // Desbloqueamos la cuenta en app_users
+            const allUsers = await getAppUsers();
+            const targetUser = allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
+            if (targetUser) {
+                await updateAppUser(targetUser.id, { status: 'active' });
+            }
+
             return NextResponse.json({ success: true });
 
         } else if (action === 'login') {
@@ -90,6 +115,14 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Perfil de usuario no encontrado" }, { status: 404 });
             }
 
+            if (userProfile.status === 'unverified') {
+                return NextResponse.json({ error: "Tu cuenta no está verificada. Por favor introduce el código PIN de 6 dígitos que te enviamos por correo para poder entrar." }, { status: 403 });
+            }
+
+            if (userProfile.status === 'banned') {
+                return NextResponse.json({ error: "Tu cuenta ha sido suspendida permanentemente" }, { status: 403 });
+            }
+
             return NextResponse.json({ success: true, user: userProfile });
 
         } else if (action === 'forgot_password') {
@@ -102,10 +135,19 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, message: "Instrucciones de recuperación enviadas a tu email" });
 
         } else if (action === 'reset_password') {
-            const { newPassword } = body;
+            const { email, newPassword, recoveryPin } = body;
             
-            // Esto requiere que el usuario esté en una sesión de recuperación o tenga un token
-            const { error: updateError } = await supabase.auth.updateUser({
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+                email,
+                token: recoveryPin,
+                type: 'recovery'
+            });
+
+            if (verifyError || !data.user) {
+                return NextResponse.json({ error: "El código PIN es incorrecto o ha expirado" }, { status: 400 });
+            }
+
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
                 password: newPassword
             });
 
