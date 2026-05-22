@@ -155,7 +155,13 @@ export async function executeLedgerTransaction(
 export async function processCoinPurchase(
     userHandleOrId: string,
     coinsAmount: number,
-    idempotencyKey: string
+    idempotencyKey: string,
+    purchaseMetadata?: {
+        userHandle?: string;
+        packType?: string;
+        price?: number;
+        status?: string;
+    }
 ) {
     const userWalletId = await getOrCreateUserWallet(userHandleOrId);
     
@@ -197,6 +203,11 @@ export async function processCoinPurchase(
         }
     ];
 
+    // Build metadata for ledger transaction, which will also write to coin_sales atomically
+    const userHandle = purchaseMetadata?.userHandle || userHandleOrId.replace('@', '');
+    const packType = purchaseMetadata?.packType || 'custom';
+    const price = purchaseMetadata?.price !== undefined ? purchaseMetadata.price : totalFiat.toCoins();
+
     return executeLedgerTransaction(
         'COIN_PURCHASE',
         entries,
@@ -205,7 +216,11 @@ export async function processCoinPurchase(
         { 
             coins: coins.toCoins(), 
             tax: tax.toCoins(), 
-            total_fiat: totalFiat.toCoins() 
+            total_fiat: totalFiat.toCoins(),
+            user_handle: userHandle,
+            pack_type: packType,
+            price: price,
+            status: purchaseMetadata?.status || 'succeeded'
         }
     );
 }

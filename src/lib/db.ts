@@ -1646,6 +1646,24 @@ export async function deleteVideoByUrl(url: string, userHandle: string): Promise
     }
 }
 
+export async function getVideoIdByUrl(url: string): Promise<string | null> {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('videos')
+            .select('id')
+            .eq('video_url', url)
+            .maybeSingle();
+
+        if (error || !data) {
+            return null;
+        }
+        return data.id;
+    } catch (err) {
+        console.error('Error in getVideoIdByUrl:', err);
+        return null;
+    }
+}
+
 export async function requestVideoRetention(videoId: string, userHandle: string): Promise<boolean> {
     try {
         const { data: video, error } = await supabaseAdmin

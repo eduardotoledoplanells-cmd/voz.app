@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
-import { getAppUsers, addCoinSale } from '@/lib/db';
+import { getAppUsers, supabaseAdmin } from '@/lib/db';
 import { processCoinPurchase } from '@/lib/ledger';
 import { Money } from '@/lib/money';
 
@@ -32,23 +32,41 @@ export async function POST(request: Request) {
     }
 
     // Handle the event
-    switch (event.type) {
-        case 'payment_intent.succeeded':
-            const paymentIntent = event.data.object as Stripe.PaymentIntent;
-            if (paymentIntent.metadata.type === 'coin_purchase') {
-                await handleCoinPurchaseSuccess(paymentIntent);
-            }
-            break;
+    try {
+        switch (event.type) {
+            case 'payment_intent.succeeded':
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+                if (paymentIntent.metadata.type === 'coin_purchase') {
+                    // Early idempotency check to exit fast with 200 OK
+                    const { data: existingTx } = await supabaseAdmin
+                        .from('ledger_transactions')
+                        .select('id')
+                        .eq('idempotency_key', paymentIntent.id)
+                        .maybeSingle();
 
-        case 'payment_intent.payment_failed':
-            const failedPayment = event.data.object as Stripe.PaymentIntent;
-            if (failedPayment.metadata.type === 'coin_purchase') {
-                console.error(`❌ Coin purchase failed for user ${failedPayment.metadata.userId}`);
-            }
-            break;
+                    if (existingTx) {
+                        console.log(`[Stripe Webhook] PaymentIntent ${paymentIntent.id} already processed. Skipping.`);
+                        return NextResponse.json({ received: true, alreadyProcessed: true });
+                    }
 
-        default:
-            console.log(`Unhandled event type: ${event.type}`);
+                    await handleCoinPurchaseSuccess(paymentIntent);
+                }
+                break;
+
+            case 'payment_intent.payment_failed':
+                const failedPayment = event.data.object as Stripe.PaymentIntent;
+                if (failedPayment.metadata.type === 'coin_purchase') {
+                    console.error(`❌ Coin purchase failed for user ${failedPayment.metadata.userId}`);
+                }
+                break;
+
+            default:
+                console.log(`Unhandled event type: ${event.type}`);
+        }
+    } catch (handlerError) {
+        console.error('Error handling webhook event:', handlerError);
+        // Still return 200 OK to Stripe to avoid retries/timeouts if the error is internal
+        return NextResponse.json({ received: true, error: 'Internal handler error' });
     }
 
     return NextResponse.json({ received: true });
@@ -72,7 +90,18 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
 
         if (user) {
             try {
-                await processCoinPurchase(user.id, coinsMoney.toCoins(), paymentIntent.id);
+                // Pass metadata to processCoinPurchase to insert into coin_sales atomically
+                await processCoinPurchase(
+                    user.id,
+                    coinsMoney.toCoins(),
+                    paymentIntent.id,
+                    {
+                        userHandle: user.handle || userHandle,
+                        packType: packId,
+                        price: Math.round(paymentIntent.amount) / 100,
+                        status: 'succeeded'
+                    }
+                );
                 console.log(`✅ Ledger transaction succeeded: Credited ${coinsMoney.toCoins()} coins to user ${user.id}.`);
             } catch (ledgerError) {
                 console.error(`❌ Ledger transaction failed for user ${user.id}:`, ledgerError);
@@ -81,17 +110,7 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
             console.error(`User ${userId} or handle ${userHandle} not found in Supabase`);
         }
 
-        // 2. Record sale in coin_sales table in Supabase
-        await addCoinSale({
-            userHandle: userHandle || userId,
-            packType: packId,
-            price: Math.round(paymentIntent.amount) / 100,
-            coins: coinsMoney.toCoins(),
-            stripePaymentIntentId: paymentIntent.id,
-            status: 'succeeded'
-        });
-
     } catch (error) {
-        console.error('Error updating coin balance and recording sale:', error);
+        console.error('Error updating coin balance:', error);
     }
 }

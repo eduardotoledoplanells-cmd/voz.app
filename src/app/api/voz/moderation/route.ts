@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getModerationQueue, updateModerationItem, addNotification } from "@/lib/db";
+import { getModerationQueue, updateModerationItem, addNotification, getVideoIdByUrl } from "@/lib/db";
 
 export async function GET() {
     try {
@@ -76,14 +76,23 @@ export async function PATCH(request: NextRequest) {
         if ((status === 'approved' || status === 'rejected') && result.userHandle) {
             const isApproved = status === 'approved';
             try {
+                let notifMessage = isApproved
+                    ? 'Tu contenido ha sido revisado y aprobado por el equipo de moderación de VOZ.'
+                    : `Tu contenido ha sido eliminado por incumplir las normas de la comunidad VOZ.${employeeName ? ` Moderador: ${employeeName}.` : ''}`;
+
+                if (result.type === 'video' && result.url) {
+                    const videoId = await getVideoIdByUrl(result.url);
+                    if (videoId) {
+                        notifMessage += `|||VIDEO_ID:${videoId}`;
+                    }
+                }
+
                 await addNotification({
                     id: `mod-${id}-${Date.now()}`,
                     recipientId: result.userHandle,
                     type: 'moderation',
                     title: isApproved ? '✅ Contenido aprobado' : '⛔ Contenido eliminado',
-                    message: isApproved
-                        ? 'Tu contenido ha sido revisado y aprobado por el equipo de moderación de VOZ.'
-                        : `Tu contenido ha sido eliminado por incumplir las normas de la comunidad VOZ.${employeeName ? ` Moderador: ${employeeName}.` : ''}`,
+                    message: notifMessage,
                     timestamp: new Date().toISOString(),
                     readStatus: false
                 });
