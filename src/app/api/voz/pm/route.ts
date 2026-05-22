@@ -212,7 +212,7 @@ export async function POST(request: Request) {
                 });
             }
 
-            return NextResponse.json({ success: true, message: 'Mensaje enviado' });
+            return NextResponse.json({ success: true, message: 'Mensaje enviado', escrowId });
         } else {
             return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });
         }

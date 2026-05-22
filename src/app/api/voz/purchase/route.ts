@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, addCoinSale } from "@/lib/db";
+import { getAppUsers, addCoinSale, supabaseAdmin } from "@/lib/db";
 import { stripe } from '@/lib/stripe';
 import { processCoinPurchase } from '@/lib/ledger';
 
@@ -26,6 +26,26 @@ export async function POST(request: NextRequest) {
         const pack = COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER];
         if (!pack || pack.coins !== Number(amount)) {
             return NextResponse.json({ error: "Invalid pack or amount requested" }, { status: 400 });
+        }
+
+        // 1.5 IDEMPOTENCY CHECK — Si el webhook de Stripe ya procesó este paymentIntentId,
+        // devolvemos el saldo actual sin ejecutar processCoinPurchase por segunda vez.
+        // Esto evita la doble acreditación cuando ambos flujos (webhook + app) se ejecutan.
+        const { data: existingTx } = await supabaseAdmin
+            .from('ledger_transactions')
+            .select('id')
+            .eq('idempotency_key', paymentIntentId)
+            .maybeSingle();
+
+        if (existingTx) {
+            console.log(`[Purchase] paymentIntentId '${paymentIntentId}' ya procesado por webhook. Devolviendo saldo actual.`);
+            const users = await getAppUsers();
+            const user = users.find(u => u.id === userId);
+            return NextResponse.json({
+                success: true,
+                newBalance: user?.walletBalance ?? 0,
+                alreadyProcessed: true
+            });
         }
 
         // 2. Validate Payment with Stripe
