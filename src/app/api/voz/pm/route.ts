@@ -119,8 +119,12 @@ export async function POST(request: Request) {
             }
 
             // 1. Process premium message via Ledger Contabilidad
+            // BLINDAJE: El cliente DEBE enviar un UUID único para garantizar idempotencia sin ventana de colisión
+            const idempotencyKey = body.idempotencyKey;
+            if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
+                return NextResponse.json({ error: 'Se requiere un idempotencyKey UUID único del cliente para procesar la transacción.' }, { status: 400 });
+            }
             try {
-                const idempotencyKey = body.idempotencyKey || `pm-start-${sender.id}-${creator.id}-${Date.now()}`;
                 await processPremiumMessage(sender.id, creator.id, idempotencyKey);
             } catch (ledgerError: any) {
                 console.error("Ledger PM transaction failed:", ledgerError);
