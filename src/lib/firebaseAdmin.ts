@@ -65,11 +65,19 @@ export async function sendNativePush(
         console.log(`[FCM Real] Push nativa enviada exitosamente al token ${fcmToken.substring(0, 15)}... ID: ${messageId}`);
         return { success: true, messageId, token: fcmToken };
     } catch (error: any) {
-        console.error("[FCM Real Error] Fallo al enviar push nativa:", error);
+        const isDeadToken = error.code === 'messaging/registration-token-not-registered' || 
+                           (error.message && error.message.includes('Requested entity was not found'));
+        
+        if (isDeadToken) {
+            console.log(`[FCM Real] Token caducado detectado silenciosamente. Será limpiado. (${fcmToken.substring(0, 15)}...)`);
+        } else {
+            console.error("[FCM Real Error] Fallo al enviar push nativa:", error.message || error);
+        }
+
         return { 
             success: false, 
             error: error.message || error, 
-            code: error.code, 
+            code: isDeadToken ? 'messaging/registration-token-not-registered' : error.code, 
             stack: error.stack, 
             rawError: JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))),
             token: fcmToken
