@@ -1364,52 +1364,52 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
 
 // --- Videos ---
 export async function getVideos(currentUserHandle?: string, limit: number = 10, offset: number = 0): Promise<VideoPost[]> {
-    // 1. Fetch videos. (Para soportar el Algoritmo AntiGravity completo a nivel JS mientras se migra el RPC)
-    // Obtenemos los últimos 500 vídeos para aplicar el algoritmo sin sacrificar demasiada memoria.
-    const { data: videos, error: videosError } = await supabaseAdmin
-        .from('videos')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500);
-    
-    if (videosError) {
-        console.error("[db] getVideos error:", videosError);
-        return [];
-    }
-
-    if (!videos || videos.length === 0) return [];
-
-    // 1.5 Aplicar el algoritmo AntiGravity
-    const now = new Date().getTime();
-    
-    let scoredVideos = videos.map(v => {
-        const createdAtTime = new Date(v.created_at).getTime();
-        const ageInHours = (now - createdAtTime) / (1000 * 60 * 60);
-        
-        const views = v.views || 0;
-        const likes = v.likes || 0;
-        
-        // Fórmula de Scoring: ((Views * 1) + (Likes * 5)) / (Age_in_hours + 2)^1.5
-        let score = ((views * 1) + (likes * 5)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.5);
-        
-        // Boost a nuevos vídeos (menos de 2 horas) para darles exposición inicial
-        if (ageInHours < 2 && score < 1) {
-            score = 1 + Math.random(); // Dar una chance inicial
-        }
-        
-        return { ...v, _score: score };
+    // 1. Intentamos usar la función RPC nativa en Supabase para máxima escalabilidad
+    let scoredVideos: any[] = [];
+    const { data: rpcVideos, error: rpcError } = await supabaseAdmin.rpc('get_antigravity_feed', {
+        req_limit: limit,
+        req_offset: offset
     });
 
-    // Ordenar de mayor a menor score
-    scoredVideos.sort((a, b) => b._score - a._score);
-    
-    // Aplicar paginación en memoria
-    scoredVideos = scoredVideos.slice(offset, offset + limit);
+    if (!rpcError && rpcVideos && rpcVideos.length > 0) {
+        scoredVideos = rpcVideos;
+    } else {
+        // Fallback: Si el RPC falla (ej. todavía no está desplegado o hay un error), usamos la lógica en JS
+        if (rpcError) console.warn("[db] RPC get_antigravity_feed failed, falling back to JS implementation:", rpcError.message);
+        
+        const { data: videos, error: videosError } = await supabaseAdmin
+            .from('videos')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500);
+        
+        if (videosError) {
+            console.error("[db] getVideos fallback error:", videosError);
+            return [];
+        }
+
+        if (!videos || videos.length === 0) return [];
+
+        const now = new Date().getTime();
+        
+        scoredVideos = videos.map(v => {
+            const createdAtTime = new Date(v.created_at).getTime();
+            const ageInHours = (now - createdAtTime) / (1000 * 60 * 60);
+            const views = v.views || 0;
+            const likes = v.likes || 0;
+            let score = ((views * 1) + (likes * 5)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.5);
+            if (ageInHours < 2 && score < 1) score = 1 + Math.random();
+            return { ...v, _score: score };
+        });
+
+        scoredVideos.sort((a, b) => b._score - a._score);
+        scoredVideos = scoredVideos.slice(offset, offset + limit);
+    }
     
     if (scoredVideos.length === 0) return [];
 
     // 2. Fetch corresponding users to perform manual join
-    const handles = [...new Set(videos.map(v => v.user_handle))];
+    const handles = [...new Set(scoredVideos.map(v => v.user_handle))];
     const { data: users, error: usersError } = await supabaseAdmin
         .from('app_users')
         .select('name, handle, profile_image')
@@ -1463,7 +1463,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
             isBookmarkedByMe: bookmarkedSet.has(v.id),
-            score: v._score // Útil para la UI si quiere ordenar aún más
+            score: v._score || v.score // Soporte para JS y RPC score
         };
     });
 }
