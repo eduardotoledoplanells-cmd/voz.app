@@ -147,8 +147,8 @@ export async function POST(request: Request) {
                     .insert([{
                         sender_handle: senderHandle,
                         creator_handle: creatorHandle,
-                        amount_locked: PM_COST,
-                        creator_replies: 0,
+                        locked_amount: PM_COST,
+                        creator_responses: 0,
                         status: 'completed' // Ya se pagó la comisión
                     }])
                     .select()
@@ -242,6 +242,17 @@ export async function GET(request: Request) {
                 .order('created_at', { ascending: true });
             
             if (error) throw error;
+
+            // Si se pasa userHandle, marcamos los mensajes del otro usuario como leídos
+            if (userHandle) {
+                await supabaseAdmin
+                    .from('pm_messages')
+                    .update({ is_read: true })
+                    .eq('escrow_id', escrowId)
+                    .neq('sender_handle', userHandle)
+                    .eq('is_read', false);
+            }
+
             return NextResponse.json(messages);
         } else if (userHandle) {
             // Obtener lista de conversaciones (escrows) de un usuario
@@ -270,15 +281,32 @@ export async function GET(request: Request) {
                     });
                 });
 
+                // Obtener mensajes no leídos para cada escrow
+                const escrowIds = escrows.map(e => e.id);
+                const { data: unreadCounts } = await supabaseAdmin
+                    .from('pm_messages')
+                    .select('escrow_id')
+                    .in('escrow_id', escrowIds)
+                    .eq('is_read', false)
+                    .neq('sender_handle', userHandle);
+
+                const unreadMap = new Map();
+                unreadCounts?.forEach((m: any) => {
+                    unreadMap.set(m.escrow_id, (unreadMap.get(m.escrow_id) || 0) + 1);
+                });
+
                 const enrichedEscrows = escrows.map(e => {
                     const senderDetails = userMap.get(e.sender_handle) || { name: e.sender_handle.replace('@', ''), profileImage: null };
                     const creatorDetails = userMap.get(e.creator_handle) || { name: e.creator_handle.replace('@', ''), profileImage: null };
+                    const unreadCount = unreadMap.get(e.id) || 0;
                     return {
                         ...e,
                         sender_name: senderDetails.name,
                         sender_avatar: senderDetails.profileImage,
                         creator_name: creatorDetails.name,
-                        creator_avatar: creatorDetails.profileImage
+                        creator_avatar: creatorDetails.profileImage,
+                        unread_count: unreadCount,
+                        hasNew: unreadCount > 0
                     };
                 });
 
