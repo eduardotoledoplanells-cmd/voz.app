@@ -12,6 +12,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/mov'];
 const ALLOWED_AUDIO_TYPES = ['audio/m4a', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a'];
+const ALLOWED_DOC_TYPES = ['application/pdf'];
 
 export async function POST(request: Request) {
     try {
@@ -31,10 +32,11 @@ export async function POST(request: Request) {
         const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
         const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
         const isAudio = ALLOWED_AUDIO_TYPES.includes(file.type);
+        const isDoc = ALLOWED_DOC_TYPES.includes(file.type);
 
-        if (!isImage && !isVideo && !isAudio) {
+        if (!isImage && !isVideo && !isAudio && !isDoc) {
             return NextResponse.json({
-                error: 'Invalid file type. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, M4A, MP3'
+                error: 'Invalid file type. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, M4A, MP3, PDF'
             }, { status: 400 });
         }
 
@@ -43,6 +45,13 @@ export async function POST(request: Request) {
         if (isImage) subDir = 'images';
         else if (isVideo) subDir = 'videos';
         else if (isAudio) subDir = 'audio';
+        else if (isDoc) subDir = 'documents';
+
+        // Get target bucket from search parameters
+        const { searchParams } = new URL(request.url);
+        const requestedBucket = searchParams.get('bucket') || 'media';
+        const allowedBuckets = ['media', 'kyc_documents'];
+        const targetBucket = allowedBuckets.includes(requestedBucket) ? requestedBucket : 'media';
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -54,7 +63,7 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(bytes);
 
         const { data, error: uploadError } = await supabaseAdmin.storage
-            .from('media')
+            .from(targetBucket)
             .upload(fileName, buffer, {
                 contentType: file.type,
                 cacheControl: '3600',
@@ -73,7 +82,7 @@ export async function POST(request: Request) {
 
         // Get public URL
         const { data: { publicUrl } } = supabaseAdmin.storage
-            .from('media')
+            .from(targetBucket)
             .getPublicUrl(fileName);
 
         return NextResponse.json({

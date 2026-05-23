@@ -71,6 +71,7 @@ export interface CreatorVerification {
     dni_number: string;
     dni_front_url?: string;
     dni_back_url?: string;
+    bank_verification_url?: string;
     iban: string;
     address?: string;
     postal_code?: string;
@@ -273,10 +274,12 @@ export async function getCreators(): Promise<Creator[]> {
             if (v) {
                 const signedFront = await getSignedKycUrl(v.dni_front_url);
                 const signedBack = await getSignedKycUrl(v.dni_back_url);
+                const signedBank = await getSignedKycUrl(v.bank_verification_url);
                 verificationData = {
                     ...v,
                     dni_front_url: signedFront,
-                    dni_back_url: signedBack
+                    dni_back_url: signedBack,
+                    bank_verification_url: signedBank
                 };
             }
             

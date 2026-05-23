@@ -13,6 +13,7 @@ export async function POST(request: Request) {
             dniNumber, 
             dniFrontUrl, 
             dniBackUrl, 
+            bankVerificationUrl,
             iban, 
             address, 
             postalCode, 
@@ -20,9 +21,9 @@ export async function POST(request: Request) {
             phone
         } = body;
 
-        if (!userId || !fullName || !dniNumber || !iban || !phone) {
-            console.warn("[CREATOR_REGISTER] Validation failed. Missing fields:", { userId, fullName, dniNumber, iban, phone });
-            return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (nombre, dni, iban o teléfono)' }, { status: 400 });
+        if (!userId || !fullName || !dniNumber || !iban || !phone || !bankVerificationUrl) {
+            console.warn("[CREATOR_REGISTER] Validation failed. Missing fields:", { userId, fullName, dniNumber, iban, phone, bankVerificationUrl });
+            return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (nombre, DNI, IBAN, teléfono o certificado bancario)' }, { status: 400 });
         }
 
         const dniHash = computeBlindIndex(dniNumber);
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
                 dni_hash: dniHash,
                 dni_front_url: dniFrontUrl,
                 dni_back_url: dniBackUrl,
+                bank_verification_url: bankVerificationUrl,
                 iban: encryptedIban,
                 iban_hash: ibanHash,
                 address: address,
