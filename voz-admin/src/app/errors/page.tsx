@@ -9,6 +9,15 @@ interface AlertItem {
     creado_en: string;
 }
 
+// Helper to separate main error message from stack trace
+export function parseError(fullMessage: string) {
+    if (!fullMessage) return { title: 'Sin mensaje', stackTrace: '' };
+    const lines = fullMessage.split('\n');
+    const title = lines[0] || 'Error Desconocido';
+    const stackTrace = lines.slice(1).join('\n');
+    return { title, stackTrace };
+}
+
 export default function ErrorsPage() {
     const [alerts, setAlerts] = useState<AlertItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,6 +48,26 @@ export default function ErrorsPage() {
     const handleCopyError = (text: string) => {
         navigator.clipboard.writeText(text);
         alert('Código de error copiado al portapapeles.');
+    };
+
+    const handleCopyForAI = (alertItem: AlertItem) => {
+        const { title, stackTrace } = parseError(alertItem.mensaje_error);
+        const formattedText = `======================================================================
+REPORTE DE ERROR - APLICACIÓN VOZ
+======================================================================
+SERVICIO AFECTADO: ${alertItem.servicio}
+OCURRIDO EL: ${new Date(alertItem.creado_en).toLocaleString()}
+
+DETALLE DEL ERROR:
+${title}
+
+STACK TRACE / PILA DE LLAMADAS:
+${stackTrace || 'No disponible'}
+======================================================================
+Por favor, analiza este error y dime cómo solucionarlo.`;
+
+        navigator.clipboard.writeText(formattedText);
+        alert('¡Formato para el Chat (IA) copiado al portapapeles! Pégalo directamente en nuestro chat para resolverlo juntos.');
     };
 
     const filteredAlerts = alerts.filter(alert => {
@@ -134,16 +163,16 @@ export default function ErrorsPage() {
                                         whiteSpace: 'nowrap', 
                                         overflow: 'hidden', 
                                         textOverflow: 'ellipsis',
-                                        maxWidth: '400px'
+                                        maxWidth: '500px'
                                     }}>
-                                        {alertItem.mensaje_error}
+                                        {parseError(alertItem.mensaje_error).title}
                                     </td>
                                     <td style={{ padding: '8px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                                         <button onClick={() => setSelectedAlert(alertItem)} style={{ marginRight: 5 }}>
-                                            🔍 Ver
+                                            🔍 Ver Detalle
                                         </button>
-                                        <button onClick={() => handleCopyError(alertItem.mensaje_error)}>
-                                            📋 Copiar
+                                        <button onClick={() => handleCopyForAI(alertItem)}>
+                                            💬 Copiar para IA
                                         </button>
                                     </td>
                                 </tr>
@@ -158,26 +187,40 @@ export default function ErrorsPage() {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000
                 }}>
-                    <div className="window" style={{ width: '600px', maxWidth: '90%' }}>
+                    <div className="window" style={{ width: '650px', maxWidth: '90%' }}>
                         <div className="title-bar">
-                            <div className="title-bar-text">Detalle del Error - ID #{selectedAlert.id} ({selectedAlert.servicio})</div>
+                            <div className="title-bar-text">Detalle del Error - ID #{selectedAlert.id}</div>
                             <div className="title-bar-controls">
                                 <button aria-label="Close" onClick={() => setSelectedAlert(null)}></button>
                             </div>
                         </div>
                         <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                                <span><b>Servicio:</b> {selectedAlert.servicio}</span>
-                                <span><b>Ocurrido el:</b> {new Date(selectedAlert.creado_en).toLocaleString()}</span>
+                            <div className="status-bar" style={{ padding: '5px', marginBottom: 5, display: 'flex', justifyContent: 'space-between' }}>
+                                <p className="status-bar-field" style={{ margin: 0, padding: '2px 5px' }}><b>Servicio:</b> {selectedAlert.servicio}</p>
+                                <p className="status-bar-field" style={{ margin: 0, padding: '2px 5px' }}><b>Ocurrido el:</b> {new Date(selectedAlert.creado_en).toLocaleString()}</p>
                             </div>
                             
-                            <label>Mensaje de error y pila de llamadas (stack trace):</label>
+                            <div style={{ 
+                                padding: '10px', 
+                                border: '1px solid #d8000c', 
+                                backgroundColor: '#ffbaba', 
+                                color: '#d8000c', 
+                                fontFamily: 'monospace', 
+                                fontSize: '12px', 
+                                fontWeight: 'bold',
+                                wordBreak: 'break-word',
+                                whiteSpace: 'pre-wrap'
+                            }}>
+                                ⚠️ {parseError(selectedAlert.mensaje_error).title}
+                            </div>
+                            
+                            <label>Pila de llamadas (stack trace):</label>
                             <textarea 
                                 readOnly
-                                value={selectedAlert.mensaje_error}
+                                value={parseError(selectedAlert.mensaje_error).stackTrace || 'No hay stack trace disponible para este error.'}
                                 style={{ 
                                     width: '100%', 
-                                    height: '250px', 
+                                    height: '200px', 
                                     fontFamily: 'monospace', 
                                     fontSize: '11px', 
                                     whiteSpace: 'pre',
@@ -189,9 +232,12 @@ export default function ErrorsPage() {
                                 }}
                             />
 
-                            <div className="field-row" style={{ justifyContent: 'flex-end', gap: 10 }}>
+                            <div className="field-row" style={{ justifyContent: 'flex-end', gap: 10, marginTop: 5 }}>
+                                <button onClick={() => handleCopyForAI(selectedAlert)} style={{ fontWeight: 'bold', outline: '1px solid navy' }}>
+                                    💬 Copiar para el Chat (IA)
+                                </button>
                                 <button onClick={() => handleCopyError(selectedAlert.mensaje_error)}>
-                                    📋 Copiar Error
+                                    📋 Copiar Crudo
                                 </button>
                                 <button onClick={() => setSelectedAlert(null)}>
                                     Cerrar

@@ -192,12 +192,20 @@ function VozAdminContent({
                 <div className={styles.clock} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {errorCount > 0 && (
                         <Link href="/errors" title={`${errorCount} errores de sistema detectados`} style={{ display: 'flex', alignItems: 'center', marginRight: '5px' }}>
-                            <span 
+                            <svg 
+                                viewBox="0 0 24 24" 
+                                width="20" 
+                                height="20" 
                                 className={styles.flashingBell}
-                                style={{ fontSize: '1.2em', cursor: 'pointer' }}
+                                style={{ cursor: 'pointer' }}
                             >
-                                🔔
-                            </span>
+                                <path 
+                                    d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" 
+                                    fill="#ff0000" 
+                                    stroke="#000000" 
+                                    strokeWidth="1.5"
+                                />
+                            </svg>
                         </Link>
                     )}
                     <button
