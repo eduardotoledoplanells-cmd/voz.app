@@ -1,12 +1,18 @@
 import admin from 'firebase-admin';
-import serviceAccountJson from '../../service-account.json';
 
 // Inicializar Firebase Admin SDK si no está ya inicializado
 if (!admin.apps.length) {
     try {
-        const projectId = process.env.FIREBASE_PROJECT_ID || serviceAccountJson.project_id;
-        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || serviceAccountJson.client_email;
-        const privateKey = (process.env.FIREBASE_PRIVATE_KEY || serviceAccountJson.private_key)?.replace(/\\n/g, '\n');
+        let serviceAccountJson: any = null;
+        try {
+            serviceAccountJson = require('../../service-account.json');
+        } catch (e) {
+            // En producción en Vercel, usaremos las variables de entorno, por lo que no es crítico que no esté el json
+        }
+
+        const projectId = process.env.FIREBASE_PROJECT_ID || (serviceAccountJson ? serviceAccountJson.project_id : undefined);
+        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || (serviceAccountJson ? serviceAccountJson.client_email : undefined);
+        const privateKey = (process.env.FIREBASE_PRIVATE_KEY || (serviceAccountJson ? serviceAccountJson.private_key : undefined))?.replace(/\\n/g, '\n');
 
         if (projectId && clientEmail && privateKey) {
             admin.initializeApp({
