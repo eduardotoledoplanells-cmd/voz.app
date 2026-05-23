@@ -118,6 +118,10 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
             }
 
+            if (creator.privacySettings?.receive_pms === false) {
+                return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
+            }
+
             // 1. Process premium message via Ledger Contabilidad
             // BLINDAJE: El cliente DEBE enviar un UUID único para garantizar idempotencia sin ventana de colisión
             const idempotencyKey = body.idempotencyKey;

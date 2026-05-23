@@ -37,6 +37,10 @@ export async function POST(request: Request) {
             }
         }
 
+        if (receiver.privacySettings?.receive_gifts === false) {
+            return NextResponse.json({ error: 'Este creador ha desactivado la opción de recibir regalos.' }, { status: 400 });
+        }
+
         // 1. Process via Ledger
         const idempotencyKey = `gift-${sender.id}-${receiver.id}-${Date.now()}`;
         try {

@@ -18,6 +18,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
         }
 
+        if (creator.privacySettings?.receive_donations === false) {
+            return NextResponse.json({ error: 'Este creador ha desactivado la opción de recibir donaciones.' }, { status: 400 });
+        }
+
         const donationAmount = Number(amount);
         if (isNaN(donationAmount) || donationAmount <= 0) {
             return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });

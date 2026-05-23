@@ -50,6 +50,7 @@ export interface AppUser {
     phone?: string;
     earningsBalance?: number;
     notificationSettings?: any;
+    privacySettings?: any;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -208,7 +209,8 @@ export async function getAppUsers(): Promise<AppUser[]> {
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
-        notificationSettings: u.notification_settings || {}
+        notificationSettings: u.notification_settings || {},
+        privacySettings: u.privacy_settings || {}
     }));
 }
 
@@ -383,7 +385,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'push_token'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -411,6 +413,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.strikes !== undefined) dbUpdates.strikes = updates.strikes;
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
     if (updates.notificationSettings !== undefined) dbUpdates.notification_settings = updates.notificationSettings;
+    if (updates.privacySettings !== undefined) dbUpdates.privacy_settings = updates.privacySettings;
     if ((updates as any).pushToken !== undefined) dbUpdates.push_token = (updates as any).pushToken;
 
 
