@@ -107,10 +107,10 @@ Por favor, analiza este error y dime cómo solucionarlo.`;
                 </div>
             </div>
 
-            <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="sunken-panel" style={{ flex: 1, backgroundColor: '#000', color: '#00ff00', overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', color: '#00ff00' }}>
                     <thead>
-                        <tr style={{ textAlign: 'left', borderBottom: '1px solid black', position: 'sticky', top: 0, backgroundColor: '#c0c0c0', zIndex: 10 }}>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #00ff00', position: 'sticky', top: 0, backgroundColor: '#c0c0c0', color: 'black', zIndex: 10 }}>
                             <th style={{ padding: '8px', width: '180px' }}>Fecha y Hora</th>
                             <th style={{ padding: '8px', width: '120px' }}>Servicio</th>
                             <th style={{ padding: '8px' }}>Mensaje de Error / Stack Trace</th>
@@ -134,7 +134,7 @@ Por favor, analiza este error y dime cómo solucionarlo.`;
                             filteredAlerts.map((alertItem) => (
                                 <tr 
                                     key={alertItem.id} 
-                                    style={{ borderBottom: '1px solid #eee', cursor: 'pointer' }}
+                                    style={{ borderBottom: '1px solid #1a3a1a', cursor: 'pointer' }}
                                     onClick={() => setSelectedAlert(alertItem)}
                                     className="alert-row"
                                 >
@@ -225,9 +225,9 @@ Por favor, analiza este error y dime cómo solucionarlo.`;
                                     fontSize: '11px', 
                                     whiteSpace: 'pre',
                                     resize: 'none',
-                                    backgroundColor: '#fff',
-                                    color: '#000',
-                                    border: '1px solid #808080',
+                                    backgroundColor: '#000',
+                                    color: '#00ff00',
+                                    border: '1px solid #00ff00',
                                     padding: '5px'
                                 }}
                             />
