@@ -134,6 +134,10 @@ export default function CreatorsPage() {
                 return;
             }
             const emp = JSON.parse(stored);
+            if (!emp.id || !emp.username || !emp.password) {
+                showWin98Modal('Error', 'Tu sesión de empleado está incompleta o es antigua. Por favor, cierra sesión (Finalizar Jornada) en la pantalla principal y vuelve a acceder con un usuario válido.');
+                return;
+            }
 
             const response = await fetch('/api/voz/admin/approve-kyc', {
                 method: 'POST',
@@ -174,6 +178,10 @@ export default function CreatorsPage() {
                 return;
             }
             const emp = JSON.parse(stored);
+            if (!emp.id || !emp.username || !emp.password) {
+                showWin98Modal('Error', 'Tu sesión de empleado está incompleta o es antigua. Por favor, cierra sesión (Finalizar Jornada) en la pantalla principal y vuelve a acceder con un usuario válido.');
+                return;
+            }
 
             const response = await fetch('/api/voz/admin/update-creator-status', {
                 method: 'POST',

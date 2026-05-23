@@ -64,6 +64,11 @@ export default function WithdrawalsPage() {
                 return;
             }
             const emp = JSON.parse(stored);
+            if (!emp.id || !emp.username || !emp.password) {
+                setStatusMessage({ text: '🚨 Error: Tu sesión de empleado está incompleta o es antigua. Por favor, cierra sesión (Finalizar Jornada) en la pantalla principal e inicia sesión con un usuario válido.', type: 'error' });
+                setProcessingId(null);
+                return;
+            }
 
             const res = await fetch(`/api/voz/admin/approve-withdrawal`, {
                 method: 'POST',
