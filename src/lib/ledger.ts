@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Money } from './money';
+import { logSystemAlert } from './alerts';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { 
     auth: { persistSession: false } 
@@ -107,7 +109,9 @@ export async function getOrCreateUserWallet(userHandleOrId: string): Promise<str
             return retryWallets[0].id;
         }
         
-        throw new Error(`Failed to create wallet for user ${userHandleOrId}: ${JSON.stringify(insError)}`);
+        const errMsg = `Failed to create wallet for user ${userHandleOrId}: ${JSON.stringify(insError)}`;
+        await logSystemAlert('Ledger', errMsg);
+        throw new Error(errMsg);
     }
 
     return newWallet.id;
@@ -140,6 +144,7 @@ export async function executeLedgerTransaction(
 
     if (error) {
         console.error(`[LEDGER TRANSACTION ERROR] Type: ${type}, Key: ${idempotencyKey}. Error:`, error);
+        await logSystemAlert('Ledger', `Ledger transaction error (Type: ${type}, Reference ID: ${referenceId}, Key: ${idempotencyKey}): ${error.message} (${error.details || ''})`);
         throw new Error(error.message);
     }
 

@@ -24,7 +24,8 @@ const TRANSLATIONS = {
   }
 };
 
-export default function Home({ searchParams }: { searchParams: { lang?: string } }) {
+export default async function Home(props: { searchParams: Promise<{ lang?: string }> }) {
+  const searchParams = await props.searchParams;
   const lang = (searchParams.lang || 'es') as keyof typeof TRANSLATIONS;
   const t = TRANSLATIONS[lang] || TRANSLATIONS.es;
 

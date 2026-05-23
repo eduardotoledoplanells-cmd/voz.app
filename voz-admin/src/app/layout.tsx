@@ -18,6 +18,7 @@ function VozAdminContent({
     const [isStartOpen, setIsStartOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState('');
     const [windowState, setWindowState] = useState<'normal' | 'maximized' | 'minimized'>('normal');
+    const [errorCount, setErrorCount] = useState(0);
 
     useEffect(() => {
         const storedEmployee = localStorage.getItem('vozEmployee');
@@ -46,6 +47,22 @@ function VozAdminContent({
             setCurrentTime(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }, 1000);
         return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        const fetchErrorCount = () => {
+            fetch('/api/voz/admin/alerts')
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setErrorCount(data.length);
+                    }
+                })
+                .catch(err => console.error('Error fetching alerts count:', err));
+        };
+        fetchErrorCount();
+        const interval = setInterval(fetchErrorCount, 30000); // Check every 30 seconds
+        return () => clearInterval(interval);
     }, []);
 
     const [isInactiveActive, setIsInactiveActive] = useState(false);
@@ -83,6 +100,7 @@ function VozAdminContent({
         { href: '/withdrawals', label: '🏦 Gestión de Cobros', roles: [1, 2, 5, 6] },
         { href: '/hr', label: '👥 Recursos Humanos', roles: [1] },
         { href: '/logs', label: '📜 Logs del Director', roles: [1] },
+        { href: '/errors', label: '🔔 Errores de Sistema', roles: [1, 2, 5, 6] },
     ];
 
     const currentRole = employee ? Number(employee.role) : 1;
@@ -171,7 +189,17 @@ function VozAdminContent({
                     </button>
                 )}
 
-                <div className={styles.clock} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className={styles.clock} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {errorCount > 0 && (
+                        <Link href="/errors" title={`${errorCount} errores de sistema detectados`} style={{ display: 'flex', alignItems: 'center', marginRight: '5px' }}>
+                            <span 
+                                className={styles.flashingBell}
+                                style={{ fontSize: '1.2em', cursor: 'pointer' }}
+                            >
+                                🔔
+                            </span>
+                        </Link>
+                    )}
                     <button
                         onClick={() => {
                             if (employee) {

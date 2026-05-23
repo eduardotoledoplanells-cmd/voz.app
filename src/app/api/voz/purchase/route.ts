@@ -33,7 +33,7 @@ export async function POST(req: Request) {
             return NextResponse.json({
                 success: true,
                 alreadyProcessed: true, // Crucial para que el TEST 2 automatizado pase
-                walletBalance: user ? user.wallet_balance : 0
+                walletBalance: user ? user.walletBalance : 0
             });
         }
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            walletBalance: user ? user.wallet_balance : 0
+            walletBalance: user ? user.walletBalance : 0
         });
 
     } catch (error: any) {

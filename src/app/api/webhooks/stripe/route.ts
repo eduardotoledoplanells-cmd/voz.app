@@ -4,6 +4,7 @@ import { stripe } from '@/lib/stripe';
 import { getAppUsers, supabaseAdmin } from '@/lib/db';
 import { processCoinPurchase } from '@/lib/ledger';
 import { Money } from '@/lib/money';
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
 
     if (!webhookSecret) {
         console.error('STRIPE_WEBHOOK_SECRET is not configured');
+        await logSystemAlert('Stripe', 'STRIPE_WEBHOOK_SECRET is not configured');
         return NextResponse.json({ error: 'Webhook configuration error' }, { status: 500 });
     }
 
@@ -28,6 +30,7 @@ export async function POST(request: Request) {
         event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
         console.error('Webhook signature verification failed:', err.message);
+        await logSystemAlert('Stripe', `Webhook signature verification failed: ${err.message}`);
         return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
     }
 
@@ -57,14 +60,16 @@ export async function POST(request: Request) {
                 const failedPayment = event.data.object as Stripe.PaymentIntent;
                 if (failedPayment.metadata.type === 'coin_purchase') {
                     console.error(`❌ Coin purchase failed for user ${failedPayment.metadata.userId}`);
+                    await logSystemAlert('Stripe', `Coin purchase PaymentIntent failed: ${failedPayment.last_payment_error?.message || 'Unknown payment error'} (User: ${failedPayment.metadata.userId})`);
                 }
                 break;
 
             default:
                 console.log(`Unhandled event type: ${event.type}`);
         }
-    } catch (handlerError) {
+    } catch (handlerError: any) {
         console.error('Error handling webhook event:', handlerError);
+        await logSystemAlert('Stripe', `Error handling webhook event (${event.type}): ${handlerError.message}`);
         // Still return 200 OK to Stripe to avoid retries/timeouts if the error is internal
         return NextResponse.json({ received: true, error: 'Internal handler error' });
     }
@@ -77,6 +82,7 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
 
     if (!userId || !coins) {
         console.error('Missing coin purchase metadata');
+        await logSystemAlert('Stripe', `Missing coin purchase metadata (userId or coins) in PaymentIntent ${paymentIntent.id}`);
         return;
     }
 
@@ -103,14 +109,17 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
                     }
                 );
                 console.log(`✅ Ledger transaction succeeded: Credited ${coinsMoney.toCoins()} coins to user ${user.id}.`);
-            } catch (ledgerError) {
+            } catch (ledgerError: any) {
                 console.error(`❌ Ledger transaction failed for user ${user.id}:`, ledgerError);
+                await logSystemAlert('Stripe', `Ledger coin credit failed for user ${user.id} (PaymentIntent ${paymentIntent.id}): ${ledgerError.message}`);
             }
         } else {
             console.error(`User ${userId} or handle ${userHandle} not found in Supabase`);
+            await logSystemAlert('Stripe', `User ${userId} (handle ${userHandle}) not found in Supabase for PaymentIntent ${paymentIntent.id}`);
         }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating coin balance:', error);
+        await logSystemAlert('Stripe', `Error updating coin balance for PaymentIntent ${paymentIntent.id}: ${error.message}`);
     }
 }

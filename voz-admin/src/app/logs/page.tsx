@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import '98.css';
 
 export default function DirectorLogsPage() {
-    const [activeTab, setActiveTab] = useState<'logs' | 'staff' | 'moderation'>('logs');
+    const [activeTab, setActiveTab] = useState<'logs' | 'staff' | 'moderation' | 'alerts'>('logs');
     const [moderationStats, setModerationStats] = useState<any>({ productivity: [], inactivity: [] });
     const [logs, setLogs] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
+    const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -37,6 +38,7 @@ export default function DirectorLogsPage() {
         let endpoint = '/api/voz/logs';
         if (activeTab === 'staff') endpoint = '/api/voz/employees';
         if (activeTab === 'moderation') endpoint = '/api/voz/moderation/stats';
+        if (activeTab === 'alerts') endpoint = '/api/voz/admin/alerts';
 
         fetch(endpoint)
             .then(res => res.json())
@@ -44,6 +46,7 @@ export default function DirectorLogsPage() {
                 if (activeTab === 'logs' && Array.isArray(data)) setLogs(data);
                 else if (activeTab === 'staff' && Array.isArray(data)) setEmployees(data);
                 else if (activeTab === 'moderation') setModerationStats(data);
+                else if (activeTab === 'alerts' && Array.isArray(data)) setAlerts(data);
 
                 setLoading(false);
             })
@@ -80,13 +83,18 @@ export default function DirectorLogsPage() {
             });
     };
 
+    const handleCopyError = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert('Código de error copiado al portapapeles.');
+    };
+
     const filteredLogs = logs.filter(log =>
         log.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    if (loading && logs.length === 0 && employees.length === 0)
+    if (loading && logs.length === 0 && employees.length === 0 && alerts.length === 0)
         return <div style={{ padding: 10 }}>Cargando datos del sistema...</div>;
 
     return (
@@ -100,6 +108,9 @@ export default function DirectorLogsPage() {
                 </li>
                 <li role="tab" className={activeTab === 'moderation' ? 'active' : ''}>
                     <a href="#moderation" onClick={() => setActiveTab('moderation')}>Supervisión Moderación</a>
+                </li>
+                <li role="tab" className={activeTab === 'alerts' ? 'active' : ''}>
+                    <a href="#alerts" onClick={() => setActiveTab('alerts')}>Alertas del Sistema</a>
                 </li>
             </menu>
 
@@ -206,6 +217,64 @@ export default function DirectorLogsPage() {
                                         ))
                                     ) : (
                                         <tr><td colSpan={3} style={{ padding: '10px', textAlign: 'center', color: 'green' }}>¡Excelente! No hay alertas de inactividad recientes.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : activeTab === 'alerts' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <div className="field-row" style={{ marginBottom: 10 }}>
+                            <button onClick={fetchData}>Actualizar Alertas</button>
+                        </div>
+                        <div className="sunken-panel" style={{ flex: 1, backgroundColor: 'white', overflow: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid black', position: 'sticky', top: 0, backgroundColor: '#c0c0c0' }}>
+                                        <th style={{ padding: '8px', width: '180px' }}>Fecha y Hora</th>
+                                        <th style={{ padding: '8px', width: '120px' }}>Servicio</th>
+                                        <th style={{ padding: '8px' }}>Mensaje de Error</th>
+                                        <th style={{ padding: '8px', width: '120px', textAlign: 'center' }}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {alerts.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'gray' }}>
+                                                {loading ? 'Cargando alertas...' : 'No se encontraron alertas en el sistema.'}
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        alerts.map((alertItem) => (
+                                            <tr key={alertItem.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>
+                                                    {new Date(alertItem.creado_en).toLocaleString()}
+                                                </td>
+                                                <td style={{ padding: '8px' }}>
+                                                    <span style={{
+                                                        padding: '2px 6px',
+                                                        borderRadius: '3px',
+                                                        backgroundColor: 
+                                                            alertItem.servicio === 'Stripe' ? '#6772e5' : 
+                                                            alertItem.servicio === 'Ledger' ? '#2e7d32' : 
+                                                            alertItem.servicio === 'KYC' ? '#e65100' : '#1565c0',
+                                                        color: 'white',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '11px'
+                                                    }}>
+                                                        {alertItem.servicio}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '8px', fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                                                    {alertItem.mensaje_error}
+                                                </td>
+                                                <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                    <button onClick={() => handleCopyError(alertItem.mensaje_error)} style={{ minWidth: '90px' }}>
+                                                        Copiar Error
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
                                     )}
                                 </tbody>
                             </table>

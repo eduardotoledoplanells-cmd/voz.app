@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logSystemAlert } from '@/lib/alerts';
 
 // Use Anon Key for server-side uploads since the media bucket is configured for public inserts
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -72,6 +73,8 @@ export async function POST(request: Request) {
 
         if (uploadError) {
             console.error('Supabase storage error:', uploadError);
+            const service = targetBucket === 'kyc_documents' ? 'KYC' : 'Upload';
+            await logSystemAlert(service, `Storage upload failed (File: ${fileName}): ${uploadError.message}`);
             return NextResponse.json({
                 error: 'Failed to upload to storage',
                 message: uploadError.message,
@@ -93,8 +96,9 @@ export async function POST(request: Request) {
             size: file.size
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Upload error:', error);
+        await logSystemAlert('Upload', `Upload process error: ${error.message}`);
         return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
     }
 }
