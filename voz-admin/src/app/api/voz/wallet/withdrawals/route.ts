@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, addNotification } from '@/lib/db';
-import { executeLedgerTransaction, SYSTEM_WALLETS } from '@/lib/ledger';
+import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from '@/lib/ledger';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '', {
@@ -67,11 +67,16 @@ export async function POST(request: Request) {
         });
 
         // 5. Restar fondos en la base de datos (ledger)
+        const userWalletId = await getOrCreateUserWallet(userId);
+        
         await executeLedgerTransaction(
-            userId,
-            SYSTEM_WALLETS.WITHDRAWAL, // o un wallet de "STRIPE_PAYOUT"
-            amount,
-            'withdrawal',
+            'WITHDRAWAL',
+            [
+                { wallet_id: userWalletId, entry_type: 'PENDING', amount: -amount },
+                { wallet_id: SYSTEM_WALLETS.EXTERNAL_WORLD.id, entry_type: 'AVAILABLE', amount: amount }
+            ],
+            transfer.id,
+            `wd_${transfer.id}`,
             { 
                 stripe_transfer_id: transfer.id,
                 net_amount: creatorNet,
@@ -96,7 +101,15 @@ export async function POST(request: Request) {
             }]);
 
         // Notificar al usuario
-        await addNotification(userId, 'Retiro Completado', `Tu retiro de $${amount} ha sido transferido a tu cuenta bancaria (Neto: $${creatorNet}). El procesamiento depende de tu banco.`);
+        await addNotification({
+            id: Date.now().toString(),
+            recipientId: userId,
+            type: 'system',
+            title: 'Retiro Completado',
+            message: `Tu retiro de $${amount} ha sido transferido a tu cuenta bancaria (Neto: $${creatorNet}). El procesamiento depende de tu banco.`,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
 
         return NextResponse.json({ success: true, transfer_id: transfer.id, net_amount: creatorNet });
     } catch (error: any) {
