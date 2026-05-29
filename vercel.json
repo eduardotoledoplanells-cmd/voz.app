@@ -3,6 +3,10 @@
         {
             "path": "/api/voz/cron/clean-videos",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/health",
+            "schedule": "*/10 * * * *"
         }
     ]
 }
