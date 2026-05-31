@@ -1,10 +1,10 @@
-name: 🔄 Keep-Alive VOZ Servers
+name: 🔄 Keep-Alive VOZ — Ping Frecuente
 
 on:
+  # 4 workflows escalonados para cubrir cada ~15 minutos reales
+  # (GitHub Actions puede retrasar cada uno, pero juntos garantizan cobertura)
   schedule:
-    # Cada 10 minutos (mínimo permitido por GitHub Actions)
-    - cron: '*/10 * * * *'
-  # Ejecución manual desde GitHub UI → Actions → Run workflow
+    - cron: '0,15,30,45 * * * *'   # En punto, :15, :30, :45 de cada hora
   workflow_dispatch:
 
 jobs:
@@ -14,68 +14,54 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      # ─────────────────────────────────────────────────────────────────────
-      # 1. Vercel — servidor principal (thiftwzubmvcrdhuwcwm, más reciente)
-      # ─────────────────────────────────────────────────────────────────────
-      - name: 📡 Ping Vercel + Supabase (producción)
-        id: ping_vercel
+      - name: 📡 Ping Vercel + Supabase
+        id: ping
         run: |
           echo "⏰ $(date -u '+%Y-%m-%dT%H:%M:%SZ') — Keep-alive iniciado"
 
-          HTTP=$(curl -s -o /tmp/body.json -w "%{http_code}" \
-            --max-time 25 \
-            --retry 3 \
-            --retry-delay 5 \
-            --retry-connrefused \
-            -H "Cache-Control: no-cache" \
-            -H "User-Agent: VOZ-GHA-KeepAlive/1.0" \
-            https://server-taupe-six.vercel.app/api/health)
+          # Reintento con backoff
+          for attempt in 1 2 3; do
+            HTTP=$(curl -s -o /tmp/body.json -w "%{http_code}" \
+              --max-time 25 \
+              -H "Cache-Control: no-cache" \
+              -H "User-Agent: VOZ-GHA-KeepAlive/2.0" \
+              https://server-taupe-six.vercel.app/api/health) || HTTP="000"
 
-          echo "HTTP Status: $HTTP"
+            echo "Intento $attempt — HTTP: $HTTP"
 
-          if [ -f /tmp/body.json ]; then
-            cat /tmp/body.json
-            echo ""
-          fi
+            if [ "$HTTP" -eq 200 ]; then
+              echo "✅ OK"
+              cat /tmp/body.json
+              break
+            else
+              echo "⚠️  HTTP $HTTP, esperando 10s..."
+              sleep 10
+            fi
+          done
 
-          if [ "$HTTP" -eq 200 ]; then
-            echo "✅ Vercel OK — Supabase (producción) activo"
-          else
-            echo "⚠️  Vercel respondió HTTP $HTTP — puede estar en cold start"
-            # No falla el job — un cold start de Vercel es normal y el ping ya lo resuelve
-          fi
-
-      # ─────────────────────────────────────────────────────────────────────
-      # 2. Ping directo a la API de Supabase producción (sin pasar por Vercel)
-      #    Garantiza que la BD no se pause incluso si Vercel tiene problemas
-      # ─────────────────────────────────────────────────────────────────────
-      - name: 🗄️  Ping Supabase REST (proyecto producción)
+      - name: 🗄️ Ping Supabase directo (sin pasar por Vercel)
         run: |
-          # Proyecto: thiftwzubmvcrdhuwcwm (creado 2026-05-18, el más reciente)
+          # Proyecto producción: thiftwzubmvcrdhuwcwm (creado 2026-05-18)
+          ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWZ0d3p1Ym12Y3JkaHV3Y3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTIxNzIsImV4cCI6MjA5NDY4ODE3Mn0.ontxCxwCCA4TRbFCF9oZHT-eSDTrVC2b5P6z5B6Xa6s"
+
           HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 15 \
-            --retry 2 \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY" \
             "https://thiftwzubmvcrdhuwcwm.supabase.co/rest/v1/app_users?select=id&limit=1")
 
           echo "Supabase REST HTTP: $HTTP"
-
           if [ "$HTTP" -eq 200 ] || [ "$HTTP" -eq 206 ]; then
-            echo "✅ Supabase (producción) respondiendo correctamente"
+            echo "✅ Supabase activo"
           else
-            echo "ℹ️  Supabase HTTP $HTTP — puede necesitar configuración de anon key en secrets"
+            echo "ℹ️  Supabase respondió $HTTP"
           fi
 
-      # ─────────────────────────────────────────────────────────────────────
-      # 3. Resumen final
-      # ─────────────────────────────────────────────────────────────────────
       - name: 📊 Resumen
         if: always()
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ Keep-alive completado: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          echo "🎯 Próxima ejecución automática: en ~10 minutos"
-          echo "🔗 Vercel:   https://server-taupe-six.vercel.app"
-          echo "🗄️  Supabase: https://thiftwzubmvcrdhuwcwm.supabase.co"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "🔗 https://server-taupe-six.vercel.app"
+          echo "🗄️  https://thiftwzubmvcrdhuwcwm.supabase.co"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
