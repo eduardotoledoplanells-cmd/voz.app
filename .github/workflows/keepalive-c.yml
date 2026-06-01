@@ -1,0 +1,31 @@
+name: 🔄 Keep-Alive VOZ — Turno C (offset +8min)
+
+on:
+  schedule:
+    # Turno C: minutos 8,18,28,38,48,58
+    # Con A(0,10,20...) y B(3,13,23...) → 18 disparos/hora → gap teórico ~3.3min
+    - cron: '8,18,28,38,48,58 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive-c:
+    name: Ping VOZ (C)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: 📡 Ping Vercel + Supabase
+        run: |
+          # Vercel
+          HTTP=$(curl -sf -o /tmp/b.json -w "%{http_code}" --max-time 20 \
+            -H "Cache-Control: no-cache" -H "User-Agent: VOZ-GHA-C/2.0" \
+            https://server-taupe-six.vercel.app/api/health 2>/dev/null) || HTTP="000"
+          echo "$(date -u '+%H:%M:%SZ') Vercel HTTP:$HTTP"
+          [ -f /tmp/b.json ] && cat /tmp/b.json || true
+
+          # Supabase directo
+          ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWZ0d3p1Ym12Y3JkaHV3Y3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTIxNzIsImV4cCI6MjA5NDY4ODE3Mn0.ontxCxwCCA4TRbFCF9oZHT-eSDTrVC2b5P6z5B6Xa6s"
+          SB=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" \
+            "https://thiftwzubmvcrdhuwcwm.supabase.co/rest/v1/app_users?select=id&limit=1")
+          echo "Supabase HTTP:$SB"
