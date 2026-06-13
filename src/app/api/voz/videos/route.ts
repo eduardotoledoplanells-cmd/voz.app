@@ -67,16 +67,18 @@ export async function POST(request: NextRequest) {
 
         const savedVideo = await addVideo(newVideo);
 
+        // Si llegamos aquí, el vídeo se guardó correctamente en la DB
         return corsHeaders(NextResponse.json({
             success: true,
-            video: savedVideo || newVideo
+            video: savedVideo
         }));
 
     } catch (error) {
         console.error("Error creating video post:", error);
         return corsHeaders(NextResponse.json({
             success: false,
-            error: (error as Error).message || "Internal Server Error"
+            error: 'No se pudo guardar el vídeo en el servidor.',
+            details: (error as Error).message || "Internal Server Error"
         }, { status: 500 }));
     }
 }

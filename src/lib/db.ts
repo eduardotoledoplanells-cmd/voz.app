@@ -113,6 +113,7 @@ export interface Campaign {
     startDate?: string;
     endDate?: string;
     forceView: boolean;
+    minViewTime?: number;
     target: string;
     impressions: number;
     createdAt: string;
@@ -212,6 +213,142 @@ export async function getAppUsers(): Promise<AppUser[]> {
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {}
     }));
+}
+
+export async function getUserById(id: string): Promise<AppUser | null> {
+    const { data: u, error } = await supabaseAdmin
+        .from('app_users')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error || !u) return null;
+
+    return {
+        id: u.id,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        handle: u.handle,
+        userHandle: u.handle,
+        dni: u.dni,
+        iban: u.iban,
+        paymentInfo: u.payment_info,
+        email: u.email,
+        password: u.password,
+        status: u.status,
+        walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
+        joinedAt: u.joined_at,
+        bio: u.bio,
+        profileImage: u.profile_image,
+        isCreator: u.is_creator,
+        resetPin: u.reset_pin,
+        strikes: u.strikes || 0,
+        phone: u.phone,
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
+        notificationSettings: u.notification_settings || {},
+        privacySettings: u.privacy_settings || {}
+    } as any;
+}
+
+export async function getUserByHandle(handle: string): Promise<AppUser | null> {
+    const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    const rawHandle = handle.replace('@', '');
+    const { data: u, error } = await supabaseAdmin
+        .from('app_users')
+        .select('*')
+        .or(`handle.ilike."${cleanHandle}",handle.ilike."${rawHandle}"`)
+        .maybeSingle();
+
+    if (error || !u) return null;
+
+    return {
+        id: u.id,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        handle: u.handle,
+        userHandle: u.handle,
+        dni: u.dni,
+        iban: u.iban,
+        paymentInfo: u.payment_info,
+        email: u.email,
+        password: u.password,
+        status: u.status,
+        walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
+        joinedAt: u.joined_at,
+        bio: u.bio,
+        profileImage: u.profile_image,
+        isCreator: u.is_creator,
+        resetPin: u.reset_pin,
+        strikes: u.strikes || 0,
+        phone: u.phone,
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
+        notificationSettings: u.notification_settings || {},
+        privacySettings: u.privacy_settings || {}
+    } as any;
+}
+
+export async function getUserByEmail(email: string): Promise<AppUser | null> {
+    const { data: u, error } = await supabaseAdmin
+        .from('app_users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+    if (error || !u) return null;
+
+    return {
+        id: u.id,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        handle: u.handle,
+        userHandle: u.handle,
+        dni: u.dni,
+        iban: u.iban,
+        paymentInfo: u.payment_info,
+        email: u.email,
+        password: u.password,
+        status: u.status,
+        walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
+        joinedAt: u.joined_at,
+        bio: u.bio,
+        profileImage: u.profile_image,
+        isCreator: u.is_creator,
+        resetPin: u.reset_pin,
+        strikes: u.strikes || 0,
+        phone: u.phone,
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
+        notificationSettings: u.notification_settings || {},
+        privacySettings: u.privacy_settings || {}
+    } as any;
+}
+
+export async function getUserByIdOrHandleOrEmail(id?: string, handle?: string, email?: string): Promise<AppUser | null> {
+    if (id) {
+        return await getUserById(id);
+    }
+    if (email) {
+        return await getUserByEmail(email);
+    }
+    if (handle) {
+        let user = await getUserByHandle(handle);
+        if (user) return user;
+
+        const clean = handle.replace(/[@_.\s]/g, '');
+        const { data: users, error } = await supabaseAdmin
+            .from('app_users')
+            .select('*')
+            .limit(100);
+        
+        if (!error && users) {
+            const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
+            const searchNormalized = clean.toLowerCase();
+            const found = users.find(u => normalize(u.handle) === searchNormalized);
+            if (found) {
+                return await getUserById(found.id);
+            }
+        }
+    }
+    return null;
 }
 
 async function getSignedKycUrl(urlOrPath: string | undefined): Promise<string | undefined> {
@@ -1035,6 +1172,7 @@ export interface Notification {
     message: string;
     timestamp: string;
     readStatus: boolean;
+    referenceId?: string;
 }
 
 export async function getNotifications(recipientId?: string): Promise<Notification[]> {
@@ -1171,6 +1309,7 @@ export async function getCampaigns(): Promise<Campaign[]> {
         startDate: c.start_date,
         endDate: c.end_date,
         forceView: c.force_view,
+        minViewTime: c.min_view_time || 0,
         createdAt: c.created_at
     }));
 }
@@ -1187,6 +1326,7 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
         start_date: campaign.startDate,
         end_date: campaign.endDate,
         force_view: campaign.forceView,
+        min_view_time: campaign.minViewTime || 0,
         target: campaign.target,
         investment: (campaign as any).investment || 0
     }]).select().single();
@@ -1447,9 +1587,22 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
         bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
     }
 
+    // Fetch active campaigns to merge force_view and min_view_time
+    let campaignsMap = new Map();
+    try {
+        const { data: camps } = await supabaseAdmin
+            .from('campaigns')
+            .select('id, force_view, min_view_time')
+            .eq('status', 'active');
+        camps?.forEach(c => campaignsMap.set(c.id, c));
+    } catch (err) {
+        console.error("[db] Error fetching active campaigns for metadata:", err);
+    }
+
     // 4. Merge data
     return (scoredVideos as any[]).map(v => {
         const u: any = userMap.get(v.user_handle) || {};
+        const campMeta = v.is_ad ? campaignsMap.get(v.id) : null;
         return {
             id: v.id,
             videoUrl: v.video_url,
@@ -1465,11 +1618,14 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             thumbnailUrl: v.thumbnail_url,
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
+            commentsEnabled: v.comments_enabled !== false, // true por defecto si la columna no existe aún
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
             isBookmarkedByMe: bookmarkedSet.has(v.id),
-            score: v._score || v.score // Soporte para JS y RPC score
+            score: v._score || v.score, // Soporte para JS y RPC score
+            forceView: campMeta ? campMeta.force_view : (v.force_view || false),
+            minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0)
         };
     });
 }
@@ -1536,6 +1692,7 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
             thumbnailUrl: v.thumbnail_url,
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
+            commentsEnabled: v.comments_enabled !== false, // true por defecto si la columna no existe aún
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
@@ -1566,7 +1723,7 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
 
     if (error) {
         console.error('Error adding video:', error);
-        return null;
+        throw new Error(`Database failure: ${error.message || JSON.stringify(error)}`);
     }
 
     return {
