@@ -37,6 +37,8 @@ export interface AppUser {
     dni?: string;
     iban?: string;
     paymentInfo?: any;
+    privacySettings?: any;
+    stripeAccountId?: string;
     bio?: string;
     profileImage?: string;
     profileColor?: string;
@@ -186,18 +188,25 @@ export async function getAppUsers(): Promise<AppUser[]> {
     if (error) {
         throw new Error("Supabase error: " + JSON.stringify(error));
     }
-    return data.map(u => ({
-        id: u.id,
-        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
-        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
-        handle: u.handle,
-        userHandle: u.handle, // For Creator interface compatibility
-        dni: u.dni,
-        iban: u.iban,
-        paymentInfo: u.payment_info,
-        email: u.email,
-        password: u.password,
-        status: u.status,
+    return data.map(u => {
+        let pInfo = u.payment_info;
+        if (typeof pInfo === 'string') {
+            try { pInfo = JSON.parse(pInfo); } catch(e){}
+        }
+        return {
+            id: u.id,
+            name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+            realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
+            handle: u.handle,
+            userHandle: u.handle, // For Creator interface compatibility
+            dni: u.dni,
+            iban: u.iban,
+            paymentInfo: pInfo,
+            privacySettings: pInfo?.privacySettings || {},
+            stripeAccountId: u.stripe_account_id,
+            email: u.email,
+            password: u.password,
+            status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
         bio: u.bio,
@@ -207,7 +216,8 @@ export async function getAppUsers(): Promise<AppUser[]> {
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance)
-    }));
+        };
+    });
 }
 
 async function getSignedKycUrl(urlOrPath: string | undefined): Promise<string | undefined> {

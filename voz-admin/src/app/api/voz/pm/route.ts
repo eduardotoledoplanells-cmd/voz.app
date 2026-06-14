@@ -74,24 +74,39 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Lógica para iniciar un nuevo chat (Cobro de 5 monedas)
+        // 3. Lógica para iniciar un nuevo chat (Cobro de 5 monedas o gratis si charge_pms === false)
         if (action === 'start') {
             if (!creatorHandle) return NextResponse.json({ success: false, error: 'Falta creatorHandle' }, { status: 400 });
 
             try {
-                const senderWalletId = await getOrCreateUserWallet(senderHandle);
-                const creatorWalletId = await getOrCreateUserWallet(creatorHandle);
+                let isFree = false;
+                const users = await getAppUsers();
+                const targetUser = users.find(u => u.handle === creatorHandle);
+                if (targetUser && targetUser.paymentInfo) {
+                    let pInfo = targetUser.paymentInfo;
+                    if (typeof pInfo === 'string') {
+                        try { pInfo = JSON.parse(pInfo); } catch (e) {}
+                    }
+                    if (pInfo?.privacySettings?.charge_pms === false) {
+                        isFree = true;
+                    }
+                }
 
-                await executeLedgerTransaction(
-                    'PM_PAYMENT',
-                    [
-                        { wallet_id: senderWalletId, entry_type: 'AVAILABLE', amount: -5 },
-                        { wallet_id: creatorWalletId, entry_type: 'AVAILABLE', amount: 5 }
-                    ],
-                    null,
-                    idempotencyKey ? `payment-${idempotencyKey}` : null,
-                    { description: `PM Init from ${senderHandle} to ${creatorHandle}` }
-                );
+                if (!isFree) {
+                    const senderWalletId = await getOrCreateUserWallet(senderHandle);
+                    const creatorWalletId = await getOrCreateUserWallet(creatorHandle);
+
+                    await executeLedgerTransaction(
+                        'PM_PAYMENT',
+                        [
+                            { wallet_id: senderWalletId, entry_type: 'AVAILABLE', amount: -5 },
+                            { wallet_id: creatorWalletId, entry_type: 'AVAILABLE', amount: 5 }
+                        ],
+                        null,
+                        idempotencyKey ? `payment-${idempotencyKey}` : null,
+                        { description: `PM Init from ${senderHandle} to ${creatorHandle}` }
+                    );
+                }
             } catch (err: any) {
                 // Si el error NO es de idempotencia (doble cobro evitado), rechazamos por falta de fondos
                 if (!err.message?.includes('idempotency')) {

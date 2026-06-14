@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateAppUser } from "@/lib/db";
+import { updateAppUser, getAppUsers } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, profile_color, profileColor } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, profileColor, privacySettings } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, profileColor }));
+        console.log(`[API Update] Payload:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, profileColor, privacySettings }));
 
         if (!id) {
             console.error("[API Update] Error: Missing user ID in request body");
@@ -25,6 +25,22 @@ export async function POST(request: NextRequest) {
         }
         if (profile_color || profileColor) {
             updates.profileColor = profile_color || profileColor;
+        }
+
+        if (privacySettings !== undefined) {
+            // Merge with existing paymentInfo
+            const currentUser = await getAppUsers().then(users => users.find(u => u.id === id));
+            let currentPaymentInfo = currentUser?.paymentInfo || {};
+            if (typeof currentPaymentInfo === 'string') {
+                try { currentPaymentInfo = JSON.parse(currentPaymentInfo); } catch(e) {}
+            }
+            updates.payment_info = {
+                ...currentPaymentInfo,
+                privacySettings: {
+                    ...(currentPaymentInfo.privacySettings || {}),
+                    ...privacySettings
+                }
+            };
         }
 
         const updated = await updateAppUser(id, updates);
