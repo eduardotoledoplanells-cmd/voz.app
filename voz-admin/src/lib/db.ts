@@ -39,6 +39,7 @@ export interface AppUser {
     paymentInfo?: any;
     bio?: string;
     profileImage?: string;
+    profileColor?: string;
     isCreator?: boolean;
     status: 'active' | 'banned' | 'verified';
     walletBalance?: number;
@@ -109,6 +110,7 @@ export interface Campaign {
     startDate?: string;
     endDate?: string;
     forceView: boolean;
+    minViewTime?: number;
     target: string;
     impressions: number;
     createdAt: string;
@@ -379,7 +381,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
+    const allowedKeys = ['name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -396,6 +398,9 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.profileImage !== undefined || (updates as any).profile_image !== undefined) {
         dbUpdates.profile_image = updates.profileImage || (updates as any).profile_image;
+    }
+    if (updates.profileColor !== undefined || (updates as any).profile_color !== undefined) {
+        dbUpdates.profile_color = updates.profileColor || (updates as any).profile_color;
     }
     if (updates.isCreator !== undefined) dbUpdates.is_creator = updates.isCreator;
     if (updates.password !== undefined) dbUpdates.password = updates.password;
@@ -1032,6 +1037,7 @@ export async function getCampaigns(): Promise<Campaign[]> {
         startDate: c.start_date,
         endDate: c.end_date,
         forceView: c.force_view,
+        minViewTime: c.min_view_time || 0,
         createdAt: c.created_at
     }));
 }
@@ -1048,6 +1054,7 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
         start_date: campaign.startDate,
         end_date: campaign.endDate,
         force_view: campaign.forceView,
+        min_view_time: campaign.minViewTime || 0,
         target: campaign.target,
         investment: (campaign as any).investment || 0
     }]).select().single();

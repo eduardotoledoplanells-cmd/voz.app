@@ -4,10 +4,10 @@ import { updateAppUser } from "@/lib/db";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, profileColor } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload:`, JSON.stringify({ handle, name, bio, profile_image, profileImage }));
+        console.log(`[API Update] Payload:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, profileColor }));
 
         if (!id) {
             console.error("[API Update] Error: Missing user ID in request body");
@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
         // Handle both snake_case and camelCase
         if (profile_image || profileImage) {
             updates.profileImage = profile_image || profileImage;
+        }
+        if (profile_color || profileColor) {
+            updates.profileColor = profile_color || profileColor;
         }
 
         const updated = await updateAppUser(id, updates);
