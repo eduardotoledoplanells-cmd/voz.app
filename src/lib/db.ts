@@ -51,6 +51,8 @@ export interface AppUser {
     earningsBalance?: number;
     notificationSettings?: any;
     privacySettings?: any;
+    is_live?: boolean;
+    live_url?: string | null;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -181,6 +183,7 @@ export interface VideoPost {
     isMuted?: boolean;
     userName?: string;
     userImage?: string;
+    is_processed?: boolean;
 }
 
 // --- App Users / Creators ---
@@ -238,15 +241,21 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
-        bio: u.bio,
         profileImage: u.profile_image,
+        profile_color: u.profile_color,
         isCreator: u.is_creator,
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {}
+        privacySettings: u.privacy_settings || {},
+        stripeAccountId: u.stripe_account_id,
+        stripe_account_id: u.stripe_account_id,
+        stripeOnboardingComplete: u.stripe_onboarding_complete,
+        stripe_onboarding_complete: u.stripe_onboarding_complete,
+        is_live: u.is_live,
+        live_url: u.live_url
     } as any;
 }
 
@@ -275,15 +284,21 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
-        bio: u.bio,
         profileImage: u.profile_image,
+        profile_color: u.profile_color,
         isCreator: u.is_creator,
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {}
+        privacySettings: u.privacy_settings || {},
+        stripeAccountId: u.stripe_account_id,
+        stripe_account_id: u.stripe_account_id,
+        stripeOnboardingComplete: u.stripe_onboarding_complete,
+        stripe_onboarding_complete: u.stripe_onboarding_complete,
+        is_live: u.is_live,
+        live_url: u.live_url
     } as any;
 }
 
@@ -310,15 +325,21 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
-        bio: u.bio,
         profileImage: u.profile_image,
+        profile_color: u.profile_color,
         isCreator: u.is_creator,
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {}
+        privacySettings: u.privacy_settings || {},
+        stripeAccountId: u.stripe_account_id,
+        stripe_account_id: u.stripe_account_id,
+        stripeOnboardingComplete: u.stripe_onboarding_complete,
+        stripe_onboarding_complete: u.stripe_onboarding_complete,
+        is_live: u.is_live,
+        live_url: u.live_url
     } as any;
 }
 
@@ -522,7 +543,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -552,6 +573,9 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.notificationSettings !== undefined) dbUpdates.notification_settings = updates.notificationSettings;
     if (updates.privacySettings !== undefined) dbUpdates.privacy_settings = updates.privacySettings;
     if ((updates as any).pushToken !== undefined) dbUpdates.push_token = (updates as any).pushToken;
+    if ((updates as any).profile_color !== undefined) dbUpdates.profile_color = (updates as any).profile_color;
+    if ((updates as any).is_live !== undefined) dbUpdates.is_live = (updates as any).is_live;
+    if ((updates as any).live_url !== undefined) dbUpdates.live_url = (updates as any).live_url;
 
 
     // Filter only allowed keys and remove undefined
@@ -1558,7 +1582,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
     const handles = [...new Set(scoredVideos.map(v => v.user_handle))];
     const { data: users, error: usersError } = await supabaseAdmin
         .from('app_users')
-        .select('name, handle, profile_image')
+        .select('name, handle, profile_image, is_live, live_url')
         .in('handle', handles);
 
     if (usersError) {
@@ -1625,9 +1649,52 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             isBookmarkedByMe: bookmarkedSet.has(v.id),
             score: v._score || v.score, // Soporte para JS y RPC score
             forceView: campMeta ? campMeta.force_view : (v.force_view || false),
-            minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0)
+            minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0),
+            is_live: u.is_live || false,
+            live_url: u.live_url || null
         };
     });
+
+    // --- LIVE CARD INJECTION LOGIC ---
+    try {
+        const { data: liveUsers } = await supabaseAdmin
+            .from('app_users')
+            .select('name, handle, profile_image, is_live, live_url')
+            .eq('is_live', true)
+            .limit(10);
+            
+        if (liveUsers && liveUsers.length > 0) {
+            // Randomly select one live user
+            const randomLiveUser = liveUsers[Math.floor(Math.random() * liveUsers.length)];
+            
+            const liveCard = {
+                id: `live_card_${randomLiveUser.handle}_${new Date().getTime()}`,
+                videoUrl: randomLiveUser.live_url,
+                user: randomLiveUser.handle,
+                description: `🔴 ¡${randomLiveUser.name || randomLiveUser.handle} está en directo! Entra ahora.`,
+                likes: 0,
+                shares: 0,
+                commentsCount: 0,
+                views: 0,
+                createdAt: new Date().toISOString(),
+                isMuted: false,
+                userName: randomLiveUser.name || randomLiveUser.handle,
+                userImage: randomLiveUser.profile_image,
+                isLiveCard: true,
+                is_live: true,
+                live_url: randomLiveUser.live_url,
+                commentsEnabled: false
+            };
+            
+            const injectionIndex = Math.min(3, result.length);
+            result.splice(injectionIndex, 0, liveCard as any);
+        }
+    } catch (e) {
+        console.error("[db] Error injecting live card:", e);
+    }
+    // ----------------------------------
+
+    return result;
 }
 
 export async function getVideosByUser(handle: string, currentUserHandle?: string): Promise<VideoPost[]> {
@@ -1647,7 +1714,7 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
     // 2. Fetch specific user data
     const { data: userData, error: userError } = await supabaseAdmin
         .from('app_users')
-        .select('name, handle, profile_image')
+        .select('name, handle, profile_image, is_live, live_url')
         .eq('handle', handle)
         .single();
 
@@ -1696,7 +1763,9 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
-            isBookmarkedByMe: bookmarkedSet.has(v.id)
+            isBookmarkedByMe: bookmarkedSet.has(v.id),
+            is_live: u.is_live || false,
+            live_url: u.live_url || null
         };
     });
 }
@@ -1715,8 +1784,9 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             views: video.views,
             is_ad: video.isAd || false,
             thumbnail_url: video.thumbnailUrl,
-            filter_config: video.filterConfig,
-            is_muted: video.isMuted || false
+            filter_settings: video.filterConfig,
+            is_muted: video.isMuted || false,
+            metadata: { is_processed: video.is_processed !== undefined ? video.is_processed : true }
         }])
         .select()
         .single();

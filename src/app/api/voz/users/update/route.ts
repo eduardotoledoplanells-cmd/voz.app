@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateAppUser } from "@/lib/db";
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, email, nationality, dob, phone, pushToken, privacySettings }));
+        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url }));
 
         if (!id && !handle) {
             console.error("[API Update] Error: Missing user ID and handle in request body");
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
         if (profile_image || profileImage) {
             updates.profileImage = profile_image || profileImage;
         }
+        if (profile_color) updates.profile_color = profile_color;
 
         // Include additional fields used by the mobile app
         if (email !== undefined) updates.email = email;
@@ -34,6 +36,8 @@ export async function POST(request: NextRequest) {
         if (notificationSettings !== undefined) updates.notificationSettings = notificationSettings;
         if (privacySettings !== undefined) updates.privacySettings = privacySettings;
         if (pushToken !== undefined) updates.pushToken = pushToken;
+        if (is_live !== undefined) updates.is_live = is_live;
+        if (live_url !== undefined) updates.live_url = live_url;
 
         const updated = await updateAppUser(id, updates);
 
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error("Update user error:", error);
+        await logSystemAlert('Usuarios', error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
