@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, supabase, getUserPushTokens } from '@/lib/db';
 import { sendNativePush } from '@/lib/firebaseAdmin';
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
         return NextResponse.json(mappedData);
     } catch (error) {
         console.error('Error fetching notifications:', error);
+        await logSystemAlert('Notificaciones', error);
         return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 }
@@ -83,7 +85,8 @@ export async function POST(request: Request) {
                 'follow': 'notify_followers',
                 'balance': 'notify_balance',
                 'billing': 'notify_balance',
-                'strike': 'notify_strikes'
+                'strike': 'notify_strikes',
+                'live_alert': 'notify_live'
             };
 
             const settingKey = typeToSetting[type];
@@ -131,6 +134,7 @@ export async function POST(request: Request) {
         });
     } catch (error) {
         console.error('Error creating notification:', error);
+        await logSystemAlert('Notificaciones', error);
         return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
     }
 }
@@ -158,6 +162,7 @@ export async function PUT(request: Request) {
         return NextResponse.json({ success: true, message: 'Notifications marked as read' });
     } catch (error) {
         console.error('Error updating notifications:', error);
+        await logSystemAlert('Notificaciones', error);
         return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 });
     }
 }

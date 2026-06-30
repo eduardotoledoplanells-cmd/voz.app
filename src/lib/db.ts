@@ -1624,7 +1624,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
     }
 
     // 4. Merge data
-    return (scoredVideos as any[]).map(v => {
+    const result = (scoredVideos as any[]).map(v => {
         const u: any = userMap.get(v.user_handle) || {};
         const campMeta = v.is_ad ? campaignsMap.get(v.id) : null;
         return {
