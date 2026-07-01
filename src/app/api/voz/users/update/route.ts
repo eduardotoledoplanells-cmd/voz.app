@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url, country, region, interests } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url }));
+        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url, country, region, interests }));
 
         if (!id && !handle) {
             console.error("[API Update] Error: Missing user ID and handle in request body");
@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
         if (pushToken !== undefined) updates.pushToken = pushToken;
         if (is_live !== undefined) updates.is_live = is_live;
         if (live_url !== undefined) updates.live_url = live_url;
+        // Segmentación publicitaria
+        if (country !== undefined) updates.country = country;
+        if (region !== undefined) updates.region = region;
+        if (interests !== undefined) updates.interests = interests;
 
         const updated = await updateAppUser(id, updates);
 

@@ -53,6 +53,10 @@ export interface AppUser {
     privacySettings?: any;
     is_live?: boolean;
     live_url?: string | null;
+    // Segmentación publicitaria
+    country?: string;
+    region?: string;
+    interests?: string[];
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -119,6 +123,10 @@ export interface Campaign {
     target: string;
     impressions: number;
     createdAt: string;
+    // Segmentación publicitaria 70/30
+    targetCountries?: string[];
+    targetRegions?: string[];
+    targetInterests?: string[];
 }
 
 export interface Employee {
@@ -543,7 +551,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -576,7 +584,10 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if ((updates as any).profile_color !== undefined) dbUpdates.profile_color = (updates as any).profile_color;
     if ((updates as any).is_live !== undefined) dbUpdates.is_live = (updates as any).is_live;
     if ((updates as any).live_url !== undefined) dbUpdates.live_url = (updates as any).live_url;
-
+    // Segmentación publicitaria
+    if ((updates as any).country !== undefined) dbUpdates.country = (updates as any).country;
+    if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;
+    if ((updates as any).interests !== undefined) dbUpdates.interests = (updates as any).interests;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -1611,16 +1622,112 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
         bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
     }
 
-    // Fetch active campaigns to merge force_view and min_view_time
+    // ====================================================================
+    // AD SERVER 70/30 — Segmentación geográfica + intereses
+    // ====================================================================
     let campaignsMap = new Map();
+    let adToInject: any = null;
     try {
-        const { data: camps } = await supabaseAdmin
+        // Obtener perfil del usuario actual para segmentación
+        let userCountry: string | null = null;
+        let userRegion: string | null = null;
+        let userInterests: string[] = [];
+
+        if (currentUserHandle) {
+            const { data: userProfile } = await supabaseAdmin
+                .from('app_users')
+                .select('country, region, interests')
+                .eq('handle', currentUserHandle)
+                .single();
+            if (userProfile) {
+                userCountry = userProfile.country || null;
+                userRegion = userProfile.region || null;
+                userInterests = userProfile.interests || [];
+            }
+        }
+
+        // Traer todas las campañas activas con sus metadatos y targeting
+        const { data: activeCampaigns } = await supabaseAdmin
             .from('campaigns')
-            .select('id, force_view, min_view_time')
+            .select('id, force_view, min_view_time, video_url, name, target_countries, target_regions, target_interests')
             .eq('status', 'active');
-        camps?.forEach(c => campaignsMap.set(c.id, c));
+
+        if (activeCampaigns && activeCampaigns.length > 0) {
+            activeCampaigns.forEach((c: any) => campaignsMap.set(c.id, c));
+
+            // 1. Filtro geográfico ESTRICTO: descartar anuncios que explícitamente excluyen al usuario
+            const geoFiltered = activeCampaigns.filter((c: any) => {
+                const hasCountryTarget = c.target_countries && c.target_countries.length > 0;
+                const hasRegionTarget = c.target_regions && c.target_regions.length > 0;
+
+                // Si el anuncio tiene filtro de países y el usuario no coincide → descartar
+                if (hasCountryTarget && userCountry) {
+                    const countryMatch = c.target_countries.some((tc: string) =>
+                        tc.toLowerCase() === userCountry!.toLowerCase()
+                    );
+                    if (!countryMatch) return false;
+                } else if (hasCountryTarget && !userCountry) {
+                    return false; // Usuario sin perfil geo → no ver ads geofiltrados
+                }
+
+                // Si el anuncio tiene filtro de región y el usuario no coincide → descartar
+                if (hasRegionTarget && userRegion) {
+                    const regionMatch = c.target_regions.some((tr: string) =>
+                        tr.toLowerCase() === userRegion!.toLowerCase()
+                    );
+                    if (!regionMatch) return false;
+                } else if (hasRegionTarget && !userRegion) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // 2. Dividir en pool segmentado (match de interés) y pool genérico
+            const matchedPool = geoFiltered.filter((c: any) => {
+                const hasInterestTarget = c.target_interests && c.target_interests.length > 0;
+                if (!hasInterestTarget) return false; // Sin intereses → genérico
+                return c.target_interests.some((ti: string) =>
+                    userInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
+                );
+            });
+
+            const genericPool = geoFiltered.filter((c: any) => {
+                const hasInterestTarget = c.target_interests && c.target_interests.length > 0;
+                if (!hasInterestTarget) return true; // Sin intereses → siempre genérico
+                return !c.target_interests.some((ti: string) =>
+                    userInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
+                );
+            });
+
+            // 3. Selección 70/30: 70% preferencia al pool con interés, 30% al genérico
+            let selectedPool = genericPool;
+            const rand = Math.random() * 10;
+            if (rand < 7 && matchedPool.length > 0) {
+                selectedPool = matchedPool;
+            } else if (genericPool.length === 0 && matchedPool.length > 0) {
+                selectedPool = matchedPool; // fallback si no hay genéricos
+            }
+
+            if (selectedPool.length > 0) {
+                const selectedCampaign = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+                adToInject = {
+                    id: `ad_${selectedCampaign.id}_${Date.now()}`,
+                    videoUrl: selectedCampaign.video_url,
+                    user: '@voz_ads',
+                    description: `📢 ${selectedCampaign.name || 'Publicidad'}`,
+                    likes: 0, shares: 0, commentsCount: 0, views: 0,
+                    createdAt: new Date().toISOString(),
+                    isAd: true,
+                    commentsEnabled: false,
+                    forceView: selectedCampaign.force_view || false,
+                    minViewTime: selectedCampaign.min_view_time || 0,
+                    campaignId: selectedCampaign.id,
+                };
+            }
+        }
     } catch (err) {
-        console.error("[db] Error fetching active campaigns for metadata:", err);
+        console.error("[db] Error in ad server 70/30 targeting:", err);
     }
 
     // 4. Merge data
@@ -1642,18 +1749,24 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             thumbnailUrl: v.thumbnail_url,
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
-            commentsEnabled: v.comments_enabled !== false, // true por defecto si la columna no existe aún
+            commentsEnabled: v.comments_enabled !== false,
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
             isBookmarkedByMe: bookmarkedSet.has(v.id),
-            score: v._score || v.score, // Soporte para JS y RPC score
+            score: v._score || v.score,
             forceView: campMeta ? campMeta.force_view : (v.force_view || false),
             minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0),
             is_live: u.is_live || false,
             live_url: u.live_url || null
         };
     });
+
+    // 5. Inyectar el anuncio seleccionado naturalmente en el feed (posición 4)
+    if (adToInject && result.length >= 2) {
+        const adIndex = Math.min(4, result.length - 1);
+        result.splice(adIndex, 0, adToInject as any);
+    }
 
     // --- LIVE CARD INJECTION LOGIC ---
     try {
@@ -1664,18 +1777,13 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             .limit(10);
             
         if (liveUsers && liveUsers.length > 0) {
-            // Randomly select one live user
             const randomLiveUser = liveUsers[Math.floor(Math.random() * liveUsers.length)];
-            
             const liveCard = {
                 id: `live_card_${randomLiveUser.handle}_${new Date().getTime()}`,
                 videoUrl: randomLiveUser.live_url,
                 user: randomLiveUser.handle,
                 description: `🔴 ¡${randomLiveUser.name || randomLiveUser.handle} está en directo! Entra ahora.`,
-                likes: 0,
-                shares: 0,
-                commentsCount: 0,
-                views: 0,
+                likes: 0, shares: 0, commentsCount: 0, views: 0,
                 createdAt: new Date().toISOString(),
                 isMuted: false,
                 userName: randomLiveUser.name || randomLiveUser.handle,
@@ -1685,7 +1793,6 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
                 live_url: randomLiveUser.live_url,
                 commentsEnabled: false
             };
-            
             const injectionIndex = Math.min(3, result.length);
             result.splice(injectionIndex, 0, liveCard as any);
         }
