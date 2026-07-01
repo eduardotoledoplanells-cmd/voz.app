@@ -54,6 +54,9 @@ export interface AppUser {
     phone?: string;
     earningsBalance?: number;
     userHandle?: string; // For compatibility
+    live_url_kick?: string | null;
+    live_url_twitch?: string | null;
+    live_url_youtube?: string | null;
 }
 
 // In some parts of the admin it's referred to as Creator

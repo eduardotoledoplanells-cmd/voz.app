@@ -53,6 +53,9 @@ export interface AppUser {
     privacySettings?: any;
     is_live?: boolean;
     live_url?: string | null;
+    live_url_kick?: string | null;
+    live_url_twitch?: string | null;
+    live_url_youtube?: string | null;
     // Segmentación publicitaria
     country?: string;
     region?: string;
@@ -551,7 +554,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -588,6 +591,11 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if ((updates as any).country !== undefined) dbUpdates.country = (updates as any).country;
     if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;
     if ((updates as any).interests !== undefined) dbUpdates.interests = (updates as any).interests;
+
+    // Platform-specific live urls
+    if ((updates as any).live_url_kick !== undefined) dbUpdates.live_url_kick = (updates as any).live_url_kick;
+    if ((updates as any).live_url_twitch !== undefined) dbUpdates.live_url_twitch = (updates as any).live_url_twitch;
+    if ((updates as any).live_url_youtube !== undefined) dbUpdates.live_url_youtube = (updates as any).live_url_youtube;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {

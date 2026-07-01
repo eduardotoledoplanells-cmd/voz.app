@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url, country, region, interests } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url, country, region, interests, live_url_kick, live_url_twitch, live_url_youtube } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
-        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url, country, region, interests }));
+        console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url, country, region, interests, live_url_kick, live_url_twitch, live_url_youtube }));
 
         if (!id && !handle) {
             console.error("[API Update] Error: Missing user ID and handle in request body");
@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
         if (country !== undefined) updates.country = country;
         if (region !== undefined) updates.region = region;
         if (interests !== undefined) updates.interests = interests;
+
+        // Platform-specific live urls
+        if (live_url_kick !== undefined) updates.live_url_kick = live_url_kick;
+        if (live_url_twitch !== undefined) updates.live_url_twitch = live_url_twitch;
+        if (live_url_youtube !== undefined) updates.live_url_youtube = live_url_youtube;
 
         const updated = await updateAppUser(id, updates);
 
