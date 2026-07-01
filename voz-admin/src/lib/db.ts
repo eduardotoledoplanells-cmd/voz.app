@@ -39,6 +39,9 @@ export interface AppUser {
     paymentInfo?: any;
     privacySettings?: any;
     stripeAccountId?: string;
+    stripe_account_id?: string;
+    stripe_onboarding_complete?: boolean;
+    stripeOnboardingComplete?: boolean;
     bio?: string;
     profileImage?: string;
     profileColor?: string;
@@ -50,6 +53,7 @@ export interface AppUser {
     strikes?: number;
     phone?: string;
     earningsBalance?: number;
+    userHandle?: string; // For compatibility
 }
 
 // In some parts of the admin it's referred to as Creator
