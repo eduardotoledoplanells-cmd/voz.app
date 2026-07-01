@@ -27,12 +27,34 @@ export default function VozAdsPage() {
     const [newCampaignVideoUrl, setNewCampaignVideoUrl] = useState('');
     const [newCampaignStartDate, setNewCampaignStartDate] = useState('');
     const [newCampaignEndDate, setNewCampaignEndDate] = useState('');
-    const [newCampaignForceView, setNewCampaignForceView] = useState(true);
+    const [newCampaignForceView, setNewCampaignForceView] = useState(false);
+    const [newCampaignMinViewTime, setNewCampaignMinViewTime] = useState<number>(0);
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
     const [newCampaignInvestment, setNewCampaignInvestment] = useState<number>(0);
     const [uploading, setUploading] = useState(false);
     const [selectedImpressionId, setSelectedImpressionId] = useState<string | null>(null);
     const [selectedClientDetail, setSelectedClientDetail] = useState<any | null>(null);
+    // Segmentación publicitaria
+    const [newCampaignCountries, setNewCampaignCountries] = useState<string[]>([]);
+    const [newCampaignRegions, setNewCampaignRegions] = useState<string[]>([]);
+    const [newCampaignInterests, setNewCampaignInterests] = useState<string[]>([]);
+
+    const AD_COUNTRIES = ['España','Francia','Alemania','Italia','Portugal','México','Argentina','Colombia','Chile','Perú'];
+    const AD_REGIONS: Record<string,string[]> = {
+        'España': ['Mallorca','Madrid','Barcelona','Valencia','Sevilla','Bilbao','Zaragoza'],
+        'Francia': ['París','Lyon','Marsella'],
+        'México': ['Ciudad de México','Guadalajara','Monterrey'],
+        'Argentina': ['Buenos Aires','Córdoba','Rosario'],
+    };
+    const AD_INTERESTS = ['Deportes','Moda','Coches/Motor','Tecnología','Belleza','Viajes','Música','Gaming','Comida','Mascotas'];
+
+    const toggleItem = (item: string, list: string[], setter: (v: string[]) => void) => {
+        setter(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
+    };
+
+    // Regions available based on selected countries
+    const availableRegions = newCampaignCountries.flatMap(c => AD_REGIONS[c] || []);
+
 
     // Dialog state
     const [dialog, setDialog] = useState<{
@@ -137,9 +159,13 @@ export default function VozAdsPage() {
         setNewCampaignVideoUrl('');
         setNewCampaignStartDate(new Date().toISOString().split('T')[0]);
         setNewCampaignEndDate('');
-        setNewCampaignForceView(true);
+        setNewCampaignForceView(false);
+        setNewCampaignMinViewTime(0);
         setNewCampaignInvestment(0);
         setSelectedVideoFile(null);
+        setNewCampaignCountries([]);
+        setNewCampaignRegions([]);
+        setNewCampaignInterests([]);
         setShowCampaignModal(true);
     };
 
@@ -190,9 +216,13 @@ export default function VozAdsPage() {
                 startDate: newCampaignStartDate,
                 endDate: newCampaignEndDate,
                 forceView: newCampaignForceView,
+                minViewTime: newCampaignMinViewTime,
                 target: 'all',
                 investment: newCampaignInvestment,
-                employeeName: 'Admin'
+                employeeName: 'Admin',
+                targetCountries: newCampaignCountries,
+                targetRegions: newCampaignRegions,
+                targetInterests: newCampaignInterests
             }),
             headers: { 'Content-Type': 'application/json' }
         })
@@ -307,7 +337,13 @@ export default function VozAdsPage() {
                                         <div style={{ fontSize: '0.9em', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {c.videoUrl ? '🔗 Video listo' : '❌ Sin Video'}
                                         </div>
-                                        {c.forceView && <div style={{ fontSize: '0.85em', color: 'red', fontWeight: 'bold' }}>UNSKIPPABLE</div>}
+                                        {c.forceView ? (
+                                            <div style={{ fontSize: '0.85em', color: 'red', fontWeight: 'bold' }}>COMPLETO OBLIGADO</div>
+                                        ) : c.minViewTime > 0 ? (
+                                            <div style={{ fontSize: '0.85em', color: 'orange', fontWeight: 'bold' }}>OBLIGADO {c.minViewTime}s</div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.85em', color: 'green', fontWeight: 'bold' }}>SALTAR YA</div>
+                                        )}
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '0.9em' }}>{c.startDate || 'N/A'}</div>
@@ -673,17 +709,86 @@ export default function VozAdsPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="field-row">
-                                    <input
-                                        type="checkbox"
-                                        id="forceView"
-                                        checked={newCampaignForceView}
-                                        onChange={e => setNewCampaignForceView(e.target.checked)}
-                                    />
-                                    <label htmlFor="forceView" style={{ color: 'red', fontWeight: 'bold' }}>
-                                        ⚠️ Visión Obligatoria (Sin pausa/salto)
-                                    </label>
+                                <div className="field-row-stacked" style={{ marginBottom: 12 }}>
+                                    <label>Tiempo de Reproducción Obligatorio:</label>
+                                    <select
+                                        value={newCampaignMinViewTime === 9999 ? '9999' : String(newCampaignMinViewTime)}
+                                        onChange={e => {
+                                            const val = Number(e.target.value);
+                                            setNewCampaignMinViewTime(val);
+                                            setNewCampaignForceView(val === 9999);
+                                        }}
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="0">Omitir de inmediato (Saltar ya)</option>
+                                        <option value="5">Ver 5 segundos obligatorios</option>
+                                        <option value="10">Ver 10 segundos obligatorios</option>
+                                        <option value="9999">Video completo (Sin saltar)</option>
+                                    </select>
                                 </div>
+
+                                {/* SEGMENTACIÓN GEOGRÁFICA */}
+                                <fieldset style={{ marginBottom: 12 }}>
+                                    <legend>🌍 Países Objetivo <span style={{fontWeight:'normal',fontSize:'0.85em',color:'#666'}}>(dejar vacío = global)</span></legend>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {AD_COUNTRIES.map(c => (
+                                            <label key={c} style={{ display:'flex', alignItems:'center', gap:4, marginRight:8, cursor:'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newCampaignCountries.includes(c)}
+                                                    onChange={() => {
+                                                        toggleItem(c, newCampaignCountries, setNewCampaignCountries);
+                                                        // Limpiar regiones de ese país si se deselecciona
+                                                        if (newCampaignCountries.includes(c)) {
+                                                            const regToRemove = AD_REGIONS[c] || [];
+                                                            setNewCampaignRegions(prev => prev.filter(r => !regToRemove.includes(r)));
+                                                        }
+                                                    }}
+                                                />
+                                                {c}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </fieldset>
+
+                                {availableRegions.length > 0 && (
+                                    <fieldset style={{ marginBottom: 12 }}>
+                                        <legend>📍 Regiones/Localidades <span style={{fontWeight:'normal',fontSize:'0.85em',color:'#666'}}>(opcional, filtra dentro del país)</span></legend>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                            {availableRegions.map(r => (
+                                                <label key={r} style={{ display:'flex', alignItems:'center', gap:4, marginRight:8, cursor:'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newCampaignRegions.includes(r)}
+                                                        onChange={() => toggleItem(r, newCampaignRegions, setNewCampaignRegions)}
+                                                    />
+                                                    {r}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
+                                )}
+
+                                {/* INTERESES */}
+                                <fieldset style={{ marginBottom: 12 }}>
+                                    <legend>🎯 Intereses Objetivo <span style={{fontWeight:'normal',fontSize:'0.85em',color:'#666'}}>(dejar vacío = genérico 30% pool)</span></legend>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {AD_INTERESTS.map(i => (
+                                            <label key={i} style={{ display:'flex', alignItems:'center', gap:4, marginRight:8, cursor:'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newCampaignInterests.includes(i)}
+                                                    onChange={() => toggleItem(i, newCampaignInterests, setNewCampaignInterests)}
+                                                />
+                                                {i}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <div style={{ fontSize: '0.78em', color: '#555', marginTop: 4 }}>
+                                        💡 Algoritmo 70/30: anuncios con interés coincidente reciben 70% de impresiones, genéricos el 30% restante.
+                                    </div>
+                                </fieldset>
+
                                 <div className="field-row" style={{ justifyContent: 'flex-end', gap: 10, marginTop: 15 }}>
                                     <button disabled={uploading} onClick={() => setShowCampaignModal(false)}>Cancelar</button>
                                     <button type="submit" style={{ fontWeight: 'bold' }} disabled={uploading}>

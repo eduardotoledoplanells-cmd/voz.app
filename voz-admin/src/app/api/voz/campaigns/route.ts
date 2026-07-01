@@ -44,9 +44,14 @@ export async function POST(request: Request) {
             startDate: campaignData.startDate || null,
             endDate: campaignData.endDate || null,
             forceView: campaignData.forceView || false,
+            minViewTime: campaignData.minViewTime || 0,
             target: campaignData.target || 'all',
             impressions: 0,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            // Segmentación publicitaria 70/30
+            targetCountries: campaignData.targetCountries || [],
+            targetRegions: campaignData.targetRegions || [],
+            targetInterests: campaignData.targetInterests || []
         };
 
         const result = await addCampaign(newCampaign, employeeName);

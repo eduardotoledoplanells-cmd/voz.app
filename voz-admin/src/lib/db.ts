@@ -116,6 +116,10 @@ export interface Campaign {
     target: string;
     impressions: number;
     createdAt: string;
+    // Segmentación publicitaria 70/30
+    targetCountries?: string[];
+    targetRegions?: string[];
+    targetInterests?: string[];
 }
 
 export interface Employee {
@@ -180,33 +184,33 @@ export interface VideoPost {
     isMuted?: boolean;
     userName?: string;
     userImage?: string;
+    metadata?: any;
 }
 
-// --- App Users / Creators ---
-export async function getAppUsers(): Promise<AppUser[]> {
-    const { data, error } = await supabaseAdmin.from('app_users').select('*');
-    if (error) {
-        throw new Error("Supabase error: " + JSON.stringify(error));
-    }
-    return data.map(u => {
-        let pInfo = u.payment_info;
-        if (typeof pInfo === 'string') {
-            try { pInfo = JSON.parse(pInfo); } catch(e){}
+function mapUserRowToAppUser(u: any): AppUser {
+    let pInfo = u.payment_info;
+    if (typeof pInfo === 'string') {
+        try { pInfo = JSON.parse(pInfo); } catch(e){
+            console.error("Invalid paymentInfo JSON in mapUserRowToAppUser", e);
         }
-        return {
-            id: u.id,
-            name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
-            realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
-            handle: u.handle,
-            userHandle: u.handle, // For Creator interface compatibility
-            dni: u.dni,
-            iban: u.iban,
-            paymentInfo: pInfo,
-            privacySettings: pInfo?.privacySettings || {},
-            stripeAccountId: u.stripe_account_id,
-            email: u.email,
-            password: u.password,
-            status: u.status,
+    }
+    return {
+        id: u.id,
+        name: u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        realName: u.real_name || u.name || u.handle?.replace('@', '') || 'Sin nombre',
+        handle: u.handle,
+        userHandle: u.handle, // For Creator interface compatibility
+        dni: u.dni,
+        iban: u.iban,
+        paymentInfo: pInfo,
+        privacySettings: pInfo?.privacySettings || {},
+        stripeAccountId: u.stripe_account_id,
+        stripe_account_id: u.stripe_account_id,
+        stripeOnboardingComplete: u.stripe_onboarding_complete,
+        stripe_onboarding_complete: u.stripe_onboarding_complete,
+        email: u.email,
+        password: u.password,
+        status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
         bio: u.bio,
@@ -216,8 +220,34 @@ export async function getAppUsers(): Promise<AppUser[]> {
         strikes: u.strikes || 0,
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance)
-        };
-    });
+    };
+}
+
+// --- App Users / Creators ---
+export async function getAppUsers(): Promise<AppUser[]> {
+    const { data, error } = await supabaseAdmin.from('app_users').select('*');
+    if (error) {
+        throw new Error("Supabase error: " + JSON.stringify(error));
+    }
+    return data.map(mapUserRowToAppUser);
+}
+
+export async function getUserById(id: string): Promise<AppUser | null> {
+    const { data, error } = await supabaseAdmin.from('app_users').select('*').eq('id', id).maybeSingle();
+    if (error) {
+        throw new Error("Supabase error: " + JSON.stringify(error));
+    }
+    if (!data) return null;
+    return mapUserRowToAppUser(data);
+}
+
+export async function getUserByHandle(handle: string): Promise<AppUser | null> {
+    const { data, error } = await supabaseAdmin.from('app_users').select('*').eq('handle', handle).maybeSingle();
+    if (error) {
+        throw new Error("Supabase error: " + JSON.stringify(error));
+    }
+    if (!data) return null;
+    return mapUserRowToAppUser(data);
 }
 
 async function getSignedKycUrl(urlOrPath: string | undefined): Promise<string | undefined> {
@@ -1066,7 +1096,10 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
         force_view: campaign.forceView,
         min_view_time: campaign.minViewTime || 0,
         target: campaign.target,
-        investment: (campaign as any).investment || 0
+        investment: (campaign as any).investment || 0,
+        target_countries: campaign.targetCountries || [],
+        target_regions: campaign.targetRegions || [],
+        target_interests: campaign.targetInterests || []
     }]).select().single();
 
     if (error) return null;
@@ -1405,7 +1438,8 @@ export async function addVideo(video: VideoPost): Promise<VideoPost | null> {
             is_ad: video.isAd || false,
             thumbnail_url: video.thumbnailUrl,
             filter_config: video.filterConfig,
-            is_muted: video.isMuted || false
+            is_muted: video.isMuted || false,
+            metadata: video.metadata || {}
         }])
         .select()
         .single();
