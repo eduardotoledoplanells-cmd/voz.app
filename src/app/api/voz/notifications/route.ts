@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { recipientId: rawRecipientId, type, title, message } = body;
+        const { recipientId: rawRecipientId, type, title, message, senderId } = body;
 
         if (!rawRecipientId || !type || !title || !message) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -90,7 +90,16 @@ export async function POST(request: Request) {
             };
 
             const settingKey = typeToSetting[type];
-            const isEnabled = settingKey ? (settings[settingKey] !== false) : true;
+            let isEnabled = settingKey ? (settings[settingKey] !== false) : true;
+
+            if (isEnabled && type === 'live_alert' && Array.isArray(settings.mutedLiveCreators)) {
+                const senderClean = (senderId || '').replace('@', '').toLowerCase();
+                const isMuted = settings.mutedLiveCreators.some((h: string) => h.replace('@', '').toLowerCase() === senderClean);
+                if (isMuted) {
+                    console.log(`[Notifications] Skipping live_alert from ${senderId} to ${recipientId} because sender is muted.`);
+                    isEnabled = false;
+                }
+            }
 
             if (isEnabled) {
                 // 1. Enviar push nativa real FCM si existe token en push_tokens
