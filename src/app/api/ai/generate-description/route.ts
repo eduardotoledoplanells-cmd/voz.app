@@ -43,7 +43,7 @@ export async function POST(request: Request) {
                         content: `El Título de la Categoría es: "${categoryName}". Usa este título exacto para generar la descripción.`
                     }
                 ],
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o-mini",
             });
 
             description = completion.choices[0].message.content || '';

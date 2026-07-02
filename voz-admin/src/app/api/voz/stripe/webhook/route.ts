@@ -31,12 +31,12 @@ export async function POST(request: Request) {
                 const account = event.data.object as Stripe.Account;
                 if (account.charges_enabled && account.payouts_enabled) {
                     await supabaseAdmin
-                        .from('users')
+                        .from('app_users')
                         .update({ stripe_onboarding_complete: true })
                         .eq('stripe_account_id', account.id);
                 } else {
                     await supabaseAdmin
-                        .from('users')
+                        .from('app_users')
                         .update({ stripe_onboarding_complete: false })
                         .eq('stripe_account_id', account.id);
                 }

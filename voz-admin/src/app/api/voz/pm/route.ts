@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, getAppUsers } from '@/lib/db';
+import { supabaseAdmin, getAppUsers, getUserByHandle } from '@/lib/db';
 import { executeLedgerTransaction, getOrCreateUserWallet } from '@/lib/ledger';
 
 export async function GET(req: Request) {
@@ -59,17 +59,18 @@ export async function POST(req: Request) {
 
         // 2. Comprobar bloqueo de privacidad (receive_pms)
         if (targetHandle) {
-            const users = await getAppUsers();
-            const targetUser = users.find(u => u.handle === targetHandle);
+            const targetUser = await getUserByHandle(targetHandle);
             
             if (targetUser && targetUser.paymentInfo) {
                 let pInfo = targetUser.paymentInfo;
                 if (typeof pInfo === 'string') {
-                    try { pInfo = JSON.parse(pInfo); } catch (e) {}
+                    try { pInfo = JSON.parse(pInfo); } catch (e) {
+                        console.error("Invalid paymentInfo JSON in pm/route (receive_pms check)", e);
+                    }
                 }
                 
                 if (pInfo?.privacySettings?.receive_pms === false) {
-                    return NextResponse.json({ success: false, error: 'El usuario no acepta mensajes privados' }, { status: 400 });
+                    return NextResponse.json({ success: false, error: 'El usuario no acepta mensajes privados' }, { status: 403 });
                 }
             }
         }
@@ -80,16 +81,23 @@ export async function POST(req: Request) {
 
             try {
                 let isFree = false;
-                const users = await getAppUsers();
-                const targetUser = users.find(u => u.handle === creatorHandle);
+                const targetUser = await getUserByHandle(creatorHandle);
                 if (targetUser && targetUser.paymentInfo) {
                     let pInfo = targetUser.paymentInfo;
                     if (typeof pInfo === 'string') {
-                        try { pInfo = JSON.parse(pInfo); } catch (e) {}
+                        try { pInfo = JSON.parse(pInfo); } catch (e) {
+                            console.error("Invalid paymentInfo JSON in pm/route (charge_pms check)", e);
+                        }
                     }
-                    if (pInfo?.privacySettings?.charge_pms === false) {
-                        isFree = true;
+                    
+                    const chargeSetting = pInfo?.privacySettings?.charge_pms;
+                    // If they want to charge, but have no Stripe account, warn and force free
+                    if (chargeSetting === true && !targetUser.stripeAccountId) {
+                        console.warn(`User ${creatorHandle} attempts to charge for PMs without a Stripe account. Forcing free PM.`);
                     }
+
+                    const canCharge = !!targetUser.stripeAccountId && chargeSetting !== false;
+                    isFree = !canCharge;
                 }
 
                 if (!isFree) {

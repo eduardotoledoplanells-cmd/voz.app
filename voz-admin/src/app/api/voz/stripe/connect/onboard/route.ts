@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
         // 1. Obtener usuario
         const { data: user, error: userError } = await supabaseAdmin
-            .from('users')
+            .from('app_users')
             .select('*')
             .eq('id', userId)
             .single();
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
             // Guardar en Supabase
             await supabaseAdmin
-                .from('users')
+                .from('app_users')
                 .update({ stripe_account_id: stripeAccountId })
                 .eq('id', userId);
         }

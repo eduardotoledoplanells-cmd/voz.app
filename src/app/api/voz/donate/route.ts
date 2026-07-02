@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, addTransaction, addNotification } from '@/lib/db';
+import { getUserByHandle, addTransaction, addNotification } from '@/lib/db';
 import { processDonation } from '@/lib/ledger';
+import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
-        const { senderHandle, creatorHandle, amount } = await request.json();
+        const { creatorHandle, amount } = await request.json();
+        const userId = request.headers.get('x-user-id');
 
-        if (!senderHandle || !creatorHandle || !amount) {
-            return NextResponse.json({ error: 'Faltan campos (senderHandle, creatorHandle, amount)' }, { status: 400 });
+        if (!userId || !creatorHandle || !amount) {
+            return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
         }
 
-        const users = await getAppUsers();
-        const sender = users.find(u => u.handle === senderHandle);
-        const creator = users.find(u => u.handle === creatorHandle);
+        const sender = await getUserById(userId);
+        const creator = await getUserByHandle(creatorHandle);
 
         if (!sender || !creator) {
             return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
 
         // 3. Registrar transacción
         await addTransaction({
-            senderHandle: senderHandle,
+            senderHandle: sender.handle,
             receiverHandle: creatorHandle,
             amount: donationAmount,
             type: 'donation'
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
             recipientId: creatorHandle,
             type: 'donation',
             title: '¡Has recibido un apoyo! 💰',
-            message: `Has recibido un apoyo de ${payoutAmount.toFixed(2)} € de ${senderHandle}.`,
+            message: `Has recibido un apoyo de ${payoutAmount.toFixed(2)} € de ${sender.handle}.`,
             timestamp: new Date().toISOString(),
             readStatus: false
         });
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Error procesando donación:', error);
+        await logSystemAlert('Donaciones', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

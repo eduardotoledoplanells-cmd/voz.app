@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, addNotification } from "@/lib/db";
+import { logSystemAlert } from '@/lib/alerts';
 
 // POST: Add or Remove a Follower
 export async function POST(req: NextRequest) {
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error("POST follow error:", error);
+        await logSystemAlert('Seguimiento', error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
@@ -85,6 +87,7 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error("GET follows error:", error);
+        await logSystemAlert('Seguimiento', error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

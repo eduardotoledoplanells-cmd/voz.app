@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
         // 1. Obtener usuario
         const { data: user, error: userError } = await supabaseAdmin
-            .from('users')
+            .from('app_users')
             .select('*')
             .eq('id', userId)
             .single();

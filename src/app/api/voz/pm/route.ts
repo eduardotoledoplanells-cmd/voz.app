@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, addTransaction, addNotification } from '@/lib/db';
+import { getUserByHandle, getUserById, addTransaction, addNotification } from '@/lib/db';
 import { supabaseAdmin } from '@/lib/db';
 import { processPremiumMessage } from '@/lib/ledger';
+import { logSystemAlert } from '@/lib/alerts';
 
 async function checkImageSafety(content: string): Promise<{ safe: boolean; reason?: string }> {
     // Buscar si el contenido contiene etiquetas de imagen globalmente: [IMAGE: url]
@@ -94,6 +95,16 @@ export async function POST(request: Request) {
         const PM_COST = 5; // Coste fijo por mensaje/inicio
         const CREATOR_SHARE = 0.6; // 60% para el creador (3.00 monedas)
 
+        const userId = request.headers.get('x-user-id');
+        if (!userId) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        }
+
+        const sender = await getUserById(userId);
+        if (!sender) {
+            return NextResponse.json({ error: 'Usuario autenticado no encontrado' }, { status: 404 });
+        }
+
         // 0. Filtro de seguridad de imágenes (porno/infantil/violencia) mediante IA
         const textToCheck = action === 'start' ? (body.message || '') : (body.content || '');
         if (textToCheck) {
@@ -104,18 +115,16 @@ export async function POST(request: Request) {
         }
 
         if (action === 'start') {
-            const { senderHandle, creatorHandle } = body;
+            const { creatorHandle } = body;
 
-            if (!senderHandle || !creatorHandle) {
-                return NextResponse.json({ error: 'Faltan campos (senderHandle, creatorHandle)' }, { status: 400 });
+            if (!creatorHandle) {
+                return NextResponse.json({ error: 'Faltan campos (creatorHandle)' }, { status: 400 });
             }
 
-            const users = await getAppUsers();
-            const sender = users.find(u => u.handle === senderHandle);
-            const creator = users.find(u => u.handle === creatorHandle);
+            const creator = await getUserByHandle(creatorHandle);
 
-            if (!sender || !creator) {
-                return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
+            if (!creator) {
+                return NextResponse.json({ error: 'Creador no encontrado' }, { status: 404 });
             }
 
             if (creator.privacySettings?.receive_pms === false) {
@@ -123,7 +132,6 @@ export async function POST(request: Request) {
             }
 
             // 1. Process premium message via Ledger Contabilidad
-            // BLINDAJE: El cliente DEBE enviar un UUID único para garantizar idempotencia sin ventana de colisión
             const idempotencyKey = body.idempotencyKey;
             if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
                 return NextResponse.json({ error: 'Se requiere un idempotencyKey UUID único del cliente para procesar la transacción.' }, { status: 400 });
@@ -132,12 +140,20 @@ export async function POST(request: Request) {
                 await processPremiumMessage(sender.id, creator.id, idempotencyKey);
             } catch (ledgerError: any) {
                 console.error("Ledger PM transaction failed:", ledgerError);
+                await logSystemAlert({
+                    servicio: 'PM Ledger (Start)',
+                    nivel: 'warning',
+                    error: ledgerError,
+                    usuario: sender.handle,
+                    metadata: { creator: creator.handle }
+                });
                 return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente' }, { status: 400 });
             }
+            
             const { data: existingEscrow } = await supabaseAdmin
                 .from('pm_escrows')
                 .select('*')
-                .eq('sender_handle', senderHandle)
+                .eq('sender_handle', sender.handle)
                 .eq('creator_handle', creatorHandle)
                 .eq('status', 'completed')
                 .single();
@@ -149,7 +165,7 @@ export async function POST(request: Request) {
                 const { data: newEscrow, error } = await supabaseAdmin
                     .from('pm_escrows')
                     .insert([{
-                        sender_handle: senderHandle,
+                        sender_handle: sender.handle,
                         creator_handle: creatorHandle,
                         locked_amount: PM_COST,
                         creator_responses: 0,
@@ -164,7 +180,7 @@ export async function POST(request: Request) {
             // 3. Guardar el mensaje inicial para empezar el hilo
             await supabaseAdmin.from('pm_messages').insert([{
                 escrow_id: escrowId,
-                sender_handle: senderHandle,
+                sender_handle: sender.handle,
                 content: body.message || "Hola, ¿podemos hablar?"
             }]);
 
@@ -174,51 +190,108 @@ export async function POST(request: Request) {
                 recipientId: creatorHandle,
                 type: 'pm',
                 title: 'Nuevo Chat Privado 💬',
-                message: `${senderHandle} ha iniciado un chat privado contigo.`,
+                message: `${sender.handle} ha iniciado un chat privado contigo.`,
                 timestamp: new Date().toISOString(),
                 readStatus: false
             });
 
             // Registrar transacción
             await addTransaction({
-                senderHandle: senderHandle,
+                senderHandle: sender.handle,
                 receiverHandle: creatorHandle,
                 amount: PM_COST,
-                type: 'pm_locked' // O pm_started
+                type: 'pm_locked'
             });
 
             return NextResponse.json({ success: true, escrowId });
 
         } else if (action === 'reply') {
-            const { escrowId, senderHandle, content } = body;
+            const { escrowId, content, renew } = body;
 
-            if (!escrowId || !senderHandle || !content) {
+            if (!escrowId || !content) {
                 return NextResponse.json({ error: 'Faltan campos' }, { status: 400 });
             }
 
-            // Fetch escrow to know who should receive the notification
+            // Fetch escrow to verify ownership
             const { data: escrow } = await supabaseAdmin.from('pm_escrows').select('*').eq('id', escrowId).single();
+            if (!escrow) {
+                return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
+            }
+
+            // SEGURIDAD: Validar que el usuario autenticado es parte de esta conversación
+            if (sender.handle !== escrow.sender_handle && sender.handle !== escrow.creator_handle) {
+                return NextResponse.json({ error: 'No autorizado para acceder a este chat' }, { status: 403 });
+            }
+
+            // Contar mensajes para verificar límite de 50 mensajes por bloque pagado
+            const { count: messageCount } = await supabaseAdmin
+                .from('pm_messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('escrow_id', escrowId);
+
+            const paidBlocks = Math.max(1, Math.floor((escrow.locked_amount || PM_COST) / PM_COST));
+            const maxAllowedMessages = paidBlocks * 50;
+
+            if (messageCount !== null && messageCount >= maxAllowedMessages) {
+                if (renew === true) {
+                    const idempotencyKey = body.idempotencyKey;
+                    if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
+                        return NextResponse.json({ error: 'Se requiere un idempotencyKey para renovar el chat.' }, { status: 400 });
+                    }
+                    try {
+                        // El receptor del pago siempre es el creador (creator_handle)
+                        const creatorHandleForPayment = escrow.creator_handle;
+                        const creator = await getUserByHandle(creatorHandleForPayment);
+                        if (!creator) throw new Error("Creador no encontrado");
+
+                        await processPremiumMessage(sender.id, creator.id, idempotencyKey);
+                        
+                        // Incrementar el monto bloqueado/pagado
+                        await supabaseAdmin.from('pm_escrows').update({
+                            locked_amount: (escrow.locked_amount || PM_COST) + PM_COST
+                        }).eq('id', escrowId);
+                        
+                        // Registrar transacción de renovación
+                        await addTransaction({
+                            senderHandle: sender.handle,
+                            receiverHandle: creatorHandleForPayment,
+                            amount: PM_COST,
+                            type: 'pm_locked_renewal'
+                        });
+
+                    } catch (ledgerError: any) {
+                        await logSystemAlert({
+                            servicio: 'PM Ledger (Renew)',
+                            nivel: 'warning',
+                            error: ledgerError,
+                            usuario: sender.handle,
+                            metadata: { creator: creatorHandleForPayment }
+                        });
+                        return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente para renovar.' }, { status: 402 });
+                    }
+                } else {
+                    return NextResponse.json({ error: 'Límite de 50 mensajes alcanzado. Requiere renovación.', requireRenewal: true }, { status: 403 });
+                }
+            }
 
             // Guardar el nuevo mensaje
             await supabaseAdmin.from('pm_messages').insert([{
                 escrow_id: escrowId,
-                sender_handle: senderHandle,
+                sender_handle: sender.handle,
                 content: content
             }]);
 
             // Enviar notificación al receptor
-            if (escrow) {
-                const recipientHandle = senderHandle === escrow.sender_handle ? escrow.creator_handle : escrow.sender_handle;
-                await addNotification({
-                    id: Date.now().toString(),
-                    recipientId: recipientHandle,
-                    type: 'pm',
-                    title: 'Nuevo Mensaje 💬',
-                    message: `Tienes un nuevo mensaje de ${senderHandle}`,
-                    timestamp: new Date().toISOString(),
-                    readStatus: false
-                });
-            }
+            const recipientHandle = sender.handle === escrow.sender_handle ? escrow.creator_handle : escrow.sender_handle;
+            await addNotification({
+                id: Date.now().toString(),
+                recipientId: recipientHandle,
+                type: 'pm',
+                title: 'Nuevo Mensaje 💬',
+                message: `Tienes un nuevo mensaje de ${sender.handle}`,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
 
             return NextResponse.json({ success: true, message: 'Mensaje enviado', escrowId });
         } else {
@@ -226,6 +299,7 @@ export async function POST(request: Request) {
         }
     } catch (error) {
         console.error('Error en PM POST:', error);
+        await logSystemAlert('PMs', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
@@ -323,6 +397,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     } catch (error) {
         console.error('Error recuperando PMs:', error);
+        await logSystemAlert('PMs', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

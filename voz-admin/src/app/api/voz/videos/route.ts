@@ -35,7 +35,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { videoUrl, user, description, transcription, music, thumbnailUrl, filterConfig, isMuted } = body;
+        const { videoUrl, user, description, transcription, music, thumbnailUrl, filterConfig, isMuted, metadata } = body;
 
         if (!videoUrl || !user) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
             music: music || "",
             thumbnailUrl: thumbnailUrl || "",
             filterConfig: filterConfig || null,
-            isMuted: isMuted || false
+            isMuted: isMuted || false,
+            metadata: metadata || {}
         };
 
         const result = await addVideo(newVideo);

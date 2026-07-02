@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateAppUser, getAppUsers } from "@/lib/db";
+import { updateAppUser, getUserById } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
     try {
@@ -29,10 +29,12 @@ export async function POST(request: NextRequest) {
 
         if (privacySettings !== undefined) {
             // Merge with existing paymentInfo
-            const currentUser = await getAppUsers().then(users => users.find(u => u.id === id));
+            const currentUser = await getUserById(id);
             let currentPaymentInfo = currentUser?.paymentInfo || {};
             if (typeof currentPaymentInfo === 'string') {
-                try { currentPaymentInfo = JSON.parse(currentPaymentInfo); } catch(e) {}
+                try { currentPaymentInfo = JSON.parse(currentPaymentInfo); } catch(e) {
+                    console.error("Invalid paymentInfo JSON in users/update", e);
+                }
             }
             updates.payment_info = {
                 ...currentPaymentInfo,

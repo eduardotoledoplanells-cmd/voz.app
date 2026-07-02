@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         // We change email to avoid conflicts and protect privacy
         const deletedId = userId.substring(0, 8);
         const anonymizedHandle = `@deleted_${deletedId}`;
-        const anonymizedEmail = `deleted_${deletedId}@vozapp.com`;
+        const anonymizedEmail = `deleted_${deletedId}@appvoz.com`;
 
         const { error: updateError } = await supabaseAdmin
             .from('app_users')

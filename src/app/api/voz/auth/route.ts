@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
+import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
@@ -19,10 +19,13 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Este email o teléfono ha sido bloqueado permanentemente por infringir las normas de la comunidad" }, { status: 403 });
             }
 
-            // 0.1 Verificar si el email o teléfono ya existen en app_users (evitar duplicados manuales)
-            const allUsers = await getAppUsers();
-            const emailExists = allUsers.some(u => u.email?.toLowerCase() === email.toLowerCase());
-            const phoneExists = phone && allUsers.some(u => u.phone === phone);
+            // 0.1 Verificar si el email o teléfono ya existen en app_users (evitar duplicados manuales de forma eficiente)
+            const emailExists = await getUserByEmail(email);
+            let phoneExists = null;
+            if (phone) {
+                const { data } = await supabaseAdmin.from('app_users').select('id').eq('phone', phone).maybeSingle();
+                phoneExists = data;
+            }
             
             if (emailExists) {
                 return NextResponse.json({ error: "El email ya está registrado en otra cuenta" }, { status: 409 });
@@ -86,9 +89,8 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: error.message }, { status: 400 });
             }
 
-            // Desbloqueamos la cuenta en app_users
-            const allUsers = await getAppUsers();
-            const targetUser = allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase());
+            // Desbloqueamos la cuenta en app_users de forma eficiente
+            const targetUser = await getUserByEmail(email);
             if (targetUser) {
                 await updateAppUser(targetUser.id, { status: 'active' });
             }
@@ -107,10 +109,15 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Credenciales inválidas o email no verificado" }, { status: 401 });
             }
 
-            // 2. Obtener datos del perfil de app_users
-            const users = await getAppUsers();
-            const userProfile = users.find(u => u.id === authData.user?.id || u.email === email);
-
+            // 2. Obtener datos del perfil de app_users de forma eficiente
+            let userProfile = null;
+            if (authData.user?.id) {
+                userProfile = await getUserById(authData.user.id);
+            }
+            if (!userProfile && email) {
+                userProfile = await getUserByEmail(email);
+            }
+ 
             if (!userProfile) {
                 return NextResponse.json({ error: "Perfil de usuario no encontrado" }, { status: 404 });
             }

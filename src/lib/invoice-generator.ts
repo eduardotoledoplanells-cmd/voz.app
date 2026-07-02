@@ -7,11 +7,11 @@ export function generateInvoice(order: Order) {
     // Company header
     doc.setFontSize(20);
     doc.setTextColor(220, 38, 38); // Red color
-    doc.text('REVOLUXBIT', 105, 20, { align: 'center' });
+    doc.text('VOZ', 105, 20, { align: 'center' });
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('revoluxbit.rob@gmail.com', 105, 27, { align: 'center' });
+    doc.text('voz@appvoz.com', 105, 27, { align: 'center' });
 
     // Invoice title
     doc.setFontSize(16);
@@ -83,7 +83,7 @@ export function generateInvoice(order: Order) {
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text('Gracias por tu compra', 105, 280, { align: 'center' });
-    doc.text('revoluxbit.rob@gmail.com', 105, 285, { align: 'center' });
+    doc.text('voz@appvoz.com', 105, 285, { align: 'center' });
 
     return doc;
 }

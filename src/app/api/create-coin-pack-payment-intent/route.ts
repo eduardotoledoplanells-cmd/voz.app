@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
         console.error('Stripe PaymentIntent creation error:', error);
+        await logSystemAlert('Stripe-CoinPack', error);
         return NextResponse.json({ error: error.message || 'Error interno al crear el pago' }, { status: 500 });
     }
 }

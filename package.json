@@ -10,6 +10,8 @@
     "keepalive": "node scripts/keepalive.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1073.0",
+    "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.5.3",
     "@supabase/supabase-js": "^2.97.0",
@@ -27,7 +29,8 @@
     "react-dom": "19.2.0",
     "resend": "^6.5.2",
     "stripe": "^20.0.0",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "youtube-dl-exec": "^3.1.8"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAppUsers, supabaseAdmin } from "@/lib/db";
+import { getUserByIdOrHandleOrEmail, supabaseAdmin } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,22 +14,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Missing identifying parameter (handle, id, or email)" }, { status: 400 });
         }
 
-        const users = await getAppUsers();
-
-        let user;
-        if (id) {
-            user = users.find(u => u.id === id);
-        }
-        
-        if (!user && handle) {
-            const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
-            const searchNormalized = normalize(handle);
-            user = users.find(u => normalize(u.handle) === searchNormalized);
-        }
-
-        if (!user && email) {
-            user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-        }
+        const user = await getUserByIdOrHandleOrEmail(id || undefined, handle || undefined, email || undefined);
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });

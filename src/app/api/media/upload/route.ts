@@ -59,34 +59,75 @@ export async function POST(request: Request) {
         const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const fileName = `${subDir}/${timestamp}-${originalName}`;
 
-        // Convert file to buffer and upload to Supabase
+        // Convert file to buffer and upload
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        const { data, error: uploadError } = await supabaseAdmin.storage
-            .from(targetBucket)
-            .upload(fileName, buffer, {
-                contentType: file.type,
-                cacheControl: '3600',
-                upsert: false
-            });
+        let publicUrl = '';
 
-        if (uploadError) {
-            console.error('Supabase storage error:', uploadError);
-            const service = targetBucket === 'kyc_documents' ? 'KYC' : 'Upload';
-            await logSystemAlert(service, `Storage upload failed (File: ${fileName}): ${uploadError.message}`);
-            return NextResponse.json({
-                error: 'Failed to upload to storage',
-                message: uploadError.message,
-                fileName,
-                fileType: file.type
-            }, { status: 500 });
+        if (isVideo) {
+            // Upload to Cloudflare R2
+            const { r2Client, R2_BUCKET_NAME } = require('@/lib/r2');
+            const { PutObjectCommand } = require('@aws-sdk/client-s3');
+            
+            try {
+                console.log(`[R2 Media Upload] Uploading video ${fileName} to bucket ${R2_BUCKET_NAME}...`);
+                await r2Client.send(
+                    new PutObjectCommand({
+                        Bucket: R2_BUCKET_NAME,
+                        Key: fileName,
+                        Body: buffer,
+                        ContentType: file.type,
+                    })
+                );
+
+                const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+                if (publicBaseUrl) {
+                    const formattedBase = publicBaseUrl.endsWith('/') ? publicBaseUrl.slice(0, -1) : publicBaseUrl;
+                    publicUrl = `${formattedBase}/${fileName}`;
+                } else {
+                    const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+                    publicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${fileName}`;
+                }
+            } catch (r2Error: any) {
+                console.error('R2 upload error:', r2Error);
+                await logSystemAlert('R2Upload', `R2 upload failed (File: ${fileName}): ${r2Error.message}`);
+                return NextResponse.json({
+                    error: 'Failed to upload video to Cloudflare R2',
+                    message: r2Error.message,
+                    fileName,
+                    fileType: file.type
+                }, { status: 500 });
+            }
+        } else {
+            // Upload to Supabase Storage (images, audio, docs)
+            const { data, error: uploadError } = await supabaseAdmin.storage
+                .from(targetBucket)
+                .upload(fileName, buffer, {
+                    contentType: file.type,
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Supabase storage error:', uploadError);
+                const service = targetBucket === 'kyc_documents' ? 'KYC' : 'Upload';
+                await logSystemAlert(service, `Storage upload failed (File: ${fileName}): ${uploadError.message}`);
+                return NextResponse.json({
+                    error: 'Failed to upload to storage',
+                    message: uploadError.message,
+                    fileName,
+                    fileType: file.type
+                }, { status: 500 });
+            }
+
+            // Get public URL from Supabase
+            const { data: { publicUrl: supabaseUrl } } = supabaseAdmin.storage
+                .from(targetBucket)
+                .getPublicUrl(fileName);
+                
+            publicUrl = supabaseUrl;
         }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabaseAdmin.storage
-            .from(targetBucket)
-            .getPublicUrl(fileName);
 
         return NextResponse.json({
             success: true,

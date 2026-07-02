@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
-import { getAppUsers, supabaseAdmin } from '@/lib/db';
+import { getUserById, getUserByHandle, supabaseAdmin } from '@/lib/db';
 import { processCoinPurchase } from '@/lib/ledger';
 import { Money } from '@/lib/money';
 import { logSystemAlert } from '@/lib/alerts';
@@ -90,9 +90,14 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
         const coinsMoney = Money.fromCoins(coins);
         console.log(`Processing coin purchase for user ${userId}: ${coinsMoney.toString()}`);
 
-        // 1. Update user balance in Supabase via Ledger
-        const users = await getAppUsers();
-        const user = users.find(u => u.id === userId || u.handle === userHandle);
+        // 1. Update user balance in Supabase via Ledger de forma eficiente
+        let user = null;
+        if (userId) {
+            user = await getUserById(userId);
+        }
+        if (!user && userHandle) {
+            user = await getUserByHandle(userHandle);
+        }
 
         if (user) {
             try {

@@ -12,10 +12,10 @@ export default function PrivacyPolicyPage() {
                     le informamos que los datos personales que nos proporcione serán tratados por:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Titular:</strong> RevoluxBit</li>
+                    <li><strong>Titular:</strong> VOZ</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
-                    <li><strong>Email:</strong> revoluxbit.rob@gmail.com</li>
+                    <li><strong>Email:</strong> voz@appvoz.com</li>
                     <li><strong>Responsable de Protección de Datos:</strong> Eduardo Toledo Planells</li>
                 </ul>
 
@@ -81,7 +81,7 @@ export default function PrivacyPolicyPage() {
                     <li><strong>Retirar consentimiento:</strong> En cualquier momento</li>
                 </ul>
                 <p>
-                    Para ejercer estos derechos, puede contactarnos en <strong>revoluxbit.rob@gmail.com</strong> adjuntando
+                    Para ejercer estos derechos, puede contactarnos en <strong>voz@appvoz.com</strong> adjuntando
                     copia de su DNI o documento identificativo equivalente.
                 </p>
 
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
                 <div style={{ marginTop: '40px', padding: '20px', background: '#f5f5f5', borderRadius: '4px' }}>
                     <p style={{ margin: 0 }}>
                         <strong>Contacto:</strong> Para cualquier consulta sobre esta política, puede contactarnos en
-                        <strong> revoluxbit.rob@gmail.com</strong>
+                        <strong> voz@appvoz.com</strong>
                     </p>
                 </div>
             </div>

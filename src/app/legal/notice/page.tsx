@@ -12,16 +12,16 @@ export default function LegalNoticePage() {
                     Comercio Electrónico (LSSI-CE), se informa de los siguientes datos:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Titular:</strong> RevoluxBit</li>
+                    <li><strong>Titular:</strong> VOZ</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Domicilio:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
-                    <li><strong>Email:</strong> revoluxbit.rob@gmail.com</li>
+                    <li><strong>Email:</strong> voz@appvoz.com</li>
                     <li><strong>Actividad:</strong> Comercio electrónico de productos tecnológicos y videojuegos</li>
                 </ul>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>2. Objeto</h2>
                 <p>
-                    El presente Aviso Legal regula el uso del sitio web de RevoluxBit (en adelante, "el sitio web").
+                    El presente Aviso Legal regula el uso del sitio web de VOZ (en adelante, "el sitio web").
                     El acceso y uso del sitio web implica la aceptación plena y sin reservas de todas las disposiciones
                     incluidas en este Aviso Legal.
                 </p>
@@ -50,12 +50,12 @@ export default function LegalNoticePage() {
                 <p>
                     Todos los contenidos del sitio web, incluyendo pero no limitándose a textos, fotografías, gráficos,
                     imágenes, iconos, tecnología, software, links y demás contenidos audiovisuales o sonoros, así como su
-                    diseño gráfico y códigos fuente, son propiedad intelectual de RevoluxBit o de terceros, sin que puedan
+                    diseño gráfico y códigos fuente, son propiedad intelectual de VOZ o de terceros, sin que puedan
                     entenderse cedidos al usuario ninguno de los derechos de explotación reconocidos por la normativa vigente
                     en materia de propiedad intelectual sobre los mismos.
                 </p>
                 <p>
-                    Las marcas, nombres comerciales o signos distintivos son titularidad de RevoluxBit o de terceros, sin que
+                    Las marcas, nombres comerciales o signos distintivos son titularidad de VOZ o de terceros, sin que
                     pueda entenderse que el acceso al sitio web atribuya ningún derecho sobre las citadas marcas, nombres
                     comerciales y/o signos distintivos.
                 </p>
@@ -63,26 +63,26 @@ export default function LegalNoticePage() {
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>5. Responsabilidad</h2>
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>5.1. Contenidos</h3>
                 <p>
-                    RevoluxBit no se hace responsable de la veracidad, exactitud o actualización de los contenidos publicados
+                    VOZ no se hace responsable de la veracidad, exactitud o actualización de los contenidos publicados
                     por terceros. El usuario es el único responsable de las manifestaciones falsas o inexactas que realice y
-                    de los perjuicios que cause a RevoluxBit o a terceros.
+                    de los perjuicios que cause a VOZ o a terceros.
                 </p>
 
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>5.2. Disponibilidad</h3>
                 <p>
-                    RevoluxBit no garantiza la disponibilidad y continuidad del funcionamiento del sitio web. Cuando sea
+                    VOZ no garantiza la disponibilidad y continuidad del funcionamiento del sitio web. Cuando sea
                     razonablemente posible, advertirá previamente de las interrupciones en el funcionamiento del sitio web.
                 </p>
 
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>5.3. Enlaces</h3>
                 <p>
-                    El sitio web puede contener enlaces a otros sitios web. RevoluxBit no se hace responsable del contenido,
+                    El sitio web puede contener enlaces a otros sitios web. VOZ no se hace responsable del contenido,
                     políticas de privacidad o prácticas de sitios web de terceros.
                 </p>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>6. Protección de Datos</h2>
                 <p>
-                    RevoluxBit se compromete a cumplir con la normativa vigente en materia de protección de datos personales.
+                    VOZ se compromete a cumplir con la normativa vigente en materia de protección de datos personales.
                     Para más información, consulte nuestra Política de Privacidad.
                 </p>
 
@@ -95,13 +95,13 @@ export default function LegalNoticePage() {
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>8. Legislación Aplicable y Jurisdicción</h2>
                 <p>
                     El presente Aviso Legal se rige por la legislación española. Para la resolución de cualquier controversia
-                    derivada del acceso o uso del sitio web, RevoluxBit y el usuario se someten a los Juzgados y Tribunales
+                    derivada del acceso o uso del sitio web, VOZ y el usuario se someten a los Juzgados y Tribunales
                     del domicilio del usuario.
                 </p>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>9. Modificaciones</h2>
                 <p>
-                    RevoluxBit se reserva el derecho a modificar el presente Aviso Legal en cualquier momento. Los cambios
+                    VOZ se reserva el derecho a modificar el presente Aviso Legal en cualquier momento. Los cambios
                     serán efectivos desde su publicación en el sitio web. Se recomienda revisar periódicamente este Aviso Legal.
                 </p>
 
@@ -110,7 +110,7 @@ export default function LegalNoticePage() {
                     Para cualquier consulta o sugerencia relacionada con este Aviso Legal, puede contactarnos en:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Email:</strong> revoluxbit.rob@gmail.com</li>
+                    <li><strong>Email:</strong> voz@appvoz.com</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
                 </ul>
 

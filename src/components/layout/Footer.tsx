@@ -42,7 +42,7 @@ export default function Footer() {
                         <ul>
                             <li>
                                 <a href="#" onClick={(e) => { e.preventDefault(); setShowSellModal(true); }}>
-                                    Vender a RevoluxBit
+                                    Vender a VOZ
                                 </a>
                             </li>
                             <li>
@@ -75,7 +75,7 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className={styles.bottom}>
-                    &copy; {new Date().getFullYear()} RevoluxBit. Todos los derechos reservados.
+                    &copy; {new Date().getFullYear()} VOZ. Todos los derechos reservados.
                 </div>
             </footer>
 
@@ -97,7 +97,7 @@ export default function Footer() {
                         </button>
                         <h2>Quiénes Somos</h2>
                         <p>
-                            RevoluxBit nace de la pasión por el gaming retro y la tecnología clásica.
+                            VOZ nace de la pasión por el gaming retro y la tecnología clásica.
                             Somos una comunidad de entusiastas dedicados a preservar la historia del
                             entretenimiento digital, ofreciendo una plataforma donde comprar y vender
                             videojuegos, consolas y tecnología retro de forma segura y confiable.
@@ -110,7 +110,7 @@ export default function Footer() {
                             calidad verificada y un servicio excepcional.
                         </p>
                         <p>
-                            En RevoluxBit creemos que cada consola, cada juego y cada pieza de tecnología
+                            En VOZ creemos que cada consola, cada juego y cada pieza de tecnología
                             cuenta una historia única. Nuestro objetivo es ser el puente que une el pasado
                             con el presente, permitiendo que las nuevas generaciones descubran las maravillas
                             que marcaron la evolución del entretenimiento digital.
@@ -136,11 +136,11 @@ export default function Footer() {
                         >
                             ×
                         </button>
-                        <h2>🎮 Guía para Vender en RevoluxBit</h2>
+                        <h2>🎮 Guía para Vender en VOZ</h2>
 
                         <h3>¿Cómo Vender tus Productos?</h3>
                         <p>
-                            En RevoluxBit hacemos que vender tus videojuegos, consolas y tecnología retro sea
+                            En VOZ hacemos que vender tus videojuegos, consolas y tecnología retro sea
                             fácil, rápido y seguro. Sigue estos sencillos pasos para convertir tus artículos
                             en efectivo.
                         </p>
@@ -208,7 +208,7 @@ export default function Footer() {
                         </ul>
 
                         <h4>Garantías del Vendedor</h4>
-                        <p>Al vender en RevoluxBit, garantizas que:</p>
+                        <p>Al vender en VOZ, garantizas que:</p>
                         <ul>
                             <li>Eres el propietario legítimo del producto</li>
                             <li>El producto funciona según lo descrito</li>

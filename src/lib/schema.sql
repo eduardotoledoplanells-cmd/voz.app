@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS videos (
     is_ad BOOLEAN DEFAULT FALSE,
     thumbnail_url TEXT,
     is_pinned BOOLEAN DEFAULT FALSE,
-    filter_config JSONB
+    filter_config JSONB,
+    comments_enabled BOOLEAN DEFAULT TRUE
 );
 
 -- 3. Cola de Moderación
@@ -236,7 +237,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT,
     message TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    read_status BOOLEAN DEFAULT FALSE
+    read_status BOOLEAN DEFAULT FALSE,
+    reference_id TEXT
 );
 
 -- 20. Lista Negra de Emails

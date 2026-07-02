@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addTransaction, getAppUsers, addAppUser, addNotification } from '@/lib/db';
+import { addTransaction, getUserById, getUserByHandle, addAppUser, addNotification } from '@/lib/db';
 import { processGift } from '@/lib/ledger';
 
 export async function POST(request: Request) {
@@ -15,9 +15,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        const users = await getAppUsers();
-        const sender = users.find(u => u.handle === senderHandle);
-        let receiver: any = users.find(u => u.handle === receiverHandle);
+        const sender = await getUserByHandle(senderHandle);
+        let receiver: any = await getUserByHandle(receiverHandle);
 
         if (!sender) {
             return NextResponse.json({ error: 'Sender not found' }, { status: 404 });
@@ -62,8 +61,7 @@ export async function POST(request: Request) {
         const payoutAmount = giftAmount * 0.65;
 
         // Fetch updated sender balance
-        const updatedUsers = await getAppUsers();
-        const updatedSender = updatedUsers.find(u => u.id === sender.id);
+        const updatedSender = await getUserById(sender.id);
         const newSenderBalance = updatedSender ? updatedSender.walletBalance : 0;
 
         // 5. Enviar notificación (El creador solo ve su parte)

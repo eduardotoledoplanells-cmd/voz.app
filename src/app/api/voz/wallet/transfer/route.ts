@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers } from '@/lib/db';
+import { getUserById, getUserByHandle } from '@/lib/db';
 import { executeLedgerTransaction, getOrCreateUserWallet } from '@/lib/ledger';
+import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
-        const { handle, amount } = await request.json();
+        const { amount } = await request.json();
+        const userId = request.headers.get('x-user-id');
 
-        if (!handle || !amount || amount <= 0) {
+        if (!userId || !amount || amount <= 0) {
             return NextResponse.json({ success: false, error: 'Datos inválidos' }, { status: 400 });
         }
 
-        const users = await getAppUsers();
-        const user = users.find(u => u.handle === handle);
+        const user = await getUserById(userId);
 
         if (!user) {
             return NextResponse.json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
                 ],
                 null,
                 idempotencyKey,
-                { handle }
+                { handle: user.handle }
             );
         } catch (ledgerError: any) {
             console.error("Ledger Transfer transaction failed:", ledgerError);
@@ -50,8 +51,7 @@ export async function POST(request: Request) {
         }
 
         // Fetch updated user to get accurate balance
-        const updatedUsers = await getAppUsers();
-        const updatedUser = updatedUsers.find(u => u.id === user.id);
+        const updatedUser = await getUserById(user.id);
         const finalEarnings = updatedUser ? updatedUser.earningsBalance : (currentEarnings - amount);
         const finalWallet = updatedUser ? updatedUser.walletBalance : ((user.walletBalance || 0) + amount);
 
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Error in transfer:', error);
+        await logSystemAlert('Wallet-Transfer', error);
         return NextResponse.json({ success: false, error: 'Error interno del servidor' }, { status: 500 });
     }
 }

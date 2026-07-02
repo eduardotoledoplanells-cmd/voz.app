@@ -67,3 +67,5 @@ scratch_*.js
 seed_*.js
 send_*.js
 env.vercel
+
+.env*

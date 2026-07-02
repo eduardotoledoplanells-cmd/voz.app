@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAppUsers, addAppUser, updateAppUser, deleteAppUser, getVideosByUser, supabaseAdmin } from '@/lib/db';
+import { validateEmployee } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        // SEGURIDAD: Validar rol del empleado (Min 1: Director/Admin)
+        const auth = await validateEmployee(request, 1);
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const body = await request.json();
 
         // Check for duplicates
@@ -103,6 +110,12 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
     try {
+        // SEGURIDAD: Validar rol del empleado (Min 1: Director/Admin)
+        const auth = await validateEmployee(request, 1);
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const body = await request.json();
         const { id, employeeName = 'Admin', ...updates } = body;
 
@@ -123,6 +136,12 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        // SEGURIDAD: Validar rol del empleado (Min 1: Director/Admin)
+        const auth = await validateEmployee(request, 1);
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 

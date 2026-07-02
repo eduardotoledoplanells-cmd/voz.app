@@ -5,6 +5,7 @@ import path from 'path';
 import { getUserRole } from '@/lib/auth-config';
 import { rateLimiter, getClientIp } from '@/lib/rate-limiter';
 import bcrypt from 'bcryptjs';
+import { logSystemAlert } from '@/lib/alerts';
 
 const USERS_FILE = path.join(process.cwd(), 'src', 'data', 'users.json');
 
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
         console.log(`
         === VERIFICATION EMAIL ===
         To: ${email}
-        Subject: Verifica tu cuenta en RevoluxBit
+        Subject: Verifica tu cuenta en VOZ
         
         Hola ${name},
         
@@ -121,6 +122,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Registration error:', error);
+        await logSystemAlert('Auth-Register', error);
         return NextResponse.json(
             { message: 'Error al registrar usuario' },
             { status: 500 }

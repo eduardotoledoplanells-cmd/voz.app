@@ -2,7 +2,7 @@
   {
     "id": "admin-1",
     "name": "Xisco",
-    "email": "revoluxbit.rob01@gmail.com",
+    "email": "voz@appvoz.com",
     "password": "$2b$10$c.0tw5rqCBPK58D8.mex3OxCMLtUOSsLXjkKlMwMeWs22PY8XPWnG",
     "marketingConsent": false,
     "registeredAt": "2025-12-04T12:00:00.000Z",
@@ -22,7 +22,7 @@
   {
     "id": "admin-2",
     "name": "Eduardo",
-    "email": "revoluxbit.rob02@gmail.com",
+    "email": "voz@appvoz.com",
     "password": "$2b$10$OBT4yd5mkE1bRFLuaDgsxO4E2EuOUjYtYou03TLKjrNV7Gr2qiGJS",
     "marketingConsent": false,
     "registeredAt": "2025-12-05T12:00:00.000Z",

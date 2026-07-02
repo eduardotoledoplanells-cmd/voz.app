@@ -1,6 +1,128 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { supabase, supabaseAdmin, deleteVideo, addNotification } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+
+async function moderateVideoWithAI(videoId: string, videoUrl: string, thumbnailUrl: string, description: string, userHandle: string) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        console.warn("[AI Moderation] OPENAI_API_KEY no configurado. Omitiendo moderación automática.");
+        return;
+    }
+
+    try {
+        console.log(`[AI Moderation] Iniciando moderación automática por IA para el video ${videoId}...`);
+        let isSafe = true;
+        let aiReason = "";
+
+        // 1. Verificar la miniatura (si existe) con GPT-4o-mini (Vision)
+        if (thumbnailUrl) {
+            const absoluteThumbnailUrl = thumbnailUrl.startsWith('http') ? thumbnailUrl : `https://voz.app${thumbnailUrl}`;
+            console.log(`[AI Moderation] Analizando miniatura: ${absoluteThumbnailUrl}`);
+            
+            const thumbRes = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: 'Analyze this video thumbnail. Does it contain nudity, sexually explicit content, pornography, graphic violence, gore, blood, or murders? Answer strictly with either "SAFE" or "UNSAFE" and nothing else.'
+                                },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: absoluteThumbnailUrl
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 5,
+                    temperature: 0.0
+                })
+            });
+
+            if (thumbRes.ok) {
+                const data = await thumbRes.json();
+                const result = data.choices?.[0]?.message?.content?.trim()?.toUpperCase() || 'SAFE';
+                console.log(`[AI Moderation] Resultado miniatura: ${result}`);
+                if (result === 'UNSAFE') {
+                    isSafe = false;
+                    aiReason = "Imagen de portada no permitida: detectado contenido explícito, pornográfico o de violencia/sangre.";
+                }
+            } else {
+                console.error("[AI Moderation] Error en llamada a OpenAI Vision:", await thumbRes.text());
+            }
+        }
+
+        // 2. Si sigue siendo segura, verificar la descripción con la API de moderación de OpenAI (Gratuita y rápida)
+        if (isSafe && description) {
+            console.log(`[AI Moderation] Analizando texto de descripción: "${description}"`);
+            const textRes = await fetch('https://api.openai.com/v1/moderations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    input: description
+                })
+            });
+
+            if (textRes.ok) {
+                const data = await textRes.json();
+                const result = data.results?.[0];
+                if (result && result.flagged) {
+                    const categories = result.categories || {};
+                    const isViolated = categories.sexual || categories['sexual/minors'] || categories.violence || categories['violence/graphic'] || categories.harassment;
+                    if (isViolated) {
+                        isSafe = false;
+                        aiReason = "El texto de la descripción infringe las normas de la comunidad (contenido inapropiado o violento).";
+                    }
+                }
+            } else {
+                console.error("[AI Moderation] Error en llamada a OpenAI Moderation:", await textRes.text());
+            }
+        }
+
+        // 3. Si la IA detecta que es UNSAFE: borrar video de la base de datos, marcar reportes como resueltos (rejected) y notificar al creador
+        if (!isSafe) {
+            console.log(`[AI Moderation] Video ${videoId} clasificado como INSEGURO por IA. Procediendo a eliminar.`);
+
+            // Eliminar video
+            await deleteVideo(videoId, userHandle);
+
+            // Actualizar estado en la cola de moderación a 'rejected' para todas las denuncias asociadas a este video
+            await supabaseAdmin
+                .from('moderation_queue')
+                .update({ status: 'rejected' })
+                .eq('content', videoId);
+
+            // Notificar al usuario creador
+            await addNotification({
+                id: `ai-mod-del-${videoId}-${Date.now()}`,
+                recipientId: userHandle,
+                type: 'moderation',
+                title: '⛔ Contenido eliminado por IA',
+                message: `Tu video ha sido eliminado automáticamente tras recibir múltiples denuncias. La Inteligencia Artificial de seguridad ha determinado que infringe las normas comunitarias: ${aiReason}`,
+                timestamp: new Date().toISOString(),
+                readStatus: false
+            });
+        } else {
+            console.log(`[AI Moderation] El video ${videoId} superó la verificación automática de IA (SAFE). Queda pendiente de revisión manual si el moderador lo considera.`);
+        }
+
+    } catch (err) {
+        console.error("[AI Moderation] Error durante la moderación por IA:", err);
+    }
+}
 
 // Simple in-memory rate limiter
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -95,6 +217,42 @@ export async function POST(req: NextRequest) {
         if (error) {
             console.error("Error inserting moderation item:", error);
             return NextResponse.json({ success: false, error: "Error al registrar la denuncia en la base de datos." }, { status: 500 });
+        }
+
+        // --- LÓGICA DE MODERACIÓN AUTOMÁTICA POR IA ---
+        // Si el contenido denunciado es un vídeo y es la décima denuncia (o superior), disparamos la IA
+        if (modType === 'video') {
+            try {
+                // Contar denuncias en la cola para este video
+                const { count, error: countError } = await supabaseAdmin
+                    .from('moderation_queue')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('content', targetId);
+
+                if (!countError && count !== null && count >= 10) {
+                    console.log(`[AI Moderation Trigger] El video ${targetId} ha alcanzado ${count} denuncias. Lanzando moderación por IA...`);
+                    
+                    // Obtener detalles del video
+                    const { data: videoData } = await supabaseAdmin
+                        .from('videos')
+                        .select('thumbnail_url, description, user_handle')
+                        .eq('id', targetId)
+                        .single();
+
+                    if (videoData) {
+                        // Lanzar el proceso de moderación por IA de forma asíncrona sin bloquear la respuesta del cliente
+                        moderateVideoWithAI(
+                            targetId,
+                            url,
+                            videoData.thumbnail_url,
+                            videoData.description,
+                            videoData.user_handle
+                        ).catch(aiErr => console.error("Error in asynchronous AI moderation:", aiErr));
+                    }
+                }
+            } catch (triggerError) {
+                console.error("Error checking report threshold for AI moderation:", triggerError);
+            }
         }
 
         return NextResponse.json({ success: true, message: "Denuncia registrada con éxito.", item: null });

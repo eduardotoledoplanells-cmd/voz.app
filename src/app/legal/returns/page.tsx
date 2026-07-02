@@ -24,7 +24,7 @@ export default function ReturnsPage() {
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
                     <li>
-                        <strong>Por email:</strong> Enviando un correo a <strong>revoluxbit.rob@gmail.com</strong> indicando:
+                        <strong>Por email:</strong> Enviando un correo a <strong>voz@appvoz.com</strong> indicando:
                         <ul style={{ marginLeft: '20px', marginTop: '10px' }}>
                             <li>Número de pedido</li>
                             <li>Fecha de compra</li>
@@ -34,7 +34,7 @@ export default function ReturnsPage() {
                     </li>
                     <li style={{ marginTop: '10px' }}>
                         <strong>Por correo postal:</strong> Enviando una carta a:<br />
-                        RevoluxBit<br />
+                        VOZ<br />
                         Calle del General Luque, 42<br />
                         07300, Inca, Palma de Mallorca
                     </li>
@@ -60,7 +60,7 @@ export default function ReturnsPage() {
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>4. Proceso de Devolución</h2>
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>Paso 1: Notificación</h3>
                 <p>
-                    Envíenos un email a <strong>revoluxbit.rob@gmail.com</strong> dentro del plazo de 14 días desde la
+                    Envíenos un email a <strong>voz@appvoz.com</strong> dentro del plazo de 14 días desde la
                     recepción del producto.
                 </p>
 
@@ -95,7 +95,7 @@ export default function ReturnsPage() {
                         del cliente.
                     </li>
                     <li>
-                        <strong>Producto defectuoso o error en el envío:</strong> RevoluxBit asumirá todos los gastos de
+                        <strong>Producto defectuoso o error en el envío:</strong> VOZ asumirá todos los gastos de
                         devolución y envío del producto correcto o de sustitución.
                     </li>
                 </ul>
@@ -131,7 +131,7 @@ export default function ReturnsPage() {
                     Si el producto recibido es defectuoso o no se corresponde con lo solicitado:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li>Contacte con nosotros inmediatamente en <strong>revoluxbit.rob@gmail.com</strong></li>
+                    <li>Contacte con nosotros inmediatamente en <strong>voz@appvoz.com</strong></li>
                     <li>Proporcione fotografías del defecto o error</li>
                     <li>Indique el número de pedido</li>
                 </ul>
@@ -162,9 +162,9 @@ export default function ReturnsPage() {
                     Para cualquier consulta sobre devoluciones y reembolsos, puede contactarnos en:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Email:</strong> revoluxbit.rob@gmail.com</li>
+                    <li><strong>Email:</strong> voz@appvoz.com</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
-                    <li><strong>Titular:</strong> RevoluxBit</li>
+                    <li><strong>Titular:</strong> VOZ</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                 </ul>
 

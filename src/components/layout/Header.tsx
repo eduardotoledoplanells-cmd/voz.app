@@ -42,7 +42,7 @@ export default function Header() {
             <div className={styles.topBar}>
                 <Link href="/" className={styles.logo}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo/logo-white.png" alt="RevoluxBit" style={{ height: '120px' }} />
+                    <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '120px' }} />
                 </Link>
 
                 <div className={styles.searchContainer}>

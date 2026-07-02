@@ -11,6 +11,18 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Missing videoId" }, { status: 400 });
         }
 
+        // Verificar si los comentarios están habilitados para este vídeo
+        const { data: videoData } = await supabaseAdmin
+            .from('videos')
+            .select('comments_enabled')
+            .eq('id', videoId)
+            .single();
+
+        // Si comments_enabled es explícitamente false, devolver array vacío
+        if (videoData && videoData.comments_enabled === false) {
+            return NextResponse.json([]);
+        }
+
         const comments = await getVoiceComments(videoId, userHandle || undefined);
         return NextResponse.json(comments);
     } catch (error) {
@@ -26,6 +38,17 @@ export async function POST(request: NextRequest) {
 
         if (!videoId || !userHandle || !audioUrl) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // Verificar si los comentarios están habilitados para este vídeo
+        const { data: videoData } = await supabaseAdmin
+            .from('videos')
+            .select('comments_enabled')
+            .eq('id', videoId)
+            .single();
+
+        if (videoData && videoData.comments_enabled === false) {
+            return NextResponse.json({ error: "El propietario ha desactivado los comentarios en este vídeo." }, { status: 403 });
         }
 
         const commentData: any = {
@@ -62,7 +85,8 @@ export async function POST(request: NextRequest) {
                 title: 'Nuevo Comentario de Voz 🎙️',
                 message: `${userHandle} ha comentado en tu publicación.`,
                 timestamp: new Date().toISOString(),
-                readStatus: false
+                readStatus: false,
+                referenceId: videoId
             });
         }
 

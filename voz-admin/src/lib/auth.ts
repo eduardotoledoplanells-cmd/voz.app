@@ -1,4 +1,5 @@
 import { supabaseAdmin, Employee } from './db';
+import bcrypt from 'bcryptjs';
 
 export interface ValidationResult {
     isValid: boolean;
@@ -64,7 +65,8 @@ export async function validateEmployee(
             };
         }
 
-        if (employee.password !== password) {
+        const isPasswordValid = await bcrypt.compare(password, employee.password);
+        if (!isPasswordValid) {
             return {
                 isValid: false,
                 errorStatus: 401,

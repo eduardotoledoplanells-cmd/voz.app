@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/lib/db";
+import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: NextRequest) {
     try {
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error("Error uploading voice comment:", error);
+        await logSystemAlert('VoiceUpload', error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

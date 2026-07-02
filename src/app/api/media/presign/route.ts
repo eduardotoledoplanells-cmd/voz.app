@@ -39,26 +39,58 @@ export async function POST(request: Request) {
         const originalName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const finalPath = `${subDir}/${timestamp}-${originalName}`;
 
-        const { data, error } = await supabaseAdmin.storage
-            .from('media')
-            .createSignedUploadUrl(finalPath);
+        let signedUrl = '';
+        let publicUrl = '';
+        let token = 'r2-upload';
+        let returnPath = finalPath;
 
-        if (error) {
-            console.error('Supabase createSignedUploadUrl error:', error);
-            return NextResponse.json({ error: 'Failed to create presigned URL', message: error.message }, { status: 500 });
+        if (isVideo) {
+            const { r2Client, R2_BUCKET_NAME } = require('@/lib/r2');
+            const { PutObjectCommand } = require('@aws-sdk/client-s3');
+            const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+            
+            const command = new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: finalPath,
+                ContentType: fileType
+            });
+            
+            signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+            
+            const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+            if (publicBaseUrl) {
+                const formattedBase = publicBaseUrl.endsWith('/') ? publicBaseUrl.slice(0, -1) : publicBaseUrl;
+                publicUrl = `${formattedBase}/${finalPath}`;
+            } else {
+                const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+                publicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${finalPath}`;
+            }
+        } else {
+            const { data, error } = await supabaseAdmin.storage
+                .from('media')
+                .createSignedUploadUrl(finalPath);
+
+            if (error) {
+                console.error('Supabase createSignedUploadUrl error:', error);
+                return NextResponse.json({ error: 'Failed to create presigned URL', message: error.message }, { status: 500 });
+            }
+            
+            const { data: publicData } = supabaseAdmin.storage
+                .from('media')
+                .getPublicUrl(finalPath);
+                
+            signedUrl = data.signedUrl;
+            token = data.token;
+            returnPath = data.path;
+            publicUrl = publicData.publicUrl;
         }
-
-        // Get public URL in advance so the client knows where it will be
-        const { data: { publicUrl } } = supabaseAdmin.storage
-            .from('media')
-            .getPublicUrl(finalPath);
 
         return NextResponse.json({
             success: true,
-            signedUrl: data.signedUrl,
-            token: data.token,
-            path: data.path,
-            publicUrl: publicUrl
+            signedUrl,
+            token,
+            path: returnPath,
+            publicUrl
         });
 
     } catch (error) {

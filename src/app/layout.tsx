@@ -4,6 +4,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { SellProvider } from '@/context/SellContext';
+import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -37,15 +38,17 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <AuthProvider>
-          <FavoritesProvider>
-            <CartProvider>
-              <SellProvider>
-                {children}
-              </SellProvider>
-            </CartProvider>
-          </FavoritesProvider>
-        </AuthProvider>
+        <GlobalErrorBoundary>
+          <AuthProvider>
+            <FavoritesProvider>
+              <CartProvider>
+                <SellProvider>
+                  {children}
+                </SellProvider>
+              </CartProvider>
+            </FavoritesProvider>
+          </AuthProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   );

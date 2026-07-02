@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVideos, addVideo, deleteVideo, VideoPost } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
         return corsHeaders(NextResponse.json(videos));
     } catch (error) {
         console.error("Error fetching videos:", error);
+        await logSystemAlert('Videos', error);
         return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
     }
 }
@@ -62,7 +64,8 @@ export async function POST(request: NextRequest) {
             thumbnailUrl: thumbnailUrl || "",
             filterConfig: filterConfig || null,
             createdAt: new Date().toISOString(),
-            isMuted: isMuted || false
+            isMuted: isMuted || false,
+            is_processed: true
         };
 
         const savedVideo = await addVideo(newVideo);
@@ -75,6 +78,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error("Error creating video post:", error);
+        await logSystemAlert('Videos', error);
         return corsHeaders(NextResponse.json({
             success: false,
             error: 'No se pudo guardar el vídeo en el servidor.',
@@ -113,6 +117,7 @@ export async function DELETE(request: NextRequest) {
         }
     } catch (error) {
         console.error("Error deleting video:", error);
+        await logSystemAlert('Videos', error);
         return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
     }
 }

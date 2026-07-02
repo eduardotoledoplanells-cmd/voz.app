@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ clientSecret: paymentIntent.client_secret });
     } catch (error: any) {
         console.error('Stripe error:', error);
+        await logSystemAlert('Stripe-PaymentIntent', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

@@ -128,7 +128,7 @@ export default function PromoSlider() {
                 zIndex: 2,
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}>
-                RevoluxBit Rewards
+                VOZ Rewards
             </h2>
 
             <div style={{

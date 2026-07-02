@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getAppUsers, addWithdrawalRequest } from '@/lib/db';
+import { getUserById, getUserByHandle, addWithdrawalRequest } from '@/lib/db';
 import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from '@/lib/ledger';
+import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
@@ -10,8 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'La cantidad mínima de retiro es 50 🪙' }, { status: 400 });
         }
 
-        const users = await getAppUsers();
-        const user = users.find(u => u.handle === handle);
+        const user = await getUserByHandle(handle);
 
         if (!user) {
             return NextResponse.json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
@@ -67,8 +67,7 @@ export async function POST(request: Request) {
         }
 
         // Fetch updated user to get accurate balance
-        const updatedUsers = await getAppUsers();
-        const updatedUser = updatedUsers.find(u => u.id === user.id);
+        const updatedUser = await getUserById(user.id);
         const finalEarnings = updatedUser ? updatedUser.earningsBalance : (currentEarnings - amount);
 
         return NextResponse.json({ 
@@ -78,6 +77,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Error in withdraw:', error);
+        await logSystemAlert('Wallet-Retiro', error);
         return NextResponse.json({ success: false, error: 'Error interno del servidor' }, { status: 500 });
     }
 }

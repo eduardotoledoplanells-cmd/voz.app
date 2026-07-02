@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { getUserRole } from '@/lib/auth-config';
 import bcrypt from 'bcryptjs';
+import { logSystemAlert } from '@/lib/alerts';
 
 const USERS_FILE = path.join(process.cwd(), 'src', 'data', 'users.json');
 
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         return NextResponse.json(userWithoutPassword);
     } catch (error) {
         console.error('Login error:', error);
+        await logSystemAlert('Auth-Login', error);
         return NextResponse.json(
             { message: 'Error al iniciar sesión' },
             { status: 500 }
