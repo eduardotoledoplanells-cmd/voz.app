@@ -181,30 +181,8 @@ export default async function SharedVideoPage({ params }: Props) {
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Direct APK Download */}
-                    <a 
-                        href="/downloads/VOZ.apk" 
-                        download
-                        style={{
-                            display: 'block',
-                            backgroundColor: '#8E2DE2',
-                            backgroundImage: 'linear-gradient(to right, #8E2DE2, #4A00E0)',
-                            color: 'white',
-                            textDecoration: 'none',
-                            borderRadius: '16px',
-                            padding: '16px',
-                            fontWeight: 'bold',
-                            fontSize: '15px',
-                            transition: 'opacity 0.2s',
-                            boxShadow: '0 4px 12px rgba(142, 45, 226, 0.3)'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                    >
-                        🤖 Descargar APK (Android)
-                    </a>
-
-                    {/* iOS App Store (Placeholder) */}
+                    {/* TODO: Replace href with actual Google Play URL when the app is published */}
+                    {/* Android Play Store (Coming Soon) */}
                     <div style={{
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         color: 'rgba(255, 255, 255, 0.4)',
@@ -215,9 +193,34 @@ export default async function SharedVideoPage({ params }: Props) {
                         cursor: 'not-allowed',
                         borderWidth: '1px',
                         borderStyle: 'solid',
-                        borderColor: 'rgba(255, 255, 255, 0.02)'
+                        borderColor: 'rgba(255, 255, 255, 0.02)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
                     }}>
-                        🍏 iOS (Próximamente)
+                        🤖 Google Play (Próximamente)
+                    </div>
+
+                    {/* TODO: Replace href with actual App Store URL when the app is published */}
+                    {/* iOS App Store (Coming Soon) */}
+                    <div style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        color: 'rgba(255, 255, 255, 0.4)',
+                        borderRadius: '16px',
+                        padding: '16px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'not-allowed',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
+                        borderColor: 'rgba(255, 255, 255, 0.02)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}>
+                        🍏 App Store (Próximamente)
                     </div>
                 </div>
             </div>
