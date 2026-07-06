@@ -38,10 +38,6 @@ export interface AppUser {
     iban?: string;
     paymentInfo?: any;
     privacySettings?: any;
-    stripeAccountId?: string;
-    stripe_account_id?: string;
-    stripe_onboarding_complete?: boolean;
-    stripeOnboardingComplete?: boolean;
     bio?: string;
     profileImage?: string;
     profileColor?: string;
@@ -57,6 +53,9 @@ export interface AppUser {
     live_url_kick?: string | null;
     live_url_twitch?: string | null;
     live_url_youtube?: string | null;
+    country_id?: number;
+    region_id?: number;
+    municipality_id?: number;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -127,6 +126,7 @@ export interface Campaign {
     targetCountries?: string[];
     targetRegions?: string[];
     targetInterests?: string[];
+    target_municipalities?: number[];
 }
 
 export interface Employee {
@@ -211,10 +211,6 @@ function mapUserRowToAppUser(u: any): AppUser {
         iban: u.iban,
         paymentInfo: pInfo,
         privacySettings: pInfo?.privacySettings || {},
-        stripeAccountId: u.stripe_account_id,
-        stripe_account_id: u.stripe_account_id,
-        stripeOnboardingComplete: u.stripe_onboarding_complete,
-        stripe_onboarding_complete: u.stripe_onboarding_complete,
         email: u.email,
         password: u.password,
         status: u.status,
@@ -1666,7 +1662,6 @@ export async function addCoinSale(sale: any) {
             pack_type: sale.packType,
             price: sale.price,
             coins: sale.coins,
-            stripe_payment_intent_id: sale.stripePaymentIntentId,
             status: sale.status || 'succeeded'
         }]);
 

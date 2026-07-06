@@ -51,11 +51,7 @@ const SERVICE_COLORS: Record<string, string> = {
     'PM-Inicio': '#4a148c',
     'PM-Mensajes': '#4a148c',
     'PM-Conversaciones': '#4a148c',
-    'PMs': '#4a148c',
-    'Stripe-PaymentIntent': '#6772e5',
-    'Stripe-CoinPack': '#6772e5',
-    'Stripe': '#6772e5',
-    'Compras': '#c62828',
+    'PMs': '#4a148c',    'Compras': '#c62828',
     'Wallet-Retiro': '#b71c1c',
     'Wallet-Transfer': '#b71c1c',
     'Donaciones': '#1a237e',
@@ -71,9 +67,7 @@ const SERVICE_COLORS: Record<string, string> = {
 };
 
 function getServiceColor(servicio: string): string {
-    if (SERVICE_COLORS[servicio]) return SERVICE_COLORS[servicio];
-    if (servicio?.startsWith('Stripe')) return '#6772e5';
-    if (servicio?.startsWith('Auth')) return '#004d40';
+    if (SERVICE_COLORS[servicio]) return SERVICE_COLORS[servicio];    if (servicio?.startsWith('Auth')) return '#004d40';
     if (servicio?.startsWith('PM')) return '#4a148c';
     if (servicio?.startsWith('Wallet')) return '#b71c1c';
     return '#1565c0';

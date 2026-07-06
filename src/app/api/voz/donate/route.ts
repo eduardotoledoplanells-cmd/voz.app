@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserByHandle, addTransaction, addNotification } from '@/lib/db';
+import { getUserById, getUserByHandle, addTransaction, addNotification } from '@/lib/db';
 import { processDonation } from '@/lib/ledger';
 import { logSystemAlert } from '@/lib/alerts';
 

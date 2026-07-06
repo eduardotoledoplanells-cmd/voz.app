@@ -1,0 +1,13 @@
+.next
+node_modules
+.git
+.github
+*.log
+*.sql
+*.zip
+*.tar.gz
+temp_env_check
+voz-admin/scratch
+.vercel
+public/voz.apk
+public/*.apk

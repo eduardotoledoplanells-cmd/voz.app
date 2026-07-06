@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import styles from '../login/auth.module.css';
@@ -20,7 +20,57 @@ export default function RegisterPage() {
 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    // const { login } = useAuth(); // Removed auto-login
+    
+    // Geographic data states
+    const [countries, setCountries] = useState<any[]>([]);
+    const [regions, setRegions] = useState<any[]>([]);
+    const [municipalities, setMunicipalities] = useState<any[]>([]);
+    
+    const [countryId, setCountryId] = useState('');
+    const [regionId, setRegionId] = useState('');
+    const [municipalityId, setMunicipalityId] = useState('');
+
+    // Fetch geographic data
+    useEffect(() => {
+        fetch('/api/locations?type=countries')
+            .then(res => res.json())
+            .then(data => setCountries(Array.isArray(data) ? data : []))
+            .catch(err => console.error("Error fetching countries:", err));
+    }, []);
+
+    useEffect(() => {
+        if (countryId) {
+            fetch(`/api/locations?type=regions&countryId=${countryId}`)
+                .then(res => res.json())
+                .then(data => {
+                    setRegions(Array.isArray(data) ? data : []);
+                    setRegionId('');
+                    setMunicipalityId('');
+                    setMunicipalities([]);
+                })
+                .catch(err => console.error("Error fetching regions:", err));
+        } else {
+            setRegions([]);
+            setRegionId('');
+            setMunicipalityId('');
+            setMunicipalities([]);
+        }
+    }, [countryId]);
+
+    useEffect(() => {
+        if (regionId) {
+            fetch(`/api/locations?type=municipalities&regionId=${regionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    setMunicipalities(Array.isArray(data) ? data : []);
+                    setMunicipalityId('');
+                })
+                .catch(err => console.error("Error fetching municipalities:", err));
+        } else {
+            setMunicipalities([]);
+            setMunicipalityId('');
+        }
+    }, [regionId]);
 
     // Generate Math Challenge on Load
     useState(() => {
@@ -42,14 +92,23 @@ export default function RegisterPage() {
             return;
         }
 
+        if (!countryId || !regionId || !municipalityId) {
+            setError('Debes seleccionar tu ubicación completa (País, Comunidad y Municipio).');
+            setLoading(false);
+            return;
+        }
+
         try {
-            const res = await fetch('/api/auth/register', {
+            const res = await fetch('/api/voz/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name,
                     email,
                     password,
+                    countryId: parseInt(countryId),
+                    regionId: parseInt(regionId),
+                    municipalityId: parseInt(municipalityId),
                     marketingConsent,
                     honeypot,
                     mathChallenge: {
@@ -62,7 +121,7 @@ export default function RegisterPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.message || 'Error al registrarse');
+                throw new Error(data.error || data.message || 'Error al registrarse');
             }
 
             // Success: Show verification message
@@ -137,6 +196,55 @@ export default function RegisterPage() {
                         minLength={6}
                     />
                 </div>
+
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>País</label>
+                    <select
+                        value={countryId}
+                        onChange={(e) => setCountryId(e.target.value)}
+                        required
+                        className={styles.input}
+                    >
+                        <option value="">Selecciona un país</option>
+                        {countries.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {regions.length > 0 && (
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Comunidad / Región</label>
+                        <select
+                            value={regionId}
+                            onChange={(e) => setRegionId(e.target.value)}
+                            required
+                            className={styles.input}
+                        >
+                            <option value="">Selecciona una comunidad</option>
+                            {regions.map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {municipalities.length > 0 && (
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Municipio</label>
+                        <select
+                            value={municipalityId}
+                            onChange={(e) => setMunicipalityId(e.target.value)}
+                            required
+                            className={styles.input}
+                        >
+                            <option value="">Selecciona un municipio</option>
+                            {municipalities.map(m => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {/* Math Challenge Shield */}
                 <div className={styles.formGroup} style={{ background: '#f3f4f6', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>

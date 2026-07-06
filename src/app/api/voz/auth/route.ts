@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { action, email, password, username, language, phone } = body;
+        const { action, email, password, username, language, phone, country_id, region_id, municipality_id } = body;
         const userLanguage = language || 'es';
 
         if (action === 'register') {

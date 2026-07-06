@@ -19,19 +19,19 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch('/api/voz/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ action: 'login', email, password })
             });
 
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.message || 'Error al iniciar sesión');
+                throw new Error(data.error || data.message || 'Error al iniciar sesión');
             }
 
-            login(data, rememberMe);
+            login(data.user || data, rememberMe);
         } catch (err: any) {
             setError(err.message);
         } finally {

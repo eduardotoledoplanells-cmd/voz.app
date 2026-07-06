@@ -12,8 +12,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/s3-request-presigner": "^3.1075.0",
-    "@stripe/react-stripe-js": "^5.4.1",
-    "@stripe/stripe-js": "^8.5.3",
+    "@stripe/react-stripe-js": "^6.7.0",
+    "@stripe/stripe-js": "^9.9.0",
     "@supabase/supabase-js": "^2.97.0",
     "@types/bcryptjs": "^2.4.6",
     "98.css": "^0.1.21",
@@ -21,6 +21,7 @@
     "dotenv": "^17.3.1",
     "firebase-admin": "^13.10.0",
     "jspdf": "^3.0.4",
+    "lucide-react": "^1.23.0",
     "next": "^15.3.2",
     "openai": "^6.10.0",
     "pg": "^8.19.0",
@@ -28,7 +29,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "resend": "^6.5.2",
-    "stripe": "^20.0.0",
+    "stripe": "^22.3.0",
     "uuid": "^13.0.0",
     "youtube-dl-exec": "^3.1.8"
   },

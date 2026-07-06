@@ -255,8 +255,7 @@ export default function DirectorLogsPage() {
                                                         padding: '2px 6px',
                                                         borderRadius: '3px',
                                                         backgroundColor: 
-                                                            alertItem.servicio === 'Stripe' ? '#6772e5' : 
-                                                            alertItem.servicio === 'Ledger' ? '#2e7d32' : 
+                                                            alertItem.servicio === 'Database' ? '#f2a900' : 
                                                             alertItem.servicio === 'KYC' ? '#e65100' : '#1565c0',
                                                         color: 'white',
                                                         fontWeight: 'bold',

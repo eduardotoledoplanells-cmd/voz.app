@@ -265,7 +265,7 @@ export async function POST(request: Request) {
                             nivel: 'warning',
                             error: ledgerError,
                             usuario: sender.handle,
-                            metadata: { creator: creatorHandleForPayment }
+                            metadata: { creator: escrow.creator_handle }
                         });
                         return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente para renovar.' }, { status: 402 });
                     }

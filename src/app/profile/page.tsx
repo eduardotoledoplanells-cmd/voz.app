@@ -1,60 +1,18 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+"use client";
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Order } from '@/types';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import styles from './profile.module.css';
-import { useFavorites } from '@/context/FavoritesContext';
-import ProductCard from '@/components/ui/ProductCard';
+import BottomNav from '../components/BottomNav';
+import ProfileSettingsModal from '../components/ProfileSettingsModal';
 
 export default function ProfilePage() {
-    const { user, logout, updateUser, isLoading } = useAuth();
-    const { favorites } = useFavorites();
+    const { user, logout, isLoading } = useAuth();
     const router = useRouter();
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [address, setAddress] = useState({
-        street: '',
-        city: '',
-        postalCode: '',
-        country: '',
-        phone: ''
-    });
-    const [marketingConsent, setMarketingConsent] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [sellerStats, setSellerStats] = useState<{
-        inventoryValue: number;
-        revenue: number;
-        productCount: number;
-    } | null>(null);
-
-    // ROBcoin Timer Logic
-    const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
-    useEffect(() => {
-        if (!user) return;
-
-        const updateTimer = () => {
-            const last = user.lastRobCoinEarned || 0;
-            const now = Date.now();
-            const ONE_DAY = 24 * 60 * 60 * 1000;
-            const diff = now - last;
-
-            if (diff >= ONE_DAY) {
-                setTimeRemaining(null); // Available
-            } else {
-                const remaining = ONE_DAY - diff;
-                const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
-                const minutes = Math.floor((remaining / (1000 * 60)) % 60);
-                const seconds = Math.floor((remaining / 1000) % 60);
-                setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
-            }
-        };
-
-        updateTimer(); // Initial call
-        const interval = setInterval(updateTimer, 1000);
-        return () => clearInterval(interval);
-    }, [user?.lastRobCoinEarned]);
+    const [profile, setProfile] = useState<any>(null);
+    const [loadingProfile, setLoadingProfile] = useState(true);
+    const [videos, setVideos] = useState<any[]>([]);
+    const [loadingVideos, setLoadingVideos] = useState(true);
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -64,315 +22,159 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (user) {
-            setAddress(user.address || {
-                street: '',
-                city: '',
-                postalCode: '',
-                country: '',
-                phone: ''
-            });
-            setMarketingConsent(user.marketingConsent || false);
-
-            // Fetch orders
-            fetch('/api/orders')
+            // Fetch enriched profile info (counts, etc.)
+            fetch(`/api/voz/users/profile?id=${user.id}`)
                 .then(res => res.json())
-                .then((data: Order[]) => {
-                    const userOrders = data.filter(o => o.customerEmail === user.email);
-                    // Sort by date desc
-                    userOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setOrders(userOrders);
+                .then(data => {
+                    if (data.success && data.user) {
+                        setProfile(data.user);
+                    } else {
+                        setProfile(user);
+                    }
+                    setLoadingProfile(false);
+                })
+                .catch(err => {
+                    console.error("Profile fetch error:", err);
+                    setProfile(user);
+                    setLoadingProfile(false);
                 });
 
-            // Fetch seller stats if admin
-            if (user.role === 'admin') {
-                fetch('/api/admin/sellers/stats')
-                    .then(res => res.json())
-                    .then(stats => {
-                        const myStats = stats.find((s: any) => s.id === user.id);
-                        if (myStats) {
-                            setSellerStats(myStats);
-                        }
-                    })
-                    .catch(err => console.error('Error fetching seller stats:', err));
-            }
+            // Fetch user videos
+            const handleParam = user.handle || '@' + user.name;
+            fetch(`/api/voz/videos?userHandle=${encodeURIComponent(handleParam)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const videoList = Array.isArray(data) ? data : (data.videos || []);
+                    setVideos(videoList);
+                    setLoadingVideos(false);
+                })
+                .catch(err => {
+                    console.error("Videos fetch error:", err);
+                    setLoadingVideos(false);
+                });
         }
     }, [user]);
 
-    const handleSaveAddress = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSaving(true);
+    const handleDeleteVideo = async (videoId: string) => {
+        if (!user || !user.handle) return;
+        if (!confirm('¿Seguro que quieres borrar este vídeo? No podrás recuperarlo.')) return;
         try {
-            const res = await fetch('/api/users/profile', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: user?.id, address, marketingConsent })
-            });
-
+            const res = await fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(user.handle)}`, { method: 'DELETE' });
             if (res.ok) {
-                const updatedUser = await res.json();
-                updateUser(updatedUser);
-                alert('Dirección guardada correctamente');
+                setVideos(prev => prev.filter(v => v.id !== videoId));
             } else {
-                alert('Error al guardar la dirección');
+                alert('No se pudo borrar el vídeo.');
             }
-        } catch (error) {
-            console.error(error);
-            alert('Error al guardar la dirección');
-        } finally {
-            setSaving(false);
+        } catch (e) {
+            console.error("Error al borrar el vídeo:", e);
         }
     };
 
-    const getStatusColor = (status: string) => {
-        const colors: Record<string, string> = {
-            pending: '#ff9800',
-            processing: '#2196f3',
-            shipped: '#9c27b0',
-            delivered: '#4caf50',
-            cancelled: '#f44336'
-        };
-        return colors[status] || '#999';
-    };
+    if (isLoading || !user || loadingProfile || !profile) {
+        return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
+    }
 
-    if (isLoading || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando perfil...</div>;
+    const name = profile.name || 'Sin nombre';
+    const handle = profile.handle || '@usuario';
+    const bio = profile.bio || 'Sin biografía todavía.';
+    const profileColor = profile.profile_color || profile.profileColor || '#8E2DE2';
+    const following = profile.following || profile.followingCount || 0;
+    const followers = profile.fans || profile.followersCount || 0;
+    const likes = profile.likes || profile.likesCount || 0;
 
     return (
-        <div className={styles.container}>
-            <aside className={styles.sidebar}>
-                <div className={styles.userInfo}>
-                    <div className={styles.userName}>{user.name}</div>
-                    <div className={styles.userEmail}>{user.email}</div>
-                    {user.role === 'admin' && (
-                        <Link
-                            href="/admin"
-                            className="btn btn-primary"
-                            style={{
-                                marginTop: '15px',
-                                width: '100%',
-                                textAlign: 'center',
-                                display: 'block',
-                                padding: '10px'
-                            }}
-                        >
-                            🛠️ Panel de Control
-                        </Link>
-                    )}
+        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', paddingBottom: '70px' }}>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
+                <div style={{ 
+                    width: '100px', height: '100px', borderRadius: '50%', 
+                    backgroundColor: profileColor, 
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    fontSize: '40px', fontWeight: 'bold', marginBottom: '15px',
+                    backgroundImage: profile.profileImage || profile.profile_image ? `url(${profile.profileImage || profile.profile_image})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                }}>
+                    {!(profile.profileImage || profile.profile_image) && (name ? name.charAt(0).toUpperCase() : '?')}
                 </div>
-                <button onClick={logout} className={styles.logoutButton}>
-                    Cerrar Sesión
-                </button>
-            </aside>
+                <h2 style={{ margin: 0 }}>{name}</h2>
+                <p style={{ color: '#aaa', margin: '5px 0' }}>{handle}</p>
+                <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px' }}>{bio}</p>
+                
+                <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <strong>{following}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Siguiendo</span>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <strong>{followers}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Seguidores</span>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <strong>{likes}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Me gusta</span>
+                    </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button onClick={() => setShowSettings(true)} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
+                    <button onClick={() => window.location.href = '/profile/monetization'} style={{ padding: '8px 20px', backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Monetización</button>
+                    <button onClick={() => window.location.href = '/profile/creator-panel'} style={{ padding: '8px 20px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Panel Creador</button>
+                    <button onClick={logout} style={{ padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
+                </div>
+            </div>
 
-            <main className={styles.mainContent}>
-
-                {user.role === 'admin' && sellerStats && (
-                    <section className={styles.section} style={{ marginBottom: '30px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
-                        <h2 className={styles.title} style={{ color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                            🚀 Tu Panel de Vendedor
-                        </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                                <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Artículos en Stock</div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{sellerStats.productCount}</div>
-                                <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Productos asignados</div>
-                            </div>
-                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                                <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Valor del Inventario</div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#4ade80' }}>
-                                    €{sellerStats.inventoryValue.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+            {/* Grid de Videos */}
+            <div style={{ padding: '2px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', borderBottom: '1px solid #333' }}>
+                    <span style={{ borderBottom: '2px solid white', paddingBottom: '5px', fontWeight: 'bold' }}>Publicaciones</span>
+                </div>
+                
+                {loadingVideos ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Cargando vídeos...</div>
+                ) : videos.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>No hay vídeos publicados aún.</div>
+                ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
+                        {videos.map(v => (
+                            <div key={v.id} style={{ width: '110px', aspectRatio: '9/16', backgroundColor: '#222', position: 'relative', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }}>
+                                {v.thumbnailUrl ? (
+                                    <img src={v.thumbnailUrl} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#111', padding: '5px', textAlign: 'center', overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '0.75rem', color: '#ccc', wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
+                                            {v.description || 'Sin miniatura'}
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {/* Overlay with stats and actions */}
+                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%)', pointerEvents: 'none' }} />
+                                
+                                {/* Views & Likes */}
+                                <div style={{ position: 'absolute', bottom: '5px', left: '5px', right: '5px', display: 'flex', justifyContent: 'space-between', color: 'white', fontSize: '0.75rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>▶ {v.views || 0}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>❤️ {v.likes || 0}</span>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>En tus productos</div>
+                                
+                                {/* Delete Button */}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteVideo(v.id); }}
+                                    style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '5px', padding: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    title="Borrar vídeo"
+                                >
+                                    🗑️
+                                </button>
                             </div>
-                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                                <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Tus Ventas</div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#fbbf24' }}>
-                                    €{sellerStats.revenue.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                                </div>
-                                <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Ingresos generados</div>
-                            </div>
-                        </div>
-                    </section>
+                        ))}
+                    </div>
                 )}
+            </div>
 
-                {/* ROBcoin Customer Dashboard - Desactivado temporalmente con Zona Arcade */}
-                {/* 
-                <section className={styles.section} style={{ marginBottom: '30px', background: 'linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%)', color: 'white' }}>
-                    <h2 className={styles.title} style={{ color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        👾 Tu Panel ROBcoins 👾
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '20px' }}>
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                            <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Tus ROBcoins</div>
-                            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#fbbf24' }}>
-                                {user.points || 0}
-                            </div>
-                            <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Saldo actual</div>
-                        </div>
+            <ProfileSettingsModal 
+                isOpen={showSettings} 
+                onClose={() => setShowSettings(false)} 
+                profile={profile} 
+                onLogout={logout} 
+            />
 
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                            <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Estado Diario</div>
-                            {timeRemaining ? (
-                                <>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f87171' }}>
-                                        {timeRemaining}
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Para ganar otro coin</div>
-                                </>
-                            ) : (
-                                <>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4ade80' }}>
-                                        ¡Disponible!
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Juega ahora para ganar</div>
-                                    <Link href="/arcade" style={{ display: 'inline-block', marginTop: '5px', fontSize: '0.8rem', color: '#fbbf24', textDecoration: 'underline' }}>
-                                        Ir al Arcade &rarr;
-                                    </Link>
-                                </>
-                            )}
-                        </div>
-
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                            <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Reglas de Juego</div>
-                            <div style={{ fontSize: '1rem', fontWeight: '500' }}>
-                                1000 ROBcoins = 1 EURO de descuento en tus compras.
-                            </div>
-                            <div style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '2px' }}>
-                                Gana ROBcoins para tus descuentos jugando
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                */}
-
-                <section className={styles.section}>
-                    <h2 className={styles.title}>Dirección de Envío Predeterminada</h2>
-                    <form onSubmit={handleSaveAddress} className={styles.form}>
-                        <div className={`${styles.formGroup} ${styles.fullWidth}`}>
-                            <label className={styles.label}>Dirección</label>
-                            <input
-                                type="text"
-                                value={address.street}
-                                onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                                className={styles.input}
-                                placeholder="Calle, número, piso..."
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Ciudad</label>
-                            <input
-                                type="text"
-                                value={address.city}
-                                onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                                className={styles.input}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Código Postal</label>
-                            <input
-                                type="text"
-                                value={address.postalCode}
-                                onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
-                                className={styles.input}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>País</label>
-                            <input
-                                type="text"
-                                value={address.country}
-                                onChange={(e) => setAddress({ ...address, country: e.target.value })}
-                                className={styles.input}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Teléfono</label>
-                            <input
-                                type="text"
-                                value={address.phone}
-                                onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                                className={styles.input}
-                            />
-                        </div>
-                        <div className={styles.fullWidth} style={{ marginTop: '20px', padding: '15px', background: '#f9f9f9', borderRadius: '4px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={marketingConsent}
-                                    onChange={(e) => setMarketingConsent(e.target.checked)}
-                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                />
-                                <span style={{ fontSize: '0.95rem' }}>
-                                    Deseo recibir ofertas y promociones por correo electrónico
-                                </span>
-                            </label>
-                        </div>
-                        <div className={styles.fullWidth}>
-                            <button type="submit" className={styles.saveButton} disabled={saving}>
-                                {saving ? 'Guardando...' : 'Guardar Dirección'}
-                            </button>
-                        </div>
-                    </form>
-                </section>
-
-                <section className={styles.section}>
-                    <h2 className={styles.title}>Mis Pedidos</h2>
-                    {orders.length === 0 ? (
-                        <p style={{ color: '#666' }}>No has realizado ningún pedido todavía.</p>
-                    ) : (
-                        orders.map(order => (
-                            <div key={order.id} className={styles.orderCard}>
-                                <div className={styles.orderHeader}>
-                                    <div>
-                                        <div className={styles.orderNumber}>{order.orderNumber}</div>
-                                        <div className={styles.orderDate}>{new Date(order.date).toLocaleDateString()}</div>
-                                    </div>
-                                    <span
-                                        className={styles.orderStatus}
-                                        style={{ background: getStatusColor(order.status) + '20', color: getStatusColor(order.status) }}
-                                    >
-                                        {order.status}
-                                    </span>
-                                </div>
-                                <div>
-                                    {order.items.map((item, idx) => (
-                                        <div key={idx} style={{ fontSize: '0.9rem', marginBottom: '5px' }}>
-                                            {item.quantity}x {item.title}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className={styles.orderTotal}>
-                                    Total: €{order.total.toFixed(2)}
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </section>
-
-                <section className={styles.section}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h2 className={styles.title} style={{ margin: 0 }}>Mis Favoritos</h2>
-                        {favorites.length > 0 && (
-                            <Link href="/favorites" style={{ fontSize: '0.9rem', color: '#e60000', fontWeight: 600 }}>
-                                Ver todos ({favorites.length})
-                            </Link>
-                        )}
-                    </div>
-
-                    {favorites.length === 0 ? (
-                        <p style={{ color: '#666' }}>No tienes productos en favoritos.</p>
-                    ) : (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                            gap: '20px'
-                        }}>
-                            {favorites.slice(0, 4).map(product => (
-                                <ProductCard key={product.id} product={product} variant="favorites" />
-                            ))}
-                        </div>
-                    )}
-                </section>
-            </main>
+            <BottomNav />
         </div>
     );
 }

@@ -5,28 +5,8 @@ import '98.css';
 
 export default function BillingPage() {
     const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], withdrawals?: any[], creators: any[], campaigns: any[], companies: any[] } | null>(null);
-    const [stripeData, setStripeData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'folders' | 'summary' | 'wallet' | 'packs' | 'journal' | 'payouts' | 'history' | 'ads_payments' | 'stripe'>('folders');
-
-    const stripeSalesCount = React.useMemo(() => {
-        if (!stripeData?.paymentIntents) return { counts: {}, totalRevenue: 0, totalSales: 0 };
-        const counts: any = {};
-        let totalRevenue = 0;
-        let totalSales = 0;
-        const packIdToPrice: any = { 'p1': 5, 'p2': 10, 'p3': 20, 'p4': 50, 'ps': 100 };
-        stripeData.paymentIntents.forEach((pi: any) => {
-            if (pi.status === 'succeeded' && pi.metadata?.packId) {
-                const price = packIdToPrice[pi.metadata.packId];
-                if (price) {
-                    counts[price] = (counts[price] || 0) + 1;
-                    totalRevenue += price;
-                    totalSales += 1;
-                }
-            }
-        });
-        return { counts, totalRevenue, totalSales };
-    }, [stripeData]);
+    const [viewMode, setViewMode] = useState<'folders' | 'summary' | 'wallet' | 'packs' | 'journal' | 'payouts' | 'history' | 'ads_payments'>('folders');
 
     interface ModalConfig {
         show: boolean;
@@ -42,23 +22,12 @@ export default function BillingPage() {
         setModal({ show: true, title, message, type, onConfirm });
     };
 
-    const fetchStripeData = async () => {
-        try {
-            const response = await fetch('/api/voz/stripe-stats');
-            const result = await response.json();
-            setStripeData(result);
-        } catch (error) {
-            console.error('Error fetching stripe data:', error);
-        }
-    };
-
     const fetchData = async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/voz/billing');
             const result = await response.json();
             setData(result);
-            await fetchStripeData();
         } catch (error) {
             console.error('Error fetching billing data:', error);
         } finally {
@@ -118,7 +87,6 @@ export default function BillingPage() {
                 { id: 'journal', name: 'Libro Diario.log', icon: '📑' },
                 { id: 'payouts', name: 'Pagos Pendientes.exe', icon: '🏦' },
                 { id: 'ads_payments', name: 'Pagos Publicidad.exe', icon: '💰' },
-                { id: 'stripe', name: 'Stripe Gateway.exe', icon: '💳' },
                 { id: 'history', name: 'Transacciones Finalizadas.exe', icon: '✅' }
             ].map(folder => (
                 <div
@@ -177,7 +145,6 @@ export default function BillingPage() {
             journal: 'Libro Diario de Transacciones (Ingresos y Gastos)',
             payouts: 'Gestión de Pagos Pendientes a Creadores',
             ads_payments: 'Control de Cobros por Publicidad',
-            stripe: 'Stripe Gateway - ' + (stripeData?.account?.id || 'acct_1Sm1OD3BtXxsW9yn'),
             history: 'Archivo de Pagos a Creadores Realizados'
         };
 

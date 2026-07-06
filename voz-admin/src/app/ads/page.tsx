@@ -31,6 +31,8 @@ export default function VozAdsPage() {
     const [newCampaignMinViewTime, setNewCampaignMinViewTime] = useState<number>(0);
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
     const [newCampaignInvestment, setNewCampaignInvestment] = useState<number>(0);
+    const [newCampaignPriority, setNewCampaignPriority] = useState<string>('Local_Standard');
+    const [newCampaignPackSize, setNewCampaignPackSize] = useState<number>(0);
     const [uploading, setUploading] = useState(false);
     const [selectedImpressionId, setSelectedImpressionId] = useState<string | null>(null);
     const [selectedClientDetail, setSelectedClientDetail] = useState<any | null>(null);
@@ -855,7 +857,7 @@ export default function VozAdsPage() {
                                             <th style={{ padding: '4px' }}>Campaña</th>
                                             <th style={{ padding: '4px' }}>Estado</th>
                                             <th style={{ padding: '4px' }}>Finaliza</th>
-                                            <th style={{ padding: '4px', textAlign: 'right' }}>Impresiones</th>
+                                            <th style={{ padding: '4px', textAlign: 'right' }}>Progreso (Pack)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -867,7 +869,7 @@ export default function VozAdsPage() {
                                                     <td style={{ padding: '4px' }}>{c.name}</td>
                                                     <td style={{ padding: '4px', color: c.status === 'active' ? 'green' : 'gray' }}>{c.status?.toUpperCase()}</td>
                                                     <td style={{ padding: '4px' }}>{c.endDate || 'Abierto'}</td>
-                                                    <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold' }}>{c.impressions || 0}</td>
+                                                    <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold' }}>{c.impressions || 0} / {c.packSize > 0 ? c.packSize : '∞'}</td>
                                                 </tr>
                                             ))
                                         )}

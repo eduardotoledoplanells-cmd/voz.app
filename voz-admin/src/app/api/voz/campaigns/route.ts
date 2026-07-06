@@ -51,7 +51,10 @@ export async function POST(request: Request) {
             // Segmentación publicitaria 70/30
             targetCountries: campaignData.targetCountries || [],
             targetRegions: campaignData.targetRegions || [],
-            targetInterests: campaignData.targetInterests || []
+            targetInterests: campaignData.targetInterests || [],
+            target_municipalities: campaignData.target_municipalities || [],
+            priority: campaignData.priority || 'Local_Standard',
+            packSize: campaignData.packSize || 0
         };
 
         const result = await addCampaign(newCampaign, employeeName);

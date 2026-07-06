@@ -60,6 +60,9 @@ export interface AppUser {
     country?: string;
     region?: string;
     interests?: string[];
+    country_id?: number;
+    region_id?: number;
+    municipality_id?: number;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -130,6 +133,10 @@ export interface Campaign {
     targetCountries?: string[];
     targetRegions?: string[];
     targetInterests?: string[];
+    target_municipalities?: number[];
+    // Nivel de Prioridad y Motor Publicitario
+    priority?: string; // Enterprise, Local_Premium, Local_Standard
+    packSize?: number; // 0 = unlimited
 }
 
 export interface Employee {
@@ -252,6 +259,7 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
+        bio: u.bio,
         profileImage: u.profile_image,
         profile_color: u.profile_color,
         isCreator: u.is_creator,
@@ -260,12 +268,7 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},
-        stripeAccountId: u.stripe_account_id,
-        stripe_account_id: u.stripe_account_id,
-        stripeOnboardingComplete: u.stripe_onboarding_complete,
-        stripe_onboarding_complete: u.stripe_onboarding_complete,
-        is_live: u.is_live,
+        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
         live_url: u.live_url
     } as any;
 }
@@ -295,6 +298,7 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
+        bio: u.bio,
         profileImage: u.profile_image,
         profile_color: u.profile_color,
         isCreator: u.is_creator,
@@ -303,12 +307,7 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},
-        stripeAccountId: u.stripe_account_id,
-        stripe_account_id: u.stripe_account_id,
-        stripeOnboardingComplete: u.stripe_onboarding_complete,
-        stripe_onboarding_complete: u.stripe_onboarding_complete,
-        is_live: u.is_live,
+        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
         live_url: u.live_url
     } as any;
 }
@@ -336,6 +335,7 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         status: u.status,
         walletBalance: isNaN(parseFloat(u.wallet_balance)) ? 0 : parseFloat(u.wallet_balance),
         joinedAt: u.joined_at,
+        bio: u.bio,
         profileImage: u.profile_image,
         profile_color: u.profile_color,
         isCreator: u.is_creator,
@@ -344,12 +344,7 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},
-        stripeAccountId: u.stripe_account_id,
-        stripe_account_id: u.stripe_account_id,
-        stripeOnboardingComplete: u.stripe_onboarding_complete,
-        stripe_onboarding_complete: u.stripe_onboarding_complete,
-        is_live: u.is_live,
+        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
         live_url: u.live_url
     } as any;
 }
@@ -703,7 +698,10 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         email: user.email,
         password: user.password,
         status: user.status,
-        wallet_balance: user.walletBalance || 0
+        wallet_balance: user.walletBalance || 0,
+        country_id: user.country_id,
+        region_id: user.region_id,
+        municipality_id: user.municipality_id
     }]).select().single();
     if (error) {
         console.error("Error inserting app_user:", error);
@@ -908,11 +906,14 @@ export async function addVoiceComment(comment: any): Promise<any> {
         return null;
     }
 
-    // Increment comments_count in videos table atomically via RPC
+    // Increment comments_count in videos table using select and update
     if (comment.video_id) {
-        const { error: updateError } = await supabaseAdmin.rpc('increment_video_comments', { vid: comment.video_id });
+        const { data: vidData } = await supabaseAdmin.from('videos').select('comments_count').eq('id', comment.video_id).single();
+        const currentCount = vidData?.comments_count || 0;
+        const { error: updateError } = await supabaseAdmin.from('videos').update({ comments_count: currentCount + 1 }).eq('id', comment.video_id);
+        
         if (updateError) {
-            console.error('[db] RPC increment_video_comments failed:', updateError);
+            console.error('[db] Error updating comments_count:', updateError);
         }
     }
 
@@ -1353,7 +1354,9 @@ export async function getCampaigns(): Promise<Campaign[]> {
         endDate: c.end_date,
         forceView: c.force_view,
         minViewTime: c.min_view_time || 0,
-        createdAt: c.created_at
+        createdAt: c.created_at,
+        priority: c.priority || 'Local_Standard',
+        packSize: c.pack_size || 0
     }));
 }
 
@@ -1371,7 +1374,9 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
         force_view: campaign.forceView,
         min_view_time: campaign.minViewTime || 0,
         target: campaign.target,
-        investment: (campaign as any).investment || 0
+        investment: (campaign as any).investment || 0,
+        priority: campaign.priority || 'Local_Standard',
+        pack_size: campaign.packSize || 0
     }]).select().single();
 
     if (error) return null;
@@ -1402,12 +1407,22 @@ export async function deleteCampaign(id: string, employeeName: string): Promise<
     return true;
 }
 
-export async function incrementCampaignImpressions(id: string): Promise<boolean> {
-    const { data: campaign } = await supabaseAdmin.from('campaigns').select('impressions').eq('id', id).single();
+export async function incrementCampaignImpressions(id: string, amount: number = 1): Promise<boolean> {
+    const { data: campaign } = await supabaseAdmin.from('campaigns').select('impressions, pack_size').eq('id', id).single();
     if (!campaign) return false;
 
+    const newImpressions = (campaign.impressions || 0) + amount;
+    const packSize = campaign.pack_size || 0;
+    
+    // Si hay un pack comprado y hemos llegado al límite, pausamos o completamos
+    let statusUpdate = {};
+    if (packSize > 0 && newImpressions >= packSize) {
+        statusUpdate = { status: 'completed' };
+    }
+
     const { error } = await supabaseAdmin.from('campaigns').update({
-        impressions: (campaign.impressions || 0) + 1
+        impressions: newImpressions,
+        ...statusUpdate
     }).eq('id', id);
 
     return !error;
@@ -1655,10 +1670,15 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
         }
 
         // Traer todas las campañas activas con sus metadatos y targeting
-        const { data: activeCampaigns } = await supabaseAdmin
+        const { data: activeCampaignsData } = await supabaseAdmin
             .from('campaigns')
-            .select('id, force_view, min_view_time, video_url, name, target_countries, target_regions, target_interests')
+            .select('id, force_view, min_view_time, video_url, name, target_countries, target_regions, target_interests, priority, pack_size, impressions')
             .eq('status', 'active');
+
+        // Filtro adicional de Inventario: excluir campañas locales que ya consumieron su pack
+        // (Este filtro también se aplica en BD por el trigger, pero lo doble-chequeamos aquí)
+        let activeCampaigns = activeCampaignsData || [];
+        activeCampaigns = activeCampaigns.filter((c: any) => c.pack_size === 0 || c.impressions < c.pack_size);
 
         if (activeCampaigns && activeCampaigns.length > 0) {
             activeCampaigns.forEach((c: any) => campaignsMap.set(c.id, c));
@@ -1708,17 +1728,31 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
                 );
             });
 
-            // 3. Selección 70/30: 70% preferencia al pool con interés, 30% al genérico
-            let selectedPool = genericPool;
-            const rand = Math.random() * 10;
-            if (rand < 7 && matchedPool.length > 0) {
-                selectedPool = matchedPool;
-            } else if (genericPool.length === 0 && matchedPool.length > 0) {
-                selectedPool = matchedPool; // fallback si no hay genéricos
+            // 3. Agrupación por Prioridades (Enterprise, Premium, Standard)
+            const enterprisePool = [...matchedPool.filter(c => c.priority === 'Enterprise'), ...genericPool.filter(c => c.priority === 'Enterprise')];
+            const premiumPool = [...matchedPool.filter(c => c.priority === 'Local_Premium'), ...genericPool.filter(c => c.priority === 'Local_Premium')];
+            const standardPool = [...matchedPool.filter(c => c.priority === 'Local_Standard'), ...genericPool.filter(c => c.priority === 'Local_Standard')];
+
+            // 4. Algoritmo de inyección según el Offset de la paginación (offset)
+            // Enterprise: inyección al inicio (offset 0) y cada 15 vídeos (ej: offset 15, 30)
+            // Locales (Premium/Standard): inyección cada 25-30 vídeos (ej: offset 25, 55, etc. Lo calcularemos por modulo)
+            
+            let selectedCampaign = null;
+            
+            if (offset % 15 === 0 && enterprisePool.length > 0) {
+                selectedCampaign = enterprisePool[Math.floor(Math.random() * enterprisePool.length)];
+            } else if ((offset % 25 === 0 || offset % 30 === 0) && offset !== 0) {
+                // Seleccionar un Local. Damos 70% chance a Premium, 30% a Standard
+                if (Math.random() * 10 < 7 && premiumPool.length > 0) {
+                    selectedCampaign = premiumPool[Math.floor(Math.random() * premiumPool.length)];
+                } else if (standardPool.length > 0) {
+                    selectedCampaign = standardPool[Math.floor(Math.random() * standardPool.length)];
+                } else if (premiumPool.length > 0) {
+                    selectedCampaign = premiumPool[Math.floor(Math.random() * premiumPool.length)];
+                }
             }
 
-            if (selectedPool.length > 0) {
-                const selectedCampaign = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+            if (selectedCampaign) {
                 adToInject = {
                     id: `ad_${selectedCampaign.id}_${Date.now()}`,
                     videoUrl: selectedCampaign.video_url,
@@ -1770,9 +1804,13 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
         };
     });
 
-    // 5. Inyectar el anuncio seleccionado naturalmente en el feed (posición 4)
+    // 5. Inyectar el anuncio seleccionado naturalmente en el feed (posición variable según offset)
     if (adToInject && result.length >= 2) {
-        const adIndex = Math.min(4, result.length - 1);
+        // En lugar de ponerlo siempre en la posición 4, si es Enterprise y offset 0, en la 1 o 2.
+        const isEnterprise = adToInject.description.includes('Enterprise'); // Hacky check but fine
+        let adIndex = 4;
+        if (offset === 0) adIndex = 1; // Inyección inmediata al inicio (posición 2 del feed)
+        else adIndex = Math.min(4, result.length - 1);
         result.splice(adIndex, 0, adToInject as any);
     }
 
@@ -2177,9 +2215,7 @@ export async function addCoinSale(sale: any) {
             user_handle: sale.userHandle,
             pack_type: sale.packType,
             price: sale.price,
-            coins: sale.coins,
-            stripe_payment_intent_id: sale.stripePaymentIntentId,
-            status: sale.status || 'succeeded'
+            coins: sale.coins,            status: sale.status || 'succeeded'
         }]);
 
     if (error) {

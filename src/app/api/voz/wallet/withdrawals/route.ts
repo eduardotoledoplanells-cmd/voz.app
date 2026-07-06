@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin, addNotification } from '@/lib/db';
 import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from '@/lib/ledger';
 import { stripe } from '@/lib/stripe';
+import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
 

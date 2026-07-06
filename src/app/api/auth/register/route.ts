@@ -37,7 +37,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { name, email, password, marketingConsent, honeypot, mathChallenge } = await request.json();
+        const { name, email, password, countryId, regionId, municipalityId, marketingConsent, honeypot, mathChallenge } = await request.json();
 
         // Honeypot check - if filled, it's likely a bot
         if (honeypot) {
@@ -63,9 +63,9 @@ export async function POST(request: Request) {
             );
         }
 
-        if (!name || !email || !password) {
+        if (!name || !email || !password || !countryId || !regionId || !municipalityId) {
             return NextResponse.json(
-                { message: 'Faltan datos requeridos' },
+                { message: 'Faltan datos requeridos (incluyendo ubicación completa)' },
                 { status: 400 }
             );
         }
@@ -95,6 +95,9 @@ export async function POST(request: Request) {
             verificationToken: verificationToken,
             verificationTokenExpiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
             points: 0,
+            country_id: countryId,
+            region_id: regionId,
+            municipality_id: municipalityId,
         };
 
         users.push(newUser);

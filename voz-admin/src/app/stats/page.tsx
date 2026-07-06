@@ -235,7 +235,6 @@ export default function ViralRankingPage() {
 
                         <div style={{ display: 'flex', gap: '20px', fontSize: '12px', marginTop: '10px' }}>
                             <div>
-                                <strong>Ventas Oficiales (Stripe):</strong> {auditData.globalMath.totalCoinsFromStripe.toFixed(2)} €
                                 <br />
                                 <strong>Bonos de Admin:</strong> {auditData.globalMath.totalCoinsFromAdmins.toFixed(2)} €
                                 <br />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { supabase } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         const filename = `${uuidv4()}.m4a`; // Asumimos m4a desde Expo, ajustar si es necesario
 
         // Upload to Supabase Storage
-        const { data, error: uploadError } = await supabase.storage
+        const { data, error: uploadError } = await supabaseAdmin.storage
             .from('media')
             .upload(`voice/${filename}`, buffer, {
                 contentType: file.type,
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Failed to upload to storage' }, { status: 500 });
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseAdmin.storage
             .from('media')
             .getPublicUrl(`voice/${filename}`);
 

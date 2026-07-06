@@ -63,10 +63,20 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Configuración de Stripe incompleta' }, { status: 500 });
         }
 
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount,
-            currency: 'eur',
+        const origin = request.headers.get('origin') || 'https://www.appvoz.com';
+        const finalRedirectUrl = redirectUrl || `${origin}/profile`;
+        
+        const session = await stripe.checkout.sessions.create({
+            ui_mode: 'embedded',
             payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: pack.stripePriceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            return_url: `${finalRedirectUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
             metadata: {
                 type: 'coin_purchase',
                 packId: packId,
@@ -78,7 +88,10 @@ export async function POST(request: Request) {
             }
         });
 
-        return NextResponse.json({ clientSecret: paymentIntent.client_secret });
+        return NextResponse.json({ 
+            clientSecret: session.client_secret,
+            publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        });
     } catch (error: any) {
         console.error('Stripe PaymentIntent creation error:', error);
         await logSystemAlert('Stripe-CoinPack', error);

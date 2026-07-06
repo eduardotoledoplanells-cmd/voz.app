@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
         const creator = video.user_handle || 'un creador';
         const title = `Mira el vídeo de ${creator} en VOZ 🎙️`;
-        const description = video.description 
+        const description = video.description
             ? `"${video.description}" — Escucha voces reales y participa en la comunidad.`
             : 'Escucha voces reales y participa en la comunidad de audio de VOZ.';
         const imageUrl = video.thumbnail_url || 'https://server-taupe-six.vercel.app/logo/logo.png'; // Fallback
@@ -62,7 +62,7 @@ export default async function SharedVideoPage({ params }: Props) {
     // Fetch video info to display context in the card
     const { data: video } = await supabaseAdmin
         .from('videos')
-        .select('description, user_handle, views, likes, comments_count')
+        .select('description, user_handle, views, likes, comments_count, video_url, thumbnail_url')
         .eq('id', id)
         .single();
 
@@ -107,24 +107,51 @@ export default async function SharedVideoPage({ params }: Props) {
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
                 borderRadius: '24px',
-                border: '1px border rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 padding: '30px',
                 textAlign: 'center',
                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
                 boxSizing: 'border-box'
             }}>
-                <div style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '32px',
-                    backgroundColor: 'rgba(255, 59, 48, 0.15)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    margin: '0 auto 20px auto'
-                }}>
-                    <span style={{ fontSize: '28px' }}>🔴</span>
-                </div>
+                {video?.video_url ? (
+                    <div style={{
+                        width: '100%',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        marginBottom: '20px',
+                        backgroundColor: '#000',
+                        aspectRatio: '9/16',
+                        maxHeight: '340px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }}>
+                        <video
+                            src={video.video_url}
+                            poster={video.thumbnail_url || undefined}
+                            controls
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    </div>
+                ) : (
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '32px',
+                        backgroundColor: 'rgba(255, 59, 48, 0.15)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        margin: '0 auto 20px auto'
+                    }}>
+                        <span style={{ fontSize: '28px' }}>🔴</span>
+                    </div>
+                )}
 
                 <h1 style={{
                     fontSize: '20px',
@@ -133,7 +160,7 @@ export default async function SharedVideoPage({ params }: Props) {
                     marginBottom: '12px',
                     color: '#fff'
                 }}>
-                    Para ver este vídeo debes descargar la aplicación
+                    {video?.video_url ? 'Vídeo compartido en VOZ' : 'Para ver este vídeo debes descargar la aplicación'}
                 </h1>
 
                 <p style={{
@@ -142,7 +169,9 @@ export default async function SharedVideoPage({ params }: Props) {
                     lineHeight: '22px',
                     marginBottom: '25px'
                 }}>
-                    Los vídeos y comentarios de voz de nuestra comunidad están disponibles exclusivamente en la aplicación oficial de VOZ.
+                    {video?.video_url 
+                        ? 'Para dar me gusta, comentar o interactuar con la comunidad, descarga la aplicación oficial.'
+                        : 'Los vídeos y comentarios de voz de nuestra comunidad están disponibles exclusivamente en la aplicación oficial de VOZ.'}
                 </p>
 
                 {/* Video Info Card */}
@@ -181,6 +210,26 @@ export default async function SharedVideoPage({ params }: Props) {
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Direct APK Download (Android Beta) */}
+                    <a href="/voz.apk" download style={{
+                        background: 'linear-gradient(to right, #8E2DE2, #4A00E0)',
+                        color: 'white',
+                        borderRadius: '16px',
+                        padding: '16px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 12px rgba(142, 45, 226, 0.3)',
+                        cursor: 'pointer',
+                        transition: 'opacity 0.2s'
+                    }}>
+                        🤖 Descargar APK (Android Beta)
+                    </a>
+
                     {/* TODO: Replace href with actual Google Play URL when the app is published */}
                     {/* Android Play Store (Coming Soon) */}
                     <div style={{

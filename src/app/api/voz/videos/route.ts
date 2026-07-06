@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideos, addVideo, deleteVideo, VideoPost } from "@/lib/db";
+import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { logSystemAlert } from '@/lib/alerts';
 
@@ -33,7 +33,9 @@ export async function GET(request: NextRequest) {
         const limit = limitParam ? parseInt(limitParam, 10) : 10;
         const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
-        const videos = await getVideos(userHandle, limit, offset);
+        const videos = userHandle 
+            ? await getVideosByUser(userHandle) 
+            : await getVideos(undefined, limit, offset);
         return corsHeaders(NextResponse.json(videos));
     } catch (error) {
         console.error("Error fetching videos:", error);

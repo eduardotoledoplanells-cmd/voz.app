@@ -91,6 +91,24 @@ export interface User {
     favorites?: string[]; // Array of Product IDs
     points?: number;
     lastRobCoinEarned?: number; // Timestamp of last earned coin
+
+    // VOZ App Specific properties
+    handle?: string;
+    bio?: string;
+    profileColor?: string;
+    profile_color?: string;
+    followingCount?: number;
+    followersCount?: number;
+    likesCount?: number;
+    walletBalance?: number;
+    earningsBalance?: number;
+    joinedAt?: string;
+    phone?: string;
+    isCreator?: boolean;
+    status?: string;
+    country_id?: number;
+    region_id?: number;
+    municipality_id?: number;
 }
 
 export interface ProductView {

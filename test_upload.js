@@ -1,37 +1,24 @@
-const fetch = require('node-fetch');
+const fs = require('fs');
 
-async function test() {
-  console.log("Presigning...");
-  const res = await fetch("http://localhost:3000/api/media/presign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename: "test.mp4", fileType: "video/mp4" })
-  });
-  const data = await res.json();
-  console.log("Presign:", data);
-  if (!data.success) return;
-
-  console.log("Uploading dummy to signed URL...");
-  const dummyFile = Buffer.alloc(1024 * 1024); // 1MB
-  const upRes = await fetch(data.signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": "video/mp4" },
-    body: dummyFile
-  });
-  console.log("Upload status:", upRes.status);
-  
-  console.log("Submitting video to DB...");
-  const submitRes = await fetch("http://localhost:3000/api/voz/videos", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      videoUrl: data.publicUrl,
-      user: "@test",
-      description: "Test",
-      thumbnailUrl: "http://example.com/thumb.jpg"
-    })
-  });
-  const submitData = await submitRes.json();
-  console.log("Submit:", submitData);
+async function testUpload() {
+    // We will create a dummy audio blob
+    const buffer = Buffer.from("dummy audio content");
+    const formData = new FormData();
+    formData.append('audio', new Blob([buffer], { type: 'audio/m4a' }), 'comment.m4a');
+    
+    try {
+        const fetch = (await import('node-fetch')).default;
+        // Wait, node 20+ has global fetch
+        const res = await globalThis.fetch('http://localhost:3000/api/voice/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await res.text();
+        console.log("Status:", res.status);
+        console.log("Response:", data);
+    } catch(e) {
+        console.error(e);
+    }
 }
-test();
+testUpload();

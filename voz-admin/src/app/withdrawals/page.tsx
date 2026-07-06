@@ -9,7 +9,7 @@ export default function WithdrawalsPage() {
 
     const fetchWithdrawals = async () => {
         setLoading(true);
-        setDebugInfo('Fetching withdrawals from automated Stripe Connect system...');
+        setDebugInfo('Fetching withdrawals from automated Gestión Manual system...');
         try {
             const res = await fetch(`/api/voz/wallet/withdrawals?t=${Date.now()}`, {
                 cache: 'no-store',
@@ -41,10 +41,10 @@ export default function WithdrawalsPage() {
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="window">
                 <div className="title-bar">
-                    <div className="title-bar-text">Auditoría de Retiros Automatizados (Stripe Connect)</div>
+                    <div className="title-bar-text">Auditoría de Retiros Automatizados (Gestión Manual)</div>
                 </div>
                 <div className="window-body">
-                    <p>Historial inmutable de retiros procesados automáticamente. Los retiros ahora se liquidan a través de Stripe Express, reteniendo automáticamente el 25% para VOZ.</p>
+                    <p>Historial inmutable de retiros procesados automáticamente. Los retiros se gestionan manualmente mediante transferencia bancaria.</p>
                     
                     <div className="sunken-panel" style={{ backgroundColor: 'white', marginTop: '10px', minHeight: '300px', padding: '10px', overflowX: 'auto' }}>
                         {loading ? <p>Cargando datos...</p> : (
@@ -55,7 +55,7 @@ export default function WithdrawalsPage() {
                                         <th style={{ padding: '8px' }}>Bruto Retirado</th>
                                         <th style={{ padding: '8px' }}>Neto Creador (75%)</th>
                                         <th style={{ padding: '8px' }}>Comisión VOZ (25%)</th>
-                                        <th style={{ padding: '8px' }}>Stripe Tx ID</th>
+                                        <th style={{ padding: '8px' }}>Transfer ID</th>
                                         <th style={{ padding: '8px' }}>Fecha</th>
                                         <th style={{ padding: '8px' }}>Estado Payout</th>
                                     </tr>
@@ -103,8 +103,8 @@ export default function WithdrawalsPage() {
                         <p style={{ color: 'blue' }}><b>Información del nuevo sistema:</b></p>
                         <ul>
                             <li>Las aprobaciones manuales han sido desactivadas.</li>
-                            <li>Los retiros se ejecutan automáticamente a las cuentas bancarias de los creadores a través de Stripe Connect.</li>
-                            <li>La comisión del 25% de VOZ queda retenida en nuestra cuenta de Stripe, de la cual Stripe NO nos deducirá costos operativos de los 'payouts' de los creadores.</li>
+                            <li>Los retiros se ejecutan automáticamente a las cuentas bancarias de los creadores a través de Gestión Manual.</li>
+                            <li>La comisión del 25% se retiene internamente.</li>
                         </ul>
                     </div>
                 </div>

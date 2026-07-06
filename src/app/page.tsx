@@ -1,8 +1,10 @@
 import styles from './landing.module.css';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/db';
 import WaitlistSection from './components/WaitlistSection';
+import LandingAuthButton from './components/LandingAuthButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -178,8 +180,10 @@ export default async function LandingPage() {
                             conectan con sus comunidades de una manera auténtica, directa y sin barreras.
                         </p>
 
+                        <LandingAuthButton />
+
                         {/* Waitlist form (client component) */}
-                        <div id="waitlist-hero">
+                        <div id="waitlist-hero" style={{ marginTop: '30px', display: 'none' }}>
                             <WaitlistSection />
                         </div>
 
