@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+import { staticCountries, staticRegions, staticMunicipalities } from "@/lib/staticLocations";
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { action, email, password, username, language, phone, country_id, region_id, municipality_id } = body;
+        const { action, email, password, username, language, phone } = body;
+        const countryId = body.countryId || body.country_id;
+        const regionId = body.regionId || body.region_id;
+        const municipalityId = body.municipalityId || body.municipality_id;
         const userLanguage = language || 'es';
 
         if (action === 'register') {
@@ -55,6 +59,27 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: authError.message }, { status: 400 });
             }
 
+            // Resolve geographic text values
+            let countryText = '';
+            let regionText = '';
+
+            if (countryId) {
+                const foundCountry = staticCountries.find(c => c.id === parseInt(countryId.toString()));
+                if (foundCountry) countryText = foundCountry.name;
+            }
+            if (regionId) {
+                const foundRegion = staticRegions.find(r => r.id === parseInt(regionId.toString()));
+                if (foundRegion) {
+                    regionText = foundRegion.name;
+                    if (municipalityId) {
+                        const foundMuni = staticMunicipalities.find(m => m.id === parseInt(municipalityId.toString()));
+                        if (foundMuni) {
+                            regionText = `${foundRegion.name} - ${foundMuni.name}`;
+                        }
+                    }
+                }
+            }
+
             // 2. Crear el registro en la tabla pública app_users (para el perfil y wallet)
             // Nota: El ID de app_users coincidirá con el ID de Supabase Auth
             const newUser: AppUser = {
@@ -66,7 +91,10 @@ export async function POST(request: NextRequest) {
                 status: 'unverified', // Nace bloqueado hasta poner el PIN
                 walletBalance: 0,
                 joinedAt: new Date().toISOString(),
-                phone: phone || ''
+                phone: phone || '',
+                country: countryText || null,
+                region: regionText || null,
+                interests: []
             };
 
             await addAppUser(newUser);

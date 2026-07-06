@@ -1,94 +1,156 @@
+.wrapper {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #080810;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(142, 45, 226, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(74, 0, 224, 0.15) 0%, transparent 40%);
+    padding: 40px 20px;
+    box-sizing: border-box;
+}
+
 .container {
-    max-width: 400px;
-    margin: 40px auto;
-    padding: 30px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+                0 0 50px rgba(142, 45, 226, 0.12);
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .title {
     text-align: center;
     margin-bottom: 30px;
-    color: #333;
-    font-size: 1.8rem;
+    color: #ffffff;
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #ffffff 40%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
 }
 
 .formGroup {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .label {
-    font-weight: 500;
-    color: #555;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
+    letter-spacing: -0.2px;
 }
 
 .input {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    color: #ffffff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .input:focus {
-    border-color: #0070f3;
+    border-color: #8E2DE2;
+    background: rgba(255, 255, 255, 0.07);
     outline: none;
+    box-shadow: 0 0 15px rgba(142, 45, 226, 0.25);
+}
+
+/* Select overrides */
+select.input {
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+select.input option {
+    background: #0d0d1a;
+    color: #ffffff;
 }
 
 .button {
-    background: #0070f3;
+    background: linear-gradient(135deg, #8E2DE2, #4A00E0);
     color: white;
-    padding: 12px;
+    padding: 14px;
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    box-shadow: 0 4px 20px rgba(142, 45, 226, 0.35);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-top: 10px;
 }
 
 .button:hover {
-    background: #0051a2;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(142, 45, 226, 0.5);
+    filter: brightness(1.1);
+}
+
+.button:active {
+    transform: translateY(0);
 }
 
 .button:disabled {
-    background: #ccc;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 .footer {
-    margin-top: 20px;
+    margin-top: 30px;
     text-align: center;
-    font-size: 0.9rem;
-    color: #666;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .link {
-    color: #0070f3;
+    color: #a855f7;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
+    transition: color 0.2s;
 }
 
 .link:hover {
-    text-decoration: underline;
+    color: #c084fc;
 }
 
 .error {
-    background: #ffebee;
-    color: #c62828;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
     text-align: center;
+    font-weight: 500;
 }

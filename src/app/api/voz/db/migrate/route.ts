@@ -30,15 +30,27 @@ export async function POST(req: NextRequest) {
         const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
         const projRef = match ? match[1] : 'thiftwzubmvcrdhuwcwm';
 
-        const password = dbPassword || 'VozDatabase2026!';
+        const password = dbPassword || process.env.SUPABASE_DB_PASSWORD || 'VozDatabase2026!';
 
         // We will try multiple possible pooler hosts and structures
         const regions = [
             'eu-central-1',
             'eu-west-1',
+            'eu-west-2',
+            'eu-west-3',
             'eu-north-1',
             'us-east-1',
-            'us-east-2'
+            'us-east-2',
+            'us-west-1',
+            'us-west-2',
+            'ca-central-1',
+            'sa-east-1',
+            'ap-northeast-1',
+            'ap-northeast-2',
+            'ap-northeast-3',
+            'ap-south-1',
+            'ap-southeast-1',
+            'ap-southeast-2'
         ];
         const poolers = ['aws-1', 'aws-0'];
 
@@ -107,34 +119,48 @@ export async function POST(req: NextRequest) {
             NOTIFY pgrst, 'reload schema';
         `;
 
+        const targets = [
+            { host: `${projRef}.supabase.co`, port: 5432, user: 'postgres' },
+            { host: `db.${projRef}.supabase.co`, port: 5432, user: 'postgres' },
+            { host: `db.${projRef}.supabase.co`, port: 6543, user: `postgres.${projRef}` }
+        ];
+
         for (const pooler of poolers) {
             for (const region of regions) {
-                const host = `${pooler}-${region}.pooler.supabase.com`;
-                console.log(`Connecting to ${host} with user postgres.${projRef}...`);
-                const client = new Client({
-                    host,
+                targets.push({
+                    host: `${pooler}-${region}.pooler.supabase.com`,
                     port: 6543,
-                    user: `postgres.${projRef}`,
-                    password,
-                    database: 'postgres',
-                    ssl: { rejectUnauthorized: false },
-                    connectionTimeoutMillis: 5000,
+                    user: `postgres.${projRef}`
                 });
-
-                try {
-                    await client.connect();
-                    console.log(`✅ Connected successfully to ${host}! Executing query...`);
-                    const res = await client.query(queryToRun);
-                    resultData = res.rows;
-                    await client.end();
-                    success = true;
-                    break;
-                } catch (err: any) {
-                    lastError = err.message;
-                    console.error(`Migration failed for ${host}:`, err.message);
-                }
             }
-            if (success) break;
+        }
+
+        const connectionErrors: any[] = [];
+        for (const target of targets) {
+            console.log(`Connecting to ${target.host}:${target.port} with user ${target.user}...`);
+            const client = new Client({
+                host: target.host,
+                port: target.port,
+                user: target.user,
+                password,
+                database: 'postgres',
+                ssl: { rejectUnauthorized: false },
+                connectionTimeoutMillis: 5000,
+            });
+
+            try {
+                await client.connect();
+                console.log(`✅ Connected successfully to ${target.host}:${target.port}! Executing query...`);
+                const res = await client.query(queryToRun);
+                resultData = res.rows;
+                await client.end();
+                success = true;
+                break;
+            } catch (err: any) {
+                lastError = err.message;
+                connectionErrors.push({ host: target.host, port: target.port, user: target.user, error: err.message });
+                console.error(`Migration failed for ${target.host}:${target.port}:`, err.message);
+            }
         }
 
         if (success) {
@@ -147,7 +173,7 @@ export async function POST(req: NextRequest) {
             return corsHeaders(NextResponse.json({
                 success: false,
                 error: lastError,
-                details: `No se pudo conectar con la base de datos Supabase con la contraseña proporcionada para el proyecto ${projRef}.`
+                details: connectionErrors
             }, { status: 500 }));
         }
 

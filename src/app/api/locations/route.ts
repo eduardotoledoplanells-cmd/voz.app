@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { staticCountries, staticRegions, staticMunicipalities } from '@/lib/staticLocations';
 
 export async function GET(request: Request) {
     try {
@@ -7,27 +7,23 @@ export async function GET(request: Request) {
         const type = searchParams.get('type');
 
         if (type === 'countries') {
-            const { data, error } = await supabase.from('countries').select('*').order('name');
-            if (error) throw error;
-            return NextResponse.json(data);
+            return NextResponse.json(staticCountries);
         }
 
         if (type === 'regions') {
             const countryId = searchParams.get('countryId');
             if (!countryId) return NextResponse.json({ error: 'Missing countryId' }, { status: 400 });
             
-            const { data, error } = await supabase.from('regions').select('*').eq('country_id', countryId).order('name');
-            if (error) throw error;
-            return NextResponse.json(data);
+            const filtered = staticRegions.filter(r => r.country_id === parseInt(countryId));
+            return NextResponse.json(filtered);
         }
 
         if (type === 'municipalities') {
             const regionId = searchParams.get('regionId');
             if (!regionId) return NextResponse.json({ error: 'Missing regionId' }, { status: 400 });
             
-            const { data, error } = await supabase.from('municipalities').select('*').eq('region_id', regionId).order('name');
-            if (error) throw error;
-            return NextResponse.json(data);
+            const filtered = staticMunicipalities.filter(m => m.region_id === parseInt(regionId));
+            return NextResponse.json(filtered);
         }
 
         return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });

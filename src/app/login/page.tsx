@@ -40,56 +40,58 @@ export default function LoginPage() {
     };
 
     return (
-        <div className={styles.container}>
-            <h1 className={styles.title}>Iniciar Sesión</h1>
+        <div className={styles.wrapper}>
+            <div className={styles.container}>
+                <h1 className={styles.title}>Iniciar Sesión</h1>
 
-            {error && <div className={styles.error}>{error}</div>}
+                {error && <div className={styles.error}>{error}</div>}
 
-            <form onSubmit={handleSubmit} className={styles.form}>
-                <div className={styles.formGroup}>
-                    <label className={styles.label}>Email</label>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className={styles.input}
-                        placeholder="tu@email.com"
-                    />
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            className={styles.input}
+                            placeholder="tu@email.com"
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Contraseña</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className={styles.input}
+                            placeholder="********"
+                        />
+                    </div>
+
+                    <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                        <input
+                            type="checkbox"
+                            id="rememberMe"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            style={{ width: 'auto', margin: 0 }}
+                        />
+                        <label htmlFor="rememberMe" style={{ margin: 0, cursor: 'pointer', userSelect: 'none' }}>
+                            Mantener sesión iniciada
+                        </label>
+                    </div>
+
+                    <button type="submit" className={styles.button} disabled={loading}>
+                        {loading ? 'Cargando...' : 'Entrar'}
+                    </button>
+                </form>
+
+                <div className={styles.footer}>
+                    ¿No tienes cuenta? <Link href="/register" className={styles.link}>Regístrate</Link>
                 </div>
-
-                <div className={styles.formGroup}>
-                    <label className={styles.label}>Contraseña</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className={styles.input}
-                        placeholder="********"
-                    />
-                </div>
-
-                <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
-                    <input
-                        type="checkbox"
-                        id="rememberMe"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        style={{ width: 'auto', margin: 0 }}
-                    />
-                    <label htmlFor="rememberMe" style={{ margin: 0, cursor: 'pointer', userSelect: 'none' }}>
-                        Mantener sesión iniciada
-                    </label>
-                </div>
-
-                <button type="submit" className={styles.button} disabled={loading}>
-                    {loading ? 'Cargando...' : 'Entrar'}
-                </button>
-            </form>
-
-            <div className={styles.footer}>
-                ¿No tienes cuenta? <Link href="/register" className={styles.link}>Regístrate</Link>
             </div>
         </div>
     );

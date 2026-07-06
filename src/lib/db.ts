@@ -699,9 +699,9 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         password: user.password,
         status: user.status,
         wallet_balance: user.walletBalance || 0,
-        country_id: user.country_id,
-        region_id: user.region_id,
-        municipality_id: user.municipality_id
+        country: user.country,
+        region: user.region,
+        interests: user.interests || []
     }]).select().single();
     if (error) {
         console.error("Error inserting app_user:", error);
@@ -1701,7 +1701,8 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
                 // Si el anuncio tiene filtro de región y el usuario no coincide → descartar
                 if (hasRegionTarget && userRegion) {
                     const regionMatch = c.target_regions.some((tr: string) =>
-                        tr.toLowerCase() === userRegion!.toLowerCase()
+                        userRegion!.toLowerCase().includes(tr.toLowerCase()) ||
+                        tr.toLowerCase().includes(userRegion!.toLowerCase())
                     );
                     if (!regionMatch) return false;
                 } else if (hasRegionTarget && !userRegion) {
