@@ -18,8 +18,12 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     const { updateUser } = useAuth();
     
     // Estados para edición
-    const [editMode, setEditMode] = useState<'name' | 'bio' | 'live_url_kick' | 'live_url_twitch' | 'live_url_youtube' | null>(null);
+    const [editMode, setEditMode] = useState<'name' | 'bio' | 'live_url' | null>(null);
     const [editText, setEditText] = useState('');
+    const [editKick, setEditKick] = useState('');
+    const [editTwitch, setEditTwitch] = useState('');
+    const [editYoutube, setEditYoutube] = useState('');
+    const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(false);
     const [saving, setSaving] = useState(false);
     
     // Estados para la tienda de monedas
@@ -44,13 +48,16 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
 
     if (!isOpen || !profile) return null;
 
-    const handleEdit = (mode: 'name' | 'bio' | 'live_url_kick' | 'live_url_twitch' | 'live_url_youtube') => {
+    const handleEdit = (mode: 'name' | 'bio' | 'live_url') => {
         setEditMode(mode);
         if (mode === 'name') setEditText(profile.handle || '');
         if (mode === 'bio') setEditText(profile.bio || '');
-        if (mode === 'live_url_kick') setEditText(profile.live_url_kick || '');
-        if (mode === 'live_url_twitch') setEditText(profile.live_url_twitch || '');
-        if (mode === 'live_url_youtube') setEditText(profile.live_url_youtube || '');
+        if (mode === 'live_url') {
+            setEditKick(profile.live_url_kick || '');
+            setEditTwitch(profile.live_url_twitch || '');
+            setEditYoutube(profile.live_url_youtube || '');
+            setIsDisclaimerAccepted(false);
+        }
     };
 
     const saveEdit = async () => {
@@ -58,29 +65,16 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
         try {
             const body: any = { id: profile.id };
             
-            let live_url_kick = profile.live_url_kick;
-            let live_url_twitch = profile.live_url_twitch;
-            let live_url_youtube = profile.live_url_youtube;
-
-            if (editMode === 'live_url_kick') live_url_kick = editText.trim() || null;
-            if (editMode === 'live_url_twitch') live_url_twitch = editText.trim() || null;
-            if (editMode === 'live_url_youtube') live_url_youtube = editText.trim() || null;
-
-            const primaryLiveUrl = live_url_kick || live_url_twitch || live_url_youtube || null;
-
             if (editMode === 'name') body.handle = editText;
             if (editMode === 'bio') body.bio = editText;
-            if (editMode === 'live_url_kick') {
-                body.live_url_kick = live_url_kick;
-                body.live_url = primaryLiveUrl;
-            }
-            if (editMode === 'live_url_twitch') {
-                body.live_url_twitch = live_url_twitch;
-                body.live_url = primaryLiveUrl;
-            }
-            if (editMode === 'live_url_youtube') {
-                body.live_url_youtube = live_url_youtube;
-                body.live_url = primaryLiveUrl;
+            if (editMode === 'live_url') {
+                const kickVal = editKick.trim() || null;
+                const twitchVal = editTwitch.trim() || null;
+                const youtubeVal = editYoutube.trim() || null;
+                body.live_url_kick = kickVal;
+                body.live_url_twitch = twitchVal;
+                body.live_url_youtube = youtubeVal;
+                body.live_url = kickVal || twitchVal || youtubeVal || null;
             }
 
             const res = await fetch('/api/voz/users/update', {
@@ -255,24 +249,10 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #333' }}>
                                 <div style={{ flex: 1, marginRight: '10px' }}>
-                                    <div style={{ color: 'white', fontWeight: 'bold' }}>Canal Kick</div>
-                                    <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.live_url_kick || 'No configurado'}</div>
+                                    <div style={{ color: 'white', fontWeight: 'bold' }}>Transmisión en Directo</div>
+                                    <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.live_url || 'No configurado'}</div>
                                 </div>
-                                <button onClick={() => handleEdit('live_url_kick')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #333' }}>
-                                <div style={{ flex: 1, marginRight: '10px' }}>
-                                    <div style={{ color: 'white', fontWeight: 'bold' }}>Canal Twitch</div>
-                                    <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.live_url_twitch || 'No configurado'}</div>
-                                </div>
-                                <button onClick={() => handleEdit('live_url_twitch')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #333' }}>
-                                <div style={{ flex: 1, marginRight: '10px' }}>
-                                    <div style={{ color: 'white', fontWeight: 'bold' }}>Canal YouTube</div>
-                                    <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.live_url_youtube || 'No configurado'}</div>
-                                </div>
-                                <button onClick={() => handleEdit('live_url_youtube')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
+                                <button onClick={() => handleEdit('live_url')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ color: 'white', fontWeight: 'bold' }}>Monetización</div>
@@ -368,40 +348,79 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                     backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 10000,
                     display: 'flex', justifyContent: 'center', alignItems: 'center'
                 }}>
-                    <div style={{ width: '90%', maxWidth: '350px', backgroundColor: '#222', borderRadius: '20px', padding: '20px' }}>
+                    <div style={{ width: '90%', maxWidth: '385px', backgroundColor: '#222', borderRadius: '20px', padding: '20px' }}>
                         <h3 style={{ color: 'white', margin: '0 0 20px 0' }}>
-                            Editar {
-                                editMode === 'name' ? 'Usuario' : 
-                                editMode === 'bio' ? 'Bio' : 
-                                editMode === 'live_url_kick' ? 'Canal Kick' : 
-                                editMode === 'live_url_twitch' ? 'Canal Twitch' : 
-                                editMode === 'live_url_youtube' ? 'Canal YouTube' : ''
-                            }
+                            Editar {editMode === 'name' ? 'Usuario' : editMode === 'bio' ? 'Bio' : 'Transmisión en Directo'}
                         </h3>
-                        {editMode === 'bio' ? (
+                        {editMode === 'bio' && (
                             <textarea 
                                 value={editText} 
                                 onChange={(e) => setEditText(e.target.value)}
                                 style={{ width: '100%', minHeight: '100px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '1rem', marginBottom: '20px' }}
                             />
-                        ) : (
+                        )}
+                        {editMode === 'name' && (
                             <input 
                                 type="text"
                                 value={editText} 
                                 onChange={(e) => setEditText(e.target.value)}
-                                placeholder={
-                                    editMode === 'name' ? 'Usuario' :
-                                    editMode === 'live_url_kick' ? 'Ej: https://kick.com/mi-canal' :
-                                    editMode === 'live_url_twitch' ? 'Ej: https://twitch.tv/mi-canal' :
-                                    editMode === 'live_url_youtube' ? 'Ej: https://youtube.com/@mi-canal' :
-                                    ''
-                                }
                                 style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '1rem', marginBottom: '20px' }}
                             />
                         )}
+                        {editMode === 'live_url' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="disclaimer-chk"
+                                        checked={isDisclaimerAccepted} 
+                                        onChange={(e) => setIsDisclaimerAccepted(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#8E2DE2' }}
+                                    />
+                                    <label htmlFor="disclaimer-chk" style={{ color: 'white', fontSize: '0.85rem', cursor: 'pointer', userSelect: 'none' }}>
+                                        Acepto la responsabilidad de los canales configurados
+                                    </label>
+                                </div>
+                                <div style={{ opacity: isDisclaimerAccepted ? 1 : 0.4, pointerEvents: isDisclaimerAccepted ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
+                                    <div>
+                                        <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Canal Kick</div>
+                                        <input 
+                                            type="text"
+                                            value={editKick}
+                                            onChange={(e) => setEditKick(e.target.value)}
+                                            placeholder="Ej: https://kick.com/mi-canal"
+                                            disabled={!isDisclaimerAccepted}
+                                            style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Canal Twitch</div>
+                                        <input 
+                                            type="text"
+                                            value={editTwitch}
+                                            onChange={(e) => setEditTwitch(e.target.value)}
+                                            placeholder="Ej: https://twitch.tv/mi-canal"
+                                            disabled={!isDisclaimerAccepted}
+                                            style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Canal YouTube</div>
+                                        <input 
+                                            type="text"
+                                            value={editYoutube}
+                                            onChange={(e) => setEditYoutube(e.target.value)}
+                                            placeholder="Ej: https://youtube.com/@mi-canal"
+                                            disabled={!isDisclaimerAccepted}
+                                            style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <button onClick={() => setEditMode(null)} style={{ flex: 1, backgroundColor: '#333', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', cursor: 'pointer' }}>Cancelar</button>
-                            <button onClick={saveEdit} disabled={saving} style={{ flex: 1, backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', cursor: 'pointer' }}>{saving ? 'Guardando...' : 'Guardar'}</button>
+                            <button onClick={saveEdit} disabled={saving || (editMode === 'live_url' && !isDisclaimerAccepted)} style={{ flex: 1, backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', cursor: 'pointer', opacity: (editMode === 'live_url' && !isDisclaimerAccepted) ? 0.5 : 1 }}>{saving ? 'Guardando...' : 'Guardar'}</button>
                         </div>
                     </div>
                 </div>
