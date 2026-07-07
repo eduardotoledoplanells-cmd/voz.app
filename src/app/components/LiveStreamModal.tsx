@@ -135,7 +135,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
             const res = await fetch('/api/voz/gift', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ senderHandle, receiverHandle: receiver, amount: 10 })
+                body: JSON.stringify({ senderHandle, receiverHandle: receiver, amount: 1 })
             });
             const data = await res.json();
             if (data.error) {
@@ -400,7 +400,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
                                     alignItems: 'center',
                                     gap: '6px'
                                 }}>
-                                    10.00 <Coins size={18} color="#FFD700" />
+                                    1.00 <Coins size={18} color="#FFD700" />
                                 </div>
                                 <button 
                                     onClick={handleSendGift}
@@ -442,7 +442,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
                     }}>
                         <div>
                             <div style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>Apoya a este directo</div>
-                            <div style={{ color: 'gray', fontSize: '0.75rem' }}>Envía un regalo de 10 monedas</div>
+                            <div style={{ color: 'gray', fontSize: '0.75rem' }}>Envía un regalo de 1 moneda</div>
                         </div>
                         <button 
                             onClick={handleSendGift}
@@ -463,7 +463,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
                                 transform: `scale(${giftScale})`
                             }}
                         >
-                            <Gift size={14} /> Regalo (10 🪙)
+                            <Gift size={14} /> Regalo (1 🪙)
                         </button>
                     </div>
                 )}
@@ -510,7 +510,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
                             borderRadius: '10px',
                             textShadow: '1px 1px 2px black'
                         }}>
-                            Regalar (10 🪙)
+                            Regalar (1 🪙)
                         </span>
                     </div>
                 )}

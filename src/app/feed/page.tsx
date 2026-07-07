@@ -136,7 +136,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
             const res = await fetch('/api/voz/gift', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ senderHandle: currentUserHandle, receiverHandle: receiver, amount: 10, videoId: v.id })
+                body: JSON.stringify({ senderHandle: currentUserHandle, receiverHandle: receiver, amount: 1, videoId: v.id })
             });
             const data = await res.json();
             if (data.error) {

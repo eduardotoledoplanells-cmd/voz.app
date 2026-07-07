@@ -2,244 +2,226 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import styles from './Footer.module.css';
+import { X, Mail, Info, ShieldCheck, HelpCircle } from 'lucide-react';
 
 export default function Footer() {
     const [showAboutModal, setShowAboutModal] = useState(false);
-    const [showSellModal, setShowSellModal] = useState(false);
     const [showFaqModal, setShowFaqModal] = useState(false);
-    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-    const [showSupportModal, setShowSupportModal] = useState(false);
-
-
-    const handleSearchClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        // Scroll to top and focus search input
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => {
-            const searchInput = document.querySelector('input[placeholder*="Busca"]') as HTMLInputElement;
-            if (searchInput) {
-                searchInput.focus();
-            }
-        }, 500);
-    };
 
     return (
         <>
-            <footer className={styles.footer}>
-                <div className={styles.content}>
-                    <div className={styles.column}>
-                        <h3>Comprar</h3>
-                        <ul>
-                            <li><Link href="/categories/juegos">Juegos</Link></li>
-                            <li><Link href="/categories/moviles">Móviles</Link></li>
-                            <li><Link href="/categories/informatica">Informática</Link></li>
-                            <li><Link href="/categories/electronica">Electrónica</Link></li>
+            <footer style={{
+                backgroundColor: '#000',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '40px 20px 20px 20px',
+                color: '#888',
+                fontSize: '0.9rem'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    gap: '30px',
+                    marginBottom: '40px'
+                }}>
+                    {/* Brand Column */}
+                    <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
+                        <Link href="/feed" style={{ display: 'inline-block', marginBottom: '15px' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '38px', objectFit: 'contain' }} />
+                        </Link>
+                        <p style={{ lineHeight: '1.6', color: '#666' }}>
+                            VOZ es la app de audio y vídeo social donde tu voz importa. Conecta con tu comunidad, comparte tus historias y monetiza tu contenido de forma segura y privada.
+                        </p>
+                    </div>
+
+                    {/* Links Column 1 */}
+                    <div style={{ flex: '1 1 150px', minWidth: '120px' }}>
+                        <h3 style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '15px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Navegación</h3>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <li><Link href="/feed" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Inicio / Feed</Link></li>
+                            <li><Link href="/discover" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Descubrir</Link></li>
+                            <li><Link href="/favorites" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Favoritos</Link></li>
                         </ul>
                     </div>
-                    <div className={styles.column}>
-                        <h3>Vender</h3>
-                        <ul>
-                            <li>
-                                <a href="#" onClick={(e) => { e.preventDefault(); setShowSellModal(true); }}>
-                                    Vender a VOZ
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" onClick={handleSearchClick}>
-                                    Buscar tienda
-                                </a>
-                            </li>
+
+                    {/* Links Column 2 */}
+                    <div style={{ flex: '1 1 150px', minWidth: '120px' }}>
+                        <h3 style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '15px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Legal</h3>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <li><Link href="/legal/terms" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Términos y condiciones</Link></li>
+                            <li><Link href="/legal/privacy" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Política de privacidad</Link></li>
+                            <li><Link href="/legal/cookies" style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>Política de cookies</Link></li>
                         </ul>
                     </div>
-                    <div className={styles.column}>
-                        <h3>Enlaces Rápidos</h3>
-                        <ul>
-                            <li><Link href="/favorites">Favoritos</Link></li>
-                            {/* <li><Link href="/arcade">Zona Arcade 👾</Link></li> */}
-                            <li><Link href="/sell">Vender</Link></li>
-                            <li><button onClick={() => setShowFaqModal(true)} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Preguntas Frecuentes</button></li>
-                        </ul>
-                    </div>
-                    <div className={styles.column}>
-                        <h3>Sobre Nosotros</h3>
-                        <ul>
+
+                    {/* Links Column 3 */}
+                    <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
+                        <h3 style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '15px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Comunidad</h3>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <li>
-                                <a href="#" onClick={(e) => { e.preventDefault(); setShowAboutModal(true); }}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); setShowAboutModal(true); }} style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>
                                     Quiénes somos
                                 </a>
                             </li>
-                            <li><a href="#">Trabaja con nosotros</a></li>
-                            <li><Link href="/blog">Blog</Link></li>
+                            <li>
+                                <a href="#" onClick={(e) => { e.preventDefault(); setShowFaqModal(true); }} style={{ color: '#888', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.color = 'white'} onMouseLeave={(e) => e.currentTarget.style.color = '#888'}>
+                                    Preguntas frecuentes (FAQ)
+                                </a>
+                            </li>
+                            <li style={{ color: '#666', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
+                                <Mail size={14} /> Soporte: voz@appvoz.com
+                            </li>
                         </ul>
                     </div>
                 </div>
-                <div className={styles.bottom}>
+
+                {/* Bottom line */}
+                <div style={{
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    paddingTop: '20px',
+                    textAlign: 'center',
+                    fontSize: '0.8rem',
+                    color: '#444',
+                    maxWidth: '1200px',
+                    margin: '0 auto'
+                }}>
                     &copy; {new Date().getFullYear()} VOZ. Todos los derechos reservados.
                 </div>
             </footer>
 
             {/* About Modal */}
             {showAboutModal && (
-                <div
-                    className={styles.modalOverlay}
-                    onClick={() => setShowAboutModal(false)}
-                >
-                    <div
-                        className={styles.modalContent}
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 20000,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        backgroundColor: '#111',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '500px',
+                        width: '100%',
+                        position: 'relative',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+                        color: 'white'
+                    }}>
                         <button
-                            className={styles.modalClose}
                             onClick={() => setShowAboutModal(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '15px',
+                                right: '15px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: 'none',
+                                color: '#aaa',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                            }}
                         >
-                            ×
+                            <X size={18} />
                         </button>
-                        <h2>Quiénes Somos</h2>
-                        <p>
-                            VOZ nace de la pasión por el gaming retro y la tecnología clásica.
-                            Somos una comunidad de entusiastas dedicados a preservar la historia del
-                            entretenimiento digital, ofreciendo una plataforma donde comprar y vender
-                            videojuegos, consolas y tecnología retro de forma segura y confiable.
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                            <Info size={24} color="#8E2DE2" />
+                            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold' }}>Quiénes Somos</h2>
+                        </div>
+                        <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', marginBottom: '15px' }}>
+                            VOZ es una plataforma social de audio y vídeo de última generación diseñada para dar voz a los creadores independientes de todo el mundo. Creemos en la libertad creativa y en una comunidad auténtica y libre de algoritmos manipuladores.
                         </p>
-                        <p>
-                            Nuestra misión es conectar a coleccionistas, jugadores nostálgicos y nuevos
-                            aficionados, garantizando que cada producto tenga una segunda vida y que las
-                            joyas del pasado sigan siendo accesibles para todos. Con un equipo experto
-                            en evaluación y autenticación, nos comprometemos a ofrecer productos de
-                            calidad verificada y un servicio excepcional.
+                        <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', marginBottom: '15px' }}>
+                            Nuestra misión es empoderar a los creadores facilitando herramientas premium de interacción y una economía directa (a través de donaciones y regalos) que fluye sin intermediarios tradicionales, directamente a las carteras de los usuarios.
                         </p>
-                        <p>
-                            En VOZ creemos que cada consola, cada juego y cada pieza de tecnología
-                            cuenta una historia única. Nuestro objetivo es ser el puente que une el pasado
-                            con el presente, permitiendo que las nuevas generaciones descubran las maravillas
-                            que marcaron la evolución del entretenimiento digital.
+                        <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', margin: 0 }}>
+                            Con VOZ, compartes tus momentos, interactúas con notas de voz de alta fidelidad, transmites tus directos centralizados y construyes un verdadero valor con tu comunidad.
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Sell Guide Modal */}
-            {showSellModal && (
-                <div
-                    className={styles.modalOverlay}
-                    onClick={() => setShowSellModal(false)}
-                >
-                    <div
-                        className={styles.modalContent}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ maxHeight: '80vh', overflowY: 'auto' }}
-                    >
-                        <button
-                            className={styles.modalClose}
-                            onClick={() => setShowSellModal(false)}
-                        >
-                            ×
-                        </button>
-                        <h2>🎮 Guía para Vender en VOZ</h2>
-
-                        <h3>¿Cómo Vender tus Productos?</h3>
-                        <p>
-                            En VOZ hacemos que vender tus videojuegos, consolas y tecnología retro sea
-                            fácil, rápido y seguro. Sigue estos sencillos pasos para convertir tus artículos
-                            en efectivo.
-                        </p>
-
-                        <h3>📋 Paso 1: Prepara tu Producto</h3>
-                        <p>
-                            Antes de vender, asegúrate de que tu producto esté en las mejores condiciones posibles:
-                        </p>
-                        <ul>
-                            <li><strong>Limpieza:</strong> Limpia el producto cuidadosamente</li>
-                            <li><strong>Accesorios:</strong> Incluye todos los cables, mandos y accesorios originales</li>
-                            <li><strong>Caja y manuales:</strong> Si conservas la caja original y manuales, aumentará su valor</li>
-                            <li><strong>Funcionamiento:</strong> Verifica que el producto funcione correctamente para ahorrar problemas</li>
-                        </ul>
-
-                        <h3>💰 Paso 2: Obtén una Valoración</h3>
-                        <p>
-                            Nuestro sistema de valoración te dará un precio estimado al instante:
-                        </p>
-                        <ul>
-                            <li>Busca tu producto en nuestro catálogo</li>
-                            <li>Selecciona el estado (Nuevo, Como nuevo, Muy bueno, Bueno, Aceptable)</li>
-                            <li>Recibe una oferta inmediata basada en el mercado actual</li>
-                        </ul>
-
-                        <h3>📦 Paso 3: Envía tu Producto</h3>
-                        <p>
-                            Una vez aceptada la oferta:
-                        </p>
-                        <ul>
-                            <li><strong>Empaquetado seguro:</strong> Usa materiales de protección adecuados</li>
-                            <li><strong>Etiqueta de envío:</strong> Con nuestra dirección de envío podrás enviarnos el paquete</li>
-                            <li><strong>Seguimiento:</strong> Podrás rastrear tu envío en todo momento</li>
-                            <li><strong>Plazo:</strong> Envía el producto en un plazo máximo de 5 días después de generar la etiqueta</li>
-                        </ul>
-
-                        <h3>✅ Paso 4: Verificación y Pago</h3>
-                        <p>
-                            Cuando recibamos tu producto:
-                        </p>
-                        <ul>
-                            <li>Nuestro equipo verificará el estado y funcionamiento</li>
-                            <li>Si todo coincide con la descripción, procesaremos el pago inmediatamente</li>
-                            <li>Recibirás el dinero en 24-48 horas por transferencia bancaria</li>
-                            <li>Si hay discrepancias, te contactaremos para ajustar la oferta o devolver el producto</li>
-                        </ul>
-
-                        <h3>📜 Términos y Condiciones de Venta</h3>
-
-                        <h4>Productos Aceptados</h4>
-                        <ul>
-                            <li>Videojuegos para todas las plataformas (retro y actuales)</li>
-                            <li>Consolas de videojuegos (funcionando correctamente)</li>
-                            <li>Accesorios originales (mandos, cables, memorias)</li>
-                            <li>Dispositivos electrónicos retro y tecnología clásica</li>
-                            <li>Ediciones coleccionista y productos limitados</li>
-                        </ul>
-
-                        <h4>Productos NO Aceptados</h4>
-                        <ul>
-                            <li>Productos piratas o copias no autorizadas</li>
-                            <li>Artículos dañados irreparablemente o que no funcionen</li>
-                            <li>Productos sin verificación de autenticidad</li>
-                            <li>Artículos robados o de procedencia dudosa</li>
-                        </ul>
-
-                        <h4>Garantías del Vendedor</h4>
-                        <p>Al vender en VOZ, garantizas que:</p>
-                        <ul>
-                            <li>Eres el propietario legítimo del producto</li>
-                            <li>El producto funciona según lo descrito</li>
-                            <li>No hay defectos ocultos no declarados</li>
-                            <li>Toda la información proporcionada es veraz</li>
-                        </ul>
-
-                        <h4>Política de Devolución</h4>
-                        <ul>
-                            <li>Si el producto no coincide con la descripción, podemos devolvértelo</li>
-                            <li>Tienes 48 horas para aceptar una contraoferta revisada</li>
-                            <li>Los gastos de envío de devolución corren por nuestra cuenta si hay error nuestro</li>
-                        </ul>
-
-                        <h4>Protección de Datos</h4>
-                        <p>
-                            Tus datos personales están protegidos según el RGPD. Solo utilizamos tu información
-                            para procesar la venta y cumplir con obligaciones legales. Nunca compartiremos tus
-                            datos con terceros sin tu consentimiento.
-                        </p>
-                    </div>
-                </div>
-            )}
             {/* FAQ Modal */}
             {showFaqModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowFaqModal(false)}>
-                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-                        <button className={styles.modalClose} onClick={() => setShowFaqModal(false)}>×</button>
-                        {/* FAQ CONTENT WOULD GO HERE (OMITTED FOR BRIEFNESS as it was already there) */}
-                        <h2>Preguntas Frecuentes</h2>
-                        <p>Aquí encontrarás respuestas a las preguntas más comunes.</p>
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 20000,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        backgroundColor: '#111',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '550px',
+                        width: '100%',
+                        position: 'relative',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+                        color: 'white',
+                        maxHeight: '85vh',
+                        overflowY: 'auto'
+                    }}>
+                        <button
+                            onClick={() => setShowFaqModal(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '15px',
+                                right: '15px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: 'none',
+                                color: '#aaa',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <X size={18} />
+                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                            <HelpCircle size={24} color="#8E2DE2" />
+                            <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold' }}>Preguntas Frecuentes</h2>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
+                            <div>
+                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Qué es VOZ?</h4>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>Es una comunidad social basada en audio y vídeo corto donde los usuarios interactúan y apoyan directamente a sus creadores favoritos.</p>
+                            </div>
+                            <div>
+                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Cómo funciona la economía de Monedas?</h4>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>Los usuarios pueden recargar Monedas de forma segura en la web y usarlas para enviar regalos en las publicaciones o durante las transmisiones en directo.</p>
+                            </div>
+                            <div>
+                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Cómo monetizan los creadores?</h4>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>Al recibir un regalo o donación, el 65% limpio del valor en monedas se añade al saldo acumulado (Cartera) del creador, el cual puede retirar a su cuenta bancaria tras verificar su identidad.</p>
+                            </div>
+                            <div>
+                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Cómo conecto mis transmisiones en vivo?</h4>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>En la sección de ajustes de tu perfil, puedes asociar tu canal de Twitch, Kick o YouTube para que tus seguidores en VOZ vean tu directo al instante.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

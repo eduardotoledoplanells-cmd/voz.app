@@ -415,7 +415,6 @@ export default async function LandingPage() {
                                 <li><Link href="/legal/terms">Términos de servicio</Link></li>
                                 <li><Link href="/legal/privacy">Política de privacidad</Link></li>
                                 <li><Link href="/legal/cookies">Cookies</Link></li>
-                                <li><Link href="/legal/returns">Devoluciones</Link></li>
                             </ul>
                         </div>
                         <div>

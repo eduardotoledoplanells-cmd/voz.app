@@ -1,11 +1,11 @@
 {
-    "name": "RevoluxBit - Tienda de Videojuegos Retro",
-    "short_name": "RevoluxBit",
-    "description": "Compra y vende videojuegos y consolas retro",
+    "name": "VOZ — Tu voz. Tu comunidad.",
+    "short_name": "VOZ",
+    "description": "La app de audio y vídeo social donde tu voz importa. Crea, comparte y conecta con creadores de todo el mundo.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#e60000",
+    "background_color": "#000000",
+    "theme_color": "#8E2DE2",
     "orientation": "portrait-primary",
     "icons": [
         {
@@ -22,7 +22,7 @@
         }
     ],
     "categories": [
-        "shopping",
+        "social",
         "entertainment"
     ],
     "screenshots": []
