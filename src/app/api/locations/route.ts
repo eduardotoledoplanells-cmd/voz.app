@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { staticCountries, staticRegions, staticMunicipalities } from '@/lib/staticLocations';
+import spainLocations from '@/lib/spainLocations.json';
 
 export async function GET(request: Request) {
     try {
@@ -7,23 +7,37 @@ export async function GET(request: Request) {
         const type = searchParams.get('type');
 
         if (type === 'countries') {
-            return NextResponse.json(staticCountries);
+            return NextResponse.json([{ id: 1, name: 'España' }]);
         }
 
         if (type === 'regions') {
             const countryId = searchParams.get('countryId');
             if (!countryId) return NextResponse.json({ error: 'Missing countryId' }, { status: 400 });
             
-            const filtered = staticRegions.filter(r => r.country_id === parseInt(countryId));
-            return NextResponse.json(filtered);
+            const regionsList = spainLocations.map(ccaa => ({
+                id: ccaa.id,
+                country_id: 1,
+                name: ccaa.name
+            })).sort((a, b) => a.name.localeCompare(b.name));
+            
+            return NextResponse.json(regionsList);
         }
 
         if (type === 'municipalities') {
             const regionId = searchParams.get('regionId');
             if (!regionId) return NextResponse.json({ error: 'Missing regionId' }, { status: 400 });
             
-            const filtered = staticMunicipalities.filter(m => m.region_id === parseInt(regionId));
-            return NextResponse.json(filtered);
+            const selectedCcaa = spainLocations.find(ccaa => ccaa.id === parseInt(regionId));
+            if (!selectedCcaa) return NextResponse.json([]);
+
+            const sortedMuni = [...selectedCcaa.municipalities].sort((a, b) => a.localeCompare(b));
+            const municipalitiesList = sortedMuni.map((muni, index) => ({
+                id: (parseInt(regionId) * 10000) + index,
+                region_id: parseInt(regionId),
+                name: muni
+            }));
+            
+            return NextResponse.json(municipalitiesList);
         }
 
         return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });

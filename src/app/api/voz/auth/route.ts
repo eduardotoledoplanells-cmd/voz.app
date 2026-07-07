@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import { staticCountries, staticRegions, staticMunicipalities } from "@/lib/staticLocations";
+import spainLocations from "@/lib/spainLocations.json";
 
 export async function POST(request: NextRequest) {
     try {
@@ -63,18 +63,19 @@ export async function POST(request: NextRequest) {
             let countryText = '';
             let regionText = '';
 
-            if (countryId) {
-                const foundCountry = staticCountries.find(c => c.id === parseInt(countryId.toString()));
-                if (foundCountry) countryText = foundCountry.name;
+            if (countryId && parseInt(countryId.toString()) === 1) {
+                countryText = 'España';
             }
             if (regionId) {
-                const foundRegion = staticRegions.find(r => r.id === parseInt(regionId.toString()));
-                if (foundRegion) {
-                    regionText = foundRegion.name;
+                const foundCcaa = spainLocations.find(ccaa => ccaa.id === parseInt(regionId.toString()));
+                if (foundCcaa) {
+                    regionText = foundCcaa.name;
                     if (municipalityId) {
-                        const foundMuni = staticMunicipalities.find(m => m.id === parseInt(municipalityId.toString()));
-                        if (foundMuni) {
-                            regionText = `${foundRegion.name} - ${foundMuni.name}`;
+                        const muniIndex = parseInt(municipalityId.toString()) % 10000;
+                        const sortedMuni = [...foundCcaa.municipalities].sort((a, b) => a.localeCompare(b));
+                        const foundMuniName = sortedMuni[muniIndex];
+                        if (foundMuniName) {
+                            regionText = `${foundCcaa.name} - ${foundMuniName}`;
                         }
                     }
                 }
