@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { Coins } from 'lucide-react';
 
 const COIN_PACKS = [
     { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, image: null },
@@ -269,7 +270,10 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                         <div style={{ backgroundColor: '#222', borderRadius: '15px', padding: '20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <div style={{ color: 'white' }}>Saldo (Para gastar)</div>
-                                <div style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold' }}>{Number(profile.walletBalance || profile.wallet_balance || 0).toFixed(2)} 🪙</div>
+                                <div style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    {Number(profile.walletBalance || profile.wallet_balance || 0).toFixed(2)} 
+                                    <Coins size={20} color="#FFD700" style={{ display: 'inline-block' }} />
+                                </div>
                             </div>
                             <button onClick={() => setShowCoinPacks(true)} style={{ backgroundColor: '#8E2DE2', color: 'white', padding: '10px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 🎁 Recargar
@@ -281,7 +285,10 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                 <div>
                                     <div style={{ color: '#4CD964' }}>Cartera (Dinero ganado)</div>
-                                    <div style={{ color: '#4CD964', fontSize: '1.5rem', fontWeight: 'bold' }}>{Number(profile.earningsBalance || profile.earnings_balance || 0).toFixed(2)} 🪙</div>
+                                    <div style={{ color: '#4CD964', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        {Number(profile.earningsBalance || profile.earnings_balance || 0).toFixed(2)} 
+                                        <Coins size={20} color="#4CD964" style={{ display: 'inline-block' }} />
+                                    </div>
                                 </div>
                                 <div>🎁</div>
                             </div>

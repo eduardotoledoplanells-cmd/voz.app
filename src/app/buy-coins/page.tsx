@@ -3,6 +3,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { Coins } from 'lucide-react';
 
 const COIN_PACKS = [
     { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, image: null },
@@ -146,7 +147,10 @@ function BuyCoinsContent() {
                     <div style={{ backgroundColor: '#111', borderRadius: '15px', padding: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #222' }}>
                         <div>
                             <div style={{ color: '#888', fontSize: '14px', marginBottom: '5px' }}>Tu saldo actual</div>
-                            <div style={{ color: '#FFD700', fontSize: '28px', fontWeight: 'bold' }}>{Number(user?.walletBalance || user?.wallet_balance || 0).toFixed(2)} 🪙</div>
+                            <div style={{ color: '#FFD700', fontSize: '28px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {Number(user?.walletBalance || user?.wallet_balance || 0).toFixed(2)} 
+                                <Coins size={28} color="#FFD700" style={{ display: 'inline-block' }} />
+                            </div>
                         </div>
                     </div>
 
@@ -161,7 +165,7 @@ function BuyCoinsContent() {
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: pack.isSuper ? '#8E2DE2' : '#222', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '15px', fontSize: '20px' }}>
-                                        {pack.isSuper ? '💎' : '🪙'}
+                                        {pack.isSuper ? '💎' : <Coins size={22} color="#FFD700" />}
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'white' }}>{pack.name}</div>

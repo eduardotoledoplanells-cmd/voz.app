@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import { Coins } from 'lucide-react';
 
 export default function ProfilePage() {
     const { user, logout, isLoading } = useAuth();
@@ -141,7 +142,10 @@ export default function ProfilePage() {
                             textAlign: 'left'
                         }}>
                             <span style={{ fontSize: '0.75rem', color: '#aaa', display: 'block', marginBottom: '3px' }}>Saldo (Consumo)</span>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#FFD700' }}>{walletBalance} 🪙</span>
+                             <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#FFD700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                 {walletBalance} 
+                                 <Coins size={18} color="#FFD700" style={{ display: 'inline-block' }} />
+                             </span>
                         </div>
 
                         {/* Cartera */}
@@ -154,15 +158,18 @@ export default function ProfilePage() {
                             textAlign: 'left'
                         }}>
                             <span style={{ fontSize: '0.75rem', color: '#4CD964', display: 'block', marginBottom: '3px' }}>Cartera (Ganado)</span>
-                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4CD964' }}>{earningsBalance} 🪙</span>
+                             <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4CD964', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                 {earningsBalance} 
+                                 <Coins size={18} color="#4CD964" style={{ display: 'inline-block' }} />
+                             </span>
                         </div>
                     </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button onClick={() => setShowSettings(true)} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
-                    <button onClick={() => window.location.href = '/profile/monetization'} style={{ padding: '8px 20px', backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Monetización</button>
-                    <button onClick={() => window.location.href = '/profile/creator-panel'} style={{ padding: '8px 20px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Panel Creador</button>
+                    <button onClick={() => window.location.href = '/profile/monetization'} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Monetización</button>
+                    <button onClick={() => window.location.href = '/profile/creator-panel'} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Panel Creador</button>
                     <button onClick={logout} style={{ padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
                 </div>
             </div>
