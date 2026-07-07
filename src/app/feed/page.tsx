@@ -76,6 +76,14 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         }
     };
 
+    const pauseVideo = () => {
+        if (videoRef.current && isPlaying) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+            setIsManualPause(true);
+        }
+    };
+
     const handleVideoEnded = () => {
         if (autoScroll) {
             scrollNext();
@@ -210,7 +218,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                                     animation: 'sonar-pulse 2s infinite',
                                     marginBottom: '15px'
                                 }} 
-                                onClick={(e) => { e.stopPropagation(); setIsLiveOpen(true); }}
+                                onClick={(e) => { e.stopPropagation(); pauseVideo(); setIsLiveOpen(true); }}
                             >
                                 <div style={{
                                     width: '38px',
@@ -268,6 +276,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                         onClose={() => setIsLiveOpen(false)} 
                         liveUrl={v.live_url} 
                         creatorName={v.userName || v.userHandle || v.user} 
+                        creatorHandle={v.user || v.userHandle}
                     />
                 )}
             </div>
