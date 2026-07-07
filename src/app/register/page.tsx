@@ -10,6 +10,7 @@ export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [marketingConsent, setMarketingConsent] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const [honeypot, setHoneypot] = useState('');
 
     // Math Challenge State
@@ -274,13 +275,27 @@ export default function RegisterPage() {
                     <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
                         <input
                             type="checkbox"
+                            id="termsAccepted"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            style={{ width: 'auto', margin: 0 }}
+                            required
+                        />
+                        <label htmlFor="termsAccepted" style={{ margin: 0, fontWeight: 'normal', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', cursor: 'pointer' }}>
+                            Acepto los <Link href="/legal/terms" target="_blank" className={styles.link}>Términos y Condiciones</Link> y la <Link href="/legal/privacy" target="_blank" className={styles.link}>Política de Privacidad</Link>
+                        </label>
+                    </div>
+
+                    <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                        <input
+                            type="checkbox"
                             id="marketingConsent"
                             checked={marketingConsent}
                             onChange={(e) => setMarketingConsent(e.target.checked)}
                             style={{ width: 'auto', margin: 0 }}
                         />
                         <label htmlFor="marketingConsent" style={{ margin: 0, fontWeight: 'normal', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', cursor: 'pointer' }}>
-                            Acepto recibir ofertas y novedades por correo electrónico
+                            Acepto recibir ofertas y novedades por correo electrónico (Opcional)
                         </label>
                     </div>
 
@@ -297,7 +312,11 @@ export default function RegisterPage() {
                         />
                     </div>
 
-                    <button type="submit" className={styles.button} disabled={loading}>
+                    <button 
+                        type="submit" 
+                        className={styles.button} 
+                        disabled={loading || !name || !email || !password || password.length < 6 || !countryId || !regionId || !municipalityId || !mathAnswer || !termsAccepted}
+                    >
                         {loading ? 'Registrando...' : 'Registrarse'}
                     </button>
                 </form>
