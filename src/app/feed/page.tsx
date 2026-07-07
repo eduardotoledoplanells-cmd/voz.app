@@ -4,11 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import { Heart, Mic, Gift, Bookmark } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
+import LiveStreamModal from '../components/LiveStreamModal';
 
 const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick }: { v: any, autoScroll: boolean, scrollNext: () => void, currentUserHandle?: string, onCommentClick: (videoId: string) => void }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isManualPause, setIsManualPause] = useState(false);
+    const [isLiveOpen, setIsLiveOpen] = useState(false);
     
     // Icon States
     const [isLiked, setIsLiked] = useState(v.isLikedByMe || false);
@@ -195,6 +197,45 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
 
                 {/* Iconos laterales */}
                 <div className="action-icons">
+                    {(v.is_live || v.isLive) && v.live_url && (
+                        <>
+                            <div 
+                                style={{ 
+                                    textAlign: 'center', 
+                                    cursor: 'pointer', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    animation: 'sonar-pulse 2s infinite',
+                                    marginBottom: '15px'
+                                }} 
+                                onClick={(e) => { e.stopPropagation(); setIsLiveOpen(true); }}
+                            >
+                                <div style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#FF3B30',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid white',
+                                    boxShadow: '0 0 10px #FF3B30'
+                                }}>
+                                    <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'white', letterSpacing: '0.5px' }}>LIVE</span>
+                                </div>
+                                <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#FF3B30' }}>ON AIR</span>
+                            </div>
+                            <style>{`
+                                @keyframes sonar-pulse {
+                                    0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255,59,48,0.5)); }
+                                    50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(255,59,48,0.9)); }
+                                    100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255,59,48,0.5)); }
+                                }
+                            `}</style>
+                        </>
+                    )}
                     <div style={{ textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', transform: `scale(${giftScale})` }} onClick={handleGift}>
                         <Gift size={32} color="#D4AF37" fill="#8E2DE2" />
                         <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Regalo</span>
@@ -218,6 +259,16 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                     <div style={{ position: 'absolute', top: '20px', left: '15px', backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
                         Promocionado
                     </div>
+                )}
+
+                {/* Modal de Directo */}
+                {(v.is_live || v.isLive) && v.live_url && (
+                    <LiveStreamModal 
+                        isOpen={isLiveOpen} 
+                        onClose={() => setIsLiveOpen(false)} 
+                        liveUrl={v.live_url} 
+                        creatorName={v.userName || v.userHandle || v.user} 
+                    />
                 )}
             </div>
         </div>
