@@ -82,6 +82,9 @@ export default function ProfilePage() {
     const followers = profile.fans || profile.followersCount || 0;
     const likes = profile.likes || profile.likesCount || 0;
 
+    const walletBalance = Number(profile.wallet_balance || profile.walletBalance || 0).toFixed(2);
+    const earningsBalance = Number(profile.earnings_balance || profile.earningsBalance || 0).toFixed(2);
+
     return (
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', paddingBottom: '70px' }}>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
@@ -109,6 +112,50 @@ export default function ProfilePage() {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <strong>{likes}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Me gusta</span>
+                    </div>
+                </div>
+
+                {/* Sistema Económico */}
+                <div style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '16px',
+                    padding: '15px 20px',
+                    marginTop: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                }}>
+                    <h3 style={{ margin: 0, fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'left', width: '100%' }}>Sistema Económico</h3>
+                    
+                    <div style={{ display: 'flex', gap: '15px', width: '100%' }}>
+                        {/* Saldo */}
+                        <div style={{
+                            flex: 1,
+                            backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            textAlign: 'left'
+                        }}>
+                            <span style={{ fontSize: '0.75rem', color: '#aaa', display: 'block', marginBottom: '3px' }}>Saldo (Consumo)</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#FFD700' }}>{walletBalance} 🪙</span>
+                        </div>
+
+                        {/* Cartera */}
+                        <div style={{
+                            flex: 1,
+                            backgroundColor: 'rgba(76, 217, 100, 0.03)',
+                            border: '1px solid rgba(76, 217, 100, 0.15)',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            textAlign: 'left'
+                        }}>
+                            <span style={{ fontSize: '0.75rem', color: '#4CD964', display: 'block', marginBottom: '3px' }}>Cartera (Ganado)</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4CD964' }}>{earningsBalance} 🪙</span>
+                        </div>
                     </div>
                 </div>
                 
