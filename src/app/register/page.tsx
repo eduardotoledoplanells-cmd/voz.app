@@ -104,12 +104,13 @@ export default function RegisterPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name,
+                    action: 'register',
+                    username: name,
                     email,
                     password,
-                    countryId: parseInt(countryId),
-                    regionId: parseInt(regionId),
-                    municipalityId: parseInt(municipalityId),
+                    country_id: parseInt(countryId),
+                    region_id: parseInt(regionId),
+                    municipality_id: parseInt(municipalityId),
                     marketingConsent,
                     honeypot,
                     mathChallenge: {

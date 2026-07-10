@@ -108,7 +108,7 @@ export default function LiveStreamModal({ isOpen, onClose, liveUrl, creatorName,
             alert("Inicia sesión para enviar regalos");
             return;
         }
-        const senderHandle = user.handle || user.username || user.email;
+        const senderHandle = user.handle || user.email;
         if (!senderHandle) {
             alert("No se pudo identificar tu cuenta de usuario");
             return;

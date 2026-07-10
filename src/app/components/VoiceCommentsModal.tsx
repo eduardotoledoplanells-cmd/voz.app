@@ -24,6 +24,8 @@ export default function VoiceCommentsModal({ isOpen, onClose, videoId, currentUs
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const durationRef = useRef<number>(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -386,7 +388,7 @@ export default function VoiceCommentsModal({ isOpen, onClose, videoId, currentUs
                 </div>
 
                 {/* Footer - Record Button */}
-                <div style={{ padding: '20px', borderTop: '1px solid #333', backgroundColor: '#1a1a1a' }}>
+                <div style={{ padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 25px)) 20px', borderTop: '1px solid #333', backgroundColor: '#1a1a1a' }}>
                     {isUploading ? (
                         <div style={{ textAlign: 'center', color: 'white', padding: '15px' }}>Enviando audio...</div>
                     ) : (

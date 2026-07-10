@@ -972,3 +972,94 @@
   .footerTop { grid-template-columns: 1fr; gap: 32px; }
   .footerBottom { flex-direction: column; gap: 10px; text-align: center; }
 }
+
+/* ================================================
+   EXTRA MOBILE (< 480px) — Premium App Feel
+   ================================================ */
+@media (max-width: 480px) {
+  .page {
+    /* Full viewport height on mobile browsers */
+    min-height: 100dvh;
+  }
+
+  .navbar {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .navLogoImg {
+    height: 38px;
+  }
+
+  .hero {
+    padding: 76px 16px 48px;
+    text-align: center;
+  }
+
+  .heroTitle {
+    font-size: 34px !important;
+    letter-spacing: -1px;
+    line-height: 1.15;
+  }
+
+  .heroDesc {
+    font-size: 15px;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .heroBtnPrimary, .heroBtnSecondary {
+    width: 100%;
+    justify-content: center;
+    padding: 16px 20px;
+    font-size: 16px;
+    border-radius: 14px;
+  }
+
+  .statsBar {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .statDivider { display: none; }
+
+  .section { padding: 56px 16px; }
+
+  .sectionTitle {
+    font-size: 26px !important;
+  }
+
+  .sectionSubtitle {
+    font-size: 14px;
+  }
+
+  .creatorsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .creatorCard {
+    border-radius: 14px;
+  }
+
+  .ctaTitle {
+    font-size: 28px !important;
+  }
+
+  .footer {
+    padding: 48px 16px 32px;
+  }
+
+  .footerTop {
+    grid-template-columns: 1fr;
+  }
+
+  .footerBrandLogo {
+    height: 40px;
+  }
+}
+

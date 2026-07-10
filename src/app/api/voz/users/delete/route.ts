@@ -46,6 +46,15 @@ export async function POST(request: Request) {
 
         if (updateError) throw updateError;
 
+        // Anonymize wallet handle to release the original handle
+        await supabaseAdmin
+            .from('wallets')
+            .update({
+                user_handle: anonymizedHandle,
+                name: `WALLET_${anonymizedHandle}`
+            })
+            .eq('user_id', userId);
+
         // 3. Optional: Delete their videos or mark them as hidden
         // For now, we'll just keep them but the profile is "gone"
         await supabaseAdmin

@@ -124,89 +124,91 @@ function BuyCoinsContent() {
     const isSuccess = searchParams.get('success') === 'true';
 
     return (
-        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-            {/* Header Tipo App */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <button onClick={returnToApp} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>✕</button>
-                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Tienda de Monedas</h2>
-                <div style={{ width: '24px' }}></div> {/* Spacer */}
-            </div>
-
-            {isSuccess ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                    <div style={{ fontSize: '80px', marginBottom: '20px' }}>🎉</div>
-                    <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>¡Compra Exitosa!</h3>
-                    <p style={{ color: 'gray', marginBottom: '30px', padding: '0 20px' }}>Tus monedas han sido añadidas a tu cuenta. Ya puedes cerrar esta pantalla.</p>
-                    <button onClick={returnToApp} style={{ backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '15px 30px', borderRadius: '25px', fontSize: '18px', fontWeight: 'bold', width: '100%', maxWidth: '300px' }}>
-                        Volver a la App
-                    </button>
+        <div style={{ backgroundColor: '#000', minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: '100%', maxWidth: '600px', padding: '20px', display: 'flex', flexDirection: 'column', flex: 1, color: 'white' }}>
+                {/* Header Tipo App */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                    <button onClick={returnToApp} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+                    <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Tienda de Monedas</h2>
+                    <div style={{ width: '24px' }}></div> {/* Spacer */}
                 </div>
-            ) : (
-                <>
-                    {/* User Balance Card */}
-                    <div style={{ backgroundColor: '#111', borderRadius: '15px', padding: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #222' }}>
-                        <div>
-                            <div style={{ color: '#888', fontSize: '14px', marginBottom: '5px' }}>Tu saldo actual</div>
-                            <div style={{ color: '#FFD700', fontSize: '28px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {Number(user?.walletBalance || user?.wallet_balance || 0).toFixed(2)} 
-                                <Coins size={28} color="#FFD700" style={{ display: 'inline-block' }} />
+
+                {isSuccess ? (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                        <div style={{ fontSize: '80px', marginBottom: '20px' }}>🎉</div>
+                        <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>¡Compra Exitosa!</h3>
+                        <p style={{ color: 'gray', marginBottom: '30px', padding: '0 20px' }}>Tus monedas han sido añadidas a tu cuenta. Ya puedes cerrar esta pantalla.</p>
+                        <button onClick={returnToApp} style={{ backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '15px 30px', borderRadius: '25px', fontSize: '18px', fontWeight: 'bold', width: '100%', maxWidth: '300px' }}>
+                            Volver a la App
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        {/* User Balance Card */}
+                        <div style={{ backgroundColor: '#111', borderRadius: '15px', padding: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #222' }}>
+                            <div>
+                                <div style={{ color: '#888', fontSize: '14px', marginBottom: '5px' }}>Tu saldo actual</div>
+                                <div style={{ color: '#FFD700', fontSize: '28px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {Number(user?.walletBalance || user?.wallet_balance || 0).toFixed(2).replace('.', ',')} 
+                                    <Coins size={28} color="#FFD700" style={{ display: 'inline-block' }} />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Tienda */}
-                    <h3 style={{ fontSize: '16px', color: '#888', textTransform: 'uppercase', marginBottom: '15px' }}>Paquetes de Monedas</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        {COIN_PACKS.map(pack => (
-                            <div key={pack.id} style={{ 
-                                backgroundColor: pack.isSuper ? 'rgba(142, 45, 226, 0.1)' : '#111', 
-                                border: pack.isSuper ? '1px solid #8E2DE2' : '1px solid #222',
-                                borderRadius: '15px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: pack.isSuper ? '#8E2DE2' : '#222', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '15px', fontSize: '20px' }}>
-                                        {pack.isSuper ? '💎' : <Coins size={22} color="#FFD700" />}
+                        {/* Tienda */}
+                        <h3 style={{ fontSize: '16px', color: '#888', textTransform: 'uppercase', marginBottom: '15px' }}>Paquetes de Monedas</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {COIN_PACKS.map(pack => (
+                                <div key={pack.id} style={{ 
+                                    backgroundColor: pack.isSuper ? 'rgba(142, 45, 226, 0.1)' : '#111', 
+                                    border: pack.isSuper ? '1px solid #8E2DE2' : '1px solid #222',
+                                    borderRadius: '15px', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: pack.isSuper ? '#8E2DE2' : '#222', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '15px', fontSize: '20px' }}>
+                                            {pack.isSuper ? '💎' : <Coins size={22} color="#FFD700" />}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'white' }}>{pack.name}</div>
+                                            <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: '14px', marginTop: '2px' }}>{pack.coins} Monedas</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'white' }}>{pack.name}</div>
-                                        <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: '14px', marginTop: '2px' }}>{pack.coins} Monedas</div>
-                                    </div>
+                                    <button 
+                                        onClick={() => handleBuyPack(pack)} 
+                                        disabled={isBuyingPack}
+                                        style={{ 
+                                            backgroundColor: pack.isSuper ? '#8E2DE2' : '#333', 
+                                            color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: isBuyingPack ? 'default' : 'pointer',
+                                            opacity: isBuyingPack ? 0.6 : 1
+                                        }}
+                                    >
+                                        {pack.price.toFixed(2).replace('.', ',')} €
+                                    </button>
                                 </div>
-                                <button 
-                                    onClick={() => handleBuyPack(pack)} 
-                                    disabled={isBuyingPack}
-                                    style={{ 
-                                        backgroundColor: pack.isSuper ? '#8E2DE2' : '#333', 
-                                        color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: isBuyingPack ? 'default' : 'pointer',
-                                        opacity: isBuyingPack ? 0.6 : 1
-                                    }}
-                                >
-                                    {pack.price.toFixed(2)} €
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </>
-            )}
+                            ))}
+                        </div>
+                    </>
+                )}
 
-            {/* Sub-modal Stripe Checkout */}
-            {showStripeCheckout && clientSecret && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 11000,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center'
-                }}>
-                    <div style={{ width: '100%', maxWidth: '500px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #222' }}>
-                        <h3 style={{ color: 'white', margin: 0, fontSize: '16px' }}>Pago Seguro</h3>
-                        <button onClick={() => { setShowStripeCheckout(false); setClientSecret(null); }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+                {/* Sub-modal Stripe Checkout */}
+                {showStripeCheckout && clientSecret && (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 11000,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center'
+                    }}>
+                        <div style={{ width: '100%', maxWidth: '500px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #222' }}>
+                            <h3 style={{ color: 'white', margin: 0, fontSize: '16px' }}>Pago Seguro</h3>
+                            <button onClick={() => { setShowStripeCheckout(false); setClientSecret(null); }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+                        </div>
+                        <div style={{ width: '100%', maxWidth: '500px', flex: 1, overflowY: 'auto', padding: '15px' }}>
+                            <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                                <EmbeddedCheckout />
+                            </EmbeddedCheckoutProvider>
+                        </div>
                     </div>
-                    <div style={{ width: '100%', maxWidth: '500px', flex: 1, overflowY: 'auto', padding: '15px' }}>
-                        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-                            <EmbeddedCheckout />
-                        </EmbeddedCheckoutProvider>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

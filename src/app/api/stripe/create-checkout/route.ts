@@ -47,7 +47,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
         }
 
-        const { packId, userId, userHandle } = body;
+        const { packId, userId, userHandle, redirectUrl } = body;
         console.log('[Stripe Checkout API] Payment request received for pack:', packId, 'from user:', userHandle);
 
         if (!packId || !COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER]) {

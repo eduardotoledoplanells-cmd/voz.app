@@ -113,6 +113,9 @@ const steps = [
 ];
 
 export default async function LandingPage() {
+    // Si queremos que la raíz sea el feed por defecto, redireccionamos.
+    redirect('/feed');
+
     const { stats, creators } = await getLandingData();
     const year = new Date().getFullYear();
 

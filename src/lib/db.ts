@@ -232,7 +232,13 @@ export async function getAppUsers(): Promise<AppUser[]> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {}
+        privacySettings: u.privacy_settings || {},
+        country: u.country,
+        region: u.region,
+        interests: u.interests,
+        country_id: u.country_id,
+        region_id: u.region_id,
+        municipality_id: u.municipality_id
     }));
 }
 
@@ -268,8 +274,15 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
-        live_url: u.live_url
+        privacySettings: u.privacy_settings || {},
+        is_live: u.is_live,
+        live_url: u.live_url,
+        country: u.country,
+        region: u.region,
+        interests: u.interests,
+        country_id: u.country_id,
+        region_id: u.region_id,
+        municipality_id: u.municipality_id
     } as any;
 }
 
@@ -307,8 +320,15 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
-        live_url: u.live_url
+        privacySettings: u.privacy_settings || {},
+        is_live: u.is_live,
+        live_url: u.live_url,
+        country: u.country,
+        region: u.region,
+        interests: u.interests,
+        country_id: u.country_id,
+        region_id: u.region_id,
+        municipality_id: u.municipality_id
     } as any;
 }
 
@@ -344,8 +364,15 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         phone: u.phone,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
-        privacySettings: u.privacy_settings || {},        is_live: u.is_live,
-        live_url: u.live_url
+        privacySettings: u.privacy_settings || {},
+        is_live: u.is_live,
+        live_url: u.live_url,
+        country: u.country,
+        region: u.region,
+        interests: u.interests,
+        country_id: u.country_id,
+        region_id: u.region_id,
+        municipality_id: u.municipality_id
     } as any;
 }
 
@@ -549,7 +576,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -591,6 +618,57 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if ((updates as any).live_url_kick !== undefined) dbUpdates.live_url_kick = (updates as any).live_url_kick;
     if ((updates as any).live_url_twitch !== undefined) dbUpdates.live_url_twitch = (updates as any).live_url_twitch;
     if ((updates as any).live_url_youtube !== undefined) dbUpdates.live_url_youtube = (updates as any).live_url_youtube;
+
+    // Resolve string locations to IDs if provided
+    if (updates.country !== undefined || updates.region !== undefined) {
+        try {
+            let countryName = updates.country || 'España';
+            let regionName = '';
+            let muniName = '';
+
+            if (updates.region) {
+                if (updates.region.includes(' - ')) {
+                    const parts = updates.region.split(' - ');
+                    regionName = parts[0]?.trim();
+                    muniName = parts[1]?.trim();
+                } else {
+                    regionName = updates.region.trim();
+                }
+            }
+
+            // 1. Resolve country_id
+            if (countryName) {
+                const { data: cData } = await supabaseAdmin.from('countries').select('id').ilike('name', countryName).maybeSingle();
+                if (cData) {
+                    dbUpdates.country_id = cData.id;
+                }
+            }
+
+            // 2. Resolve region_id
+            let resolvedRegionId: number | null = null;
+            if (regionName && dbUpdates.country_id) {
+                const { data: rData } = await supabaseAdmin.from('regions').select('id').eq('country_id', dbUpdates.country_id).ilike('name', regionName).maybeSingle();
+                if (rData) {
+                    resolvedRegionId = rData.id;
+                    dbUpdates.region_id = resolvedRegionId;
+                }
+            }
+
+            // 3. Resolve municipality_id
+            if (muniName && resolvedRegionId) {
+                const { data: mData } = await supabaseAdmin.from('municipalities').select('id').eq('region_id', resolvedRegionId).ilike('name', muniName).maybeSingle();
+                if (mData) {
+                    dbUpdates.municipality_id = mData.id;
+                }
+            }
+        } catch (resolveErr) {
+            console.error('[Location Resolve Error]:', resolveErr);
+        }
+    }
+
+    if (updates.country_id !== undefined) dbUpdates.country_id = updates.country_id;
+    if (updates.region_id !== undefined) dbUpdates.region_id = updates.region_id;
+    if (updates.municipality_id !== undefined) dbUpdates.municipality_id = updates.municipality_id;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
@@ -672,7 +750,13 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         resetPin: data.reset_pin,
         strikes: data.strikes || 0,
         phone: data.phone,
-        notificationSettings: data.notification_settings || {}
+        notificationSettings: data.notification_settings || {},
+        country: data.country,
+        region: data.region,
+        interests: data.interests,
+        country_id: data.country_id,
+        region_id: data.region_id,
+        municipality_id: data.municipality_id
     };
 }
 
@@ -701,7 +785,10 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         wallet_balance: user.walletBalance || 0,
         country: user.country,
         region: user.region,
-        interests: user.interests || []
+        interests: user.interests || [],
+        country_id: user.country_id,
+        region_id: user.region_id,
+        municipality_id: user.municipality_id
     }]).select().single();
     if (error) {
         console.error("Error inserting app_user:", error);
@@ -1084,6 +1171,12 @@ export async function deleteEmployee(id: string): Promise<boolean> {
 
 export async function deleteAppUser(id: string): Promise<boolean> {
     await supabaseAdmin.auth.admin.deleteUser(id); // Sync with Auth
+    // Release wallet handle to prevent duplicate key errors on re-registration
+    const deletedId = id.substring(0, 8);
+    await supabaseAdmin.from('wallets').update({
+        user_handle: `@deleted_wallet_${deletedId}`,
+        name: `DELETED_WALLET_${deletedId}`
+    }).eq('user_id', id);
     const { error } = await supabaseAdmin.from('app_users').delete().eq('id', id);
     if (error) return false;
     return true;
@@ -1091,7 +1184,14 @@ export async function deleteAppUser(id: string): Promise<boolean> {
 
 export async function deleteAppUserByHandle(handle: string): Promise<boolean> {
     const { data: user } = await supabaseAdmin.from('app_users').select('id').eq('handle', handle).single();
-    if (user) await supabaseAdmin.auth.admin.deleteUser(user.id);
+    if (user) {
+        await supabaseAdmin.auth.admin.deleteUser(user.id);
+        const deletedId = user.id.substring(0, 8);
+        await supabaseAdmin.from('wallets').update({
+            user_handle: `@deleted_wallet_${deletedId}`,
+            name: `DELETED_WALLET_${deletedId}`
+        }).eq('user_id', user.id);
+    }
 
     const { error } = await supabaseAdmin.from('app_users').delete().eq('handle', handle);
     if (error) return false;
@@ -1130,6 +1230,12 @@ export async function banAppUserByHandle(handle: string): Promise<boolean> {
                 await addBannedEmail(u.email || 'N/A', 'Cuenta baneada permanentemente por moderación', u.phone);
             }
             await supabaseAdmin.auth.admin.deleteUser(u.id);
+            // Release wallet handle
+            const deletedId = u.id.substring(0, 8);
+            await supabaseAdmin.from('wallets').update({
+                user_handle: `@deleted_wallet_${deletedId}`,
+                name: `DELETED_WALLET_${deletedId}`
+            }).eq('user_id', u.id);
         }
     }
 

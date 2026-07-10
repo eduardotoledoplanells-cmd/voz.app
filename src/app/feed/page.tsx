@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Heart, Mic, Gift, Bookmark } from 'lucide-react';
+import { Heart, Mic, Gift, Bookmark, Play } from 'lucide-react';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import LiveStreamModal from '../components/LiveStreamModal';
@@ -11,6 +11,30 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     const [isPlaying, setIsPlaying] = useState(false);
     const [isManualPause, setIsManualPause] = useState(false);
     const [isLiveOpen, setIsLiveOpen] = useState(false);
+    const [hasLiveSignal, setHasLiveSignal] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+        if ((v.is_live || v.isLive) && v.live_url) {
+            fetch(`/api/voz/live?url=${encodeURIComponent(v.live_url)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (active) {
+                        setHasLiveSignal(!!data.streamUrl);
+                    }
+                })
+                .catch(err => {
+                    if (active) {
+                        setHasLiveSignal(false);
+                    }
+                });
+        } else {
+            setHasLiveSignal(false);
+        }
+        return () => {
+            active = false;
+        };
+    }, [v.is_live, v.isLive, v.live_url]);
     
     // Icon States
     const [isLiked, setIsLiked] = useState(v.isLikedByMe || false);
@@ -155,8 +179,8 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     };
 
     return (
-        <div style={{ width: '100vw', height: '100%', scrollSnapAlign: 'start', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: '100%', maxWidth: '450px', height: '100%', position: 'relative', backgroundColor: '#111', borderLeft: '1px solid #333', borderRight: '1px solid #333' }}>
+        <div style={{ width: '100vw', height: '100%', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
+            <div style={{ width: '100%', maxWidth: '450px', height: '100%', position: 'relative', backgroundColor: '#000' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
                         <video 
@@ -175,16 +199,14 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                                 position: 'absolute', 
                                 top: '50%', left: '50%', 
                                 transform: 'translate(-50%, -50%)', 
-                                backgroundColor: 'rgba(128,128,128,0.6)', 
+                                backgroundColor: 'rgba(0,0,0,0.4)', 
                                 borderRadius: '50%', 
                                 width: '80px', height: '80px', 
                                 display: 'flex', justifyContent: 'center', alignItems: 'center',
                                 pointerEvents: 'none',
                                 zIndex: 10
                             }}>
-                                <span style={{ fontSize: '40px', color: 'white' }}>
-                                    {isManualPause ? '⏸' : '▶'}
-                                </span>
+                                <Play size={40} color="white" fill="white" style={{ opacity: 0.8 }} />
                             </div>
                         )}
                     </div>
@@ -205,7 +227,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
 
                 {/* Iconos laterales */}
                 <div className="action-icons">
-                    {(v.is_live || v.isLive) && v.live_url && (
+                    {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
                         <>
                             <div 
                                 style={{ 
@@ -327,19 +349,20 @@ export default function FeedPage() {
 
     const scrollNext = () => {
         if (containerRef.current) {
-            containerRef.current.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+            containerRef.current.scrollBy({ left: window.innerWidth, behavior: 'smooth' });
         }
     };
 
     const scrollPrev = () => {
         if (containerRef.current) {
-            containerRef.current.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+            containerRef.current.scrollBy({ left: -window.innerWidth, behavior: 'smooth' });
         }
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 50) {
+        // Infinite loop: when near the right end, append more
+        if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 100) {
             if (initialVideos.length > 0 && !fetchingRef.current) {
                 fetchingRef.current = true;
                 setVideos(prev => [...prev, ...initialVideos]);
@@ -349,7 +372,15 @@ export default function FeedPage() {
     };
 
     return (
-        <div style={{ backgroundColor: '#000', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: '#000', width: '100%', height: '100dvh', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }}>
+            
+            {/* Mobile top bar — shown only on mobile via CSS */}
+            <div className="mobile-top-bar">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '32px', objectFit: 'contain' }} />
+                <div style={{ fontSize: '11px', color: '#555', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>Feed</div>
+                <div style={{ width: '32px' }} />
+            </div>
             
             <style>{`
                 .action-icons {
@@ -383,11 +414,41 @@ export default function FeedPage() {
                 .nav-arrow:hover {
                     background: rgba(255,255,255,0.2);
                 }
-                .nav-arrow.left {
-                    left: 5vw;
+                .nav-arrow.left { left: 20px; }
+                .nav-arrow.right { right: 20px; }
+                .feed-autoscroll-toggle {
+                    position: fixed;
+                    top: 70px;
+                    right: 16px;
+                    z-index: 100;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    background: rgba(0,0,0,0.6);
+                    padding: 8px 14px;
+                    border-radius: 20px;
+                    backdrop-filter: blur(8px);
+                    font-size: 13px;
                 }
-                .nav-arrow.right {
-                    right: 5vw;
+                /* === HORIZONTAL SCROLL FEED === */
+                .feed-scroll-container {
+                    height: calc(100dvh - 56px - 65px - env(safe-area-inset-bottom, 0px));
+                    width: 100%;
+                    display: flex;
+                    overflow-x: scroll;
+                    overflow-y: hidden;
+                    scroll-snap-type: x mandatory;
+                    scroll-behavior: smooth;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                .feed-scroll-container::-webkit-scrollbar { display: none; }
+                /* Each slide takes full viewport width */
+                .feed-scroll-container > div {
+                    min-width: 100vw;
+                    height: 100%;
+                    flex-shrink: 0;
                 }
                 @media (min-width: 768px) {
                     .action-icons {
@@ -400,12 +461,19 @@ export default function FeedPage() {
                         align-items: center;
                         justify-content: center;
                     }
+                    .feed-autoscroll-toggle { top: 20px; }
+                }
+                @media (min-width: 1025px) {
+                    .feed-scroll-container {
+                        height: 100dvh;
+                    }
+                    .feed-autoscroll-toggle { top: 20px; }
                 }
             `}</style>
 
             {/* Auto-scroll toggle */}
-            <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 100, color: 'white', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.5)', padding: '10px 15px', borderRadius: '20px', backdropFilter: 'blur(5px)' }}>
-                <label style={{ fontSize: '14px', cursor: 'pointer', fontWeight: 'bold' }} htmlFor="autoscroll">Pasar automático</label>
+            <div className="feed-autoscroll-toggle">
+                <label style={{ fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }} htmlFor="autoscroll">Pasar automático</label>
                 <input id="autoscroll" type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} style={{ cursor: 'pointer', width: '18px', height: '18px' }} />
             </div>
 
@@ -417,13 +485,7 @@ export default function FeedPage() {
             <div 
                 ref={containerRef}
                 onScroll={handleScroll}
-                style={{
-                    height: 'calc(100vh - 65px)',
-                    width: '100%',
-                    overflowY: 'scroll',
-                    scrollSnapType: 'y mandatory',
-                    scrollBehavior: 'smooth'
-                }}
+                className="feed-scroll-container"
             >
                 {loading ? (
                     <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center', color: 'white' }}>

@@ -5,8 +5,21 @@ import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
-        const { creatorHandle, amount } = await request.json();
-        const userId = request.headers.get('x-user-id');
+        const body = await request.json();
+        const { creatorHandle, senderHandle, userId: bodyUserId } = body;
+        let amount = body.amount;
+
+        let userId = request.headers.get('x-user-id');
+        if (!userId) {
+            if (bodyUserId) {
+                userId = bodyUserId;
+            } else if (senderHandle) {
+                const senderByHandle = await getUserByHandle(senderHandle);
+                if (senderByHandle) {
+                    userId = senderByHandle.id;
+                }
+            }
+        }
 
         if (!userId || !creatorHandle || !amount) {
             return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
@@ -23,7 +36,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Este creador ha desactivado la opción de recibir donaciones.' }, { status: 400 });
         }
 
-        const donationAmount = Number(amount);
+        let donationAmount = typeof amount === 'string' ? Number(amount.replace(',', '.')) : Number(amount);
         if (isNaN(donationAmount) || donationAmount <= 0) {
             return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
         }

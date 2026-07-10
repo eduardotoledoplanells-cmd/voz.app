@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import '98.css';
 
 export default function BillingPage() {
-    const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], withdrawals?: any[], creators: any[], campaigns: any[], companies: any[] } | null>(null);
+    const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], withdrawals?: any[], creators: any[], campaigns: any[], companies: any[], stripeData?: any, stripeSalesCount?: any } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'folders' | 'summary' | 'wallet' | 'packs' | 'journal' | 'payouts' | 'history' | 'ads_payments'>('folders');
+    const [viewMode, setViewMode] = useState<'folders' | 'summary' | 'wallet' | 'packs' | 'journal' | 'payouts' | 'history' | 'ads_payments' | 'stripe'>('folders');
 
     interface ModalConfig {
         show: boolean;
@@ -67,7 +67,7 @@ export default function BillingPage() {
     if (isLoading) return <div style={{ padding: 20 }}>Cargando explorador de finanzas...</div>;
     if (!data) return <div style={{ padding: 20 }}>Error al cargar datos de facturación.</div>;
 
-    const { sales = [], stats = {}, redemptions = [], withdrawals = [], creators = [], campaigns = [], companies = [] } = data;
+    const { sales = [], stats = {}, redemptions = [], withdrawals = [], creators = [], campaigns = [], companies = [], stripeData = {} as any, stripeSalesCount = { totalRevenue: 0, totalSales: 0, counts: {} } as any } = data;
 
     const renderFolders = () => (
         <div style={{
@@ -145,7 +145,8 @@ export default function BillingPage() {
             journal: 'Libro Diario de Transacciones (Ingresos y Gastos)',
             payouts: 'Gestión de Pagos Pendientes a Creadores',
             ads_payments: 'Control de Cobros por Publicidad',
-            history: 'Archivo de Pagos a Creadores Realizados'
+            history: 'Archivo de Pagos a Creadores Realizados',
+            stripe: 'Control de Cuenta Stripe'
         };
 
         const formatCents = (amount: number) => (amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '€';

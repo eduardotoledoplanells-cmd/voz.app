@@ -271,7 +271,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             <div>
                                 <div style={{ color: 'white' }}>Saldo (Para gastar)</div>
                                 <div style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    {Number(profile.walletBalance || profile.wallet_balance || 0).toFixed(2)} 
+                                    {Number(profile.walletBalance || profile.wallet_balance || 0).toFixed(2).replace('.', ',')} 
                                     <Coins size={20} color="#FFD700" style={{ display: 'inline-block' }} />
                                 </div>
                             </div>
@@ -286,7 +286,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 <div>
                                     <div style={{ color: '#4CD964' }}>Cartera (Dinero ganado)</div>
                                     <div style={{ color: '#4CD964', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        {Number(profile.earningsBalance || profile.earnings_balance || 0).toFixed(2)} 
+                                        {Number(profile.earningsBalance || profile.earnings_balance || 0).toFixed(2).replace('.', ',')} 
                                         <Coins size={20} color="#4CD964" style={{ display: 'inline-block' }} />
                                     </div>
                                 </div>

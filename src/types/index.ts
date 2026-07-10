@@ -97,6 +97,8 @@ export interface User {
     bio?: string;
     profileColor?: string;
     profile_color?: string;
+    profileImage?: string;
+    profile_image?: string;
     followingCount?: number;
     followersCount?: number;
     likesCount?: number;
@@ -105,7 +107,10 @@ export interface User {
     joinedAt?: string;
     phone?: string;
     isCreator?: boolean;
+    is_creator?: boolean;
     status?: string;
+    is_live?: boolean;
+    live_url?: string | null;
     country_id?: number;
     region_id?: number;
     municipality_id?: number;

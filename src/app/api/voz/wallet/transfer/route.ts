@@ -5,10 +5,30 @@ import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
-        const { amount } = await request.json();
-        const userId = request.headers.get('x-user-id');
+        const body = await request.json();
+        const { handle, userId: bodyUserId } = body;
+        let amount = body.amount;
 
-        if (!userId || !amount || amount <= 0) {
+        if (typeof amount === 'string') {
+            amount = Number(amount.replace(',', '.'));
+        } else {
+            amount = Number(amount);
+        }
+
+        let userId = request.headers.get('x-user-id');
+
+        if (!userId) {
+            if (bodyUserId) {
+                userId = bodyUserId;
+            } else if (handle) {
+                const userByHandle = await getUserByHandle(handle);
+                if (userByHandle) {
+                    userId = userByHandle.id;
+                }
+            }
+        }
+
+        if (!userId || isNaN(amount) || amount <= 0) {
             return NextResponse.json({ success: false, error: 'Datos inválidos' }, { status: 400 });
         }
 

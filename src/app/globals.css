@@ -1,20 +1,48 @@
+/* ══════════════════════════════════════════
+   VOZ — Global Design System
+   Mobile-first, dark premium app feel
+══════════════════════════════════════════ */
+
 :root {
-  --cex-red: #e60000;
-  --cex-red-hover: #cc0000;
-  --cex-dark: #333333;
-  --cex-grey: #f2f2f2;
-  --cex-border: #e0e0e0;
-  --cex-text: #333333;
-  --cex-text-light: #666666;
-  --white: #ffffff;
+  /* Brand Colors */
+  --voz-purple: #8E2DE2;
+  --voz-purple-dark: #4A00E0;
+  --voz-purple-glow: rgba(142, 45, 226, 0.35);
+  --voz-gold: #FFD700;
+  --voz-red: #FF3B30;
+  --voz-green: #34C759;
 
-  --font-family: 'Inter', Arial, sans-serif;
+  /* Dark Theme */
+  --bg-primary: #000000;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1a1a1a;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-border: rgba(255, 255, 255, 0.08);
 
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --text-muted: #555555;
+
+  /* Layout */
   --container-width: 1200px;
-  --header-height: 140px;
+  --header-height: 70px;
+  --bottom-nav-height: 65px;
+  --bottom-nav-safe: env(safe-area-inset-bottom, 0px);
+
+  /* Font */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Legacy compat */
+  --cex-red: var(--voz-purple);
+  --cex-red-hover: var(--voz-purple-dark);
+  --white: #ffffff;
+  --cex-border: var(--bg-card-border);
+  --cex-text: var(--text-primary);
 }
 
-* {
+/* ── Reset ─────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
@@ -23,21 +51,29 @@
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+  background-color: #000000 !important;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  color: var(--cex-text);
-  background: var(--white);
+  color: var(--text-primary);
+  background-color: #000000 !important;
+  background: #000000 !important;
   font-family: var(--font-family);
   overflow-x: hidden;
   min-width: 320px;
+  margin: 0;
+  padding: 0;
+  /* Prevent bounce scroll on iOS */
+  overscroll-behavior: none;
 }
 
 img {
   -webkit-user-drag: none;
   user-select: none;
   -webkit-user-select: none;
-  pointer-events: auto;
   max-width: 100%;
   height: auto;
 }
@@ -48,6 +84,12 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ── Layout Utilities ─────────────────── */
 .container {
   max-width: var(--container-width);
   margin: 0 auto;
@@ -55,58 +97,139 @@ a {
   width: 100%;
 }
 
+/* Main page wrapper — accounts for bottom nav on mobile */
+.page-main {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  /* Mobile: leave room for bottom nav + safe area */
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-safe));
+}
+
+/* ── Buttons ──────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
-  border-radius: 4px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
+  font-size: 15px;
+  letter-spacing: 0.2px;
 }
 
 .btn-primary {
-  background-color: var(--cex-red);
-  color: var(--white);
+  background: linear-gradient(135deg, var(--voz-purple) 0%, var(--voz-purple-dark) 100%);
+  color: white;
+  box-shadow: 0 4px 15px var(--voz-purple-glow);
 }
 
 .btn-primary:hover {
-  background-color: var(--cex-red-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--voz-purple-glow);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-outline {
   background-color: transparent;
-  border: 2px solid var(--cex-red);
-  color: var(--cex-red);
+  border: 1.5px solid var(--voz-purple);
+  color: var(--voz-purple);
 }
 
 .btn-outline:hover {
-  background-color: var(--cex-red);
-  color: var(--white);
+  background-color: var(--voz-purple-glow);
 }
 
-/* Mobile Responsive Styles */
+/* ── Cards ────────────────────────────── */
+.voz-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+/* ── Forms ────────────────────────────── */
+.voz-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  font-family: var(--font-family);
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.voz-input:focus {
+  border-color: var(--voz-purple);
+  box-shadow: 0 0 0 3px var(--voz-purple-glow);
+}
+
+.voz-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Desktop Header — hidden on mobile ── */
+.desktop-header {
+  display: flex;
+}
+
+/* ── Scrollbar (desktop) ──────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — Mobile First
+══════════════════════════════════════════ */
+
+/* === Mobile (< 768px) === */
 @media (max-width: 768px) {
   :root {
-    --header-height: auto;
+    --header-height: 0px; /* Header oculto en móvil */
   }
 
   .container {
     padding: 0 15px;
   }
 
+  /* Hide the desktop header on mobile */
+  .desktop-header {
+    display: none !important;
+  }
+
+  /* Show mobile-only top title bar */
+  .mobile-top-bar {
+    display: flex !important;
+  }
+
   body {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .btn {
-    padding: 12px 16px;
-    font-size: 14px;
     width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: 14px;
   }
 
   h1 {
@@ -114,17 +237,34 @@ a {
   }
 
   h2 {
-    font-size: 1.5rem !important;
+    font-size: 1.4rem !important;
   }
 
   h3 {
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
   }
 }
 
+/* === Mobile top bar — hidden on desktop, shown on mobile === */
+.mobile-top-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  height: 56px;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+/* === Small phones (< 480px) === */
 @media (max-width: 480px) {
   .container {
-    padding: 0 10px;
+    padding: 0 12px;
   }
 
   h1 {
@@ -133,5 +273,59 @@ a {
 
   h2 {
     font-size: 1.25rem !important;
+  }
+}
+
+/* === Tablet (768px – 1024px) === */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .desktop-header {
+    display: flex;
+  }
+
+  .mobile-top-bar {
+    display: none;
+  }
+
+  /* Still show bottom nav on tablet */
+}
+
+/* === Desktop (> 1024px) === */
+@media (min-width: 1025px) {
+  .desktop-header {
+    display: flex;
+  }
+
+  .mobile-top-bar {
+    display: none;
+  }
+
+  /* On large screens, page doesn't need bottom nav padding */
+  .page-main {
+    padding-bottom: 0;
+  }
+
+  /* On desktop, restrict content width for readability */
+  .page-main > .container,
+  .page-main > * > .container {
+    max-width: var(--container-width);
+  }
+}
+
+/* === Landscape mobile fix === */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mobile-top-bar {
+    height: 44px;
+  }
+
+  :root {
+    --bottom-nav-height: 50px;
+  }
+}
+
+/* === Mobile Tapping Improvements === */
+@media (max-width: 480px) {
+  button, a[href], .btn, .navBtnPrimary, .navBtnOutline {
+    min-height: 44px;
+    touch-action: manipulation;
   }
 }

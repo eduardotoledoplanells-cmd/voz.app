@@ -9,12 +9,13 @@ export const metadata: Metadata = {
   title: 'VOZ - La comunidad del video y audio',
   description: 'Comparte tus momentos en VOZ',
   manifest: '/manifest.json',
-  themeColor: '#8E2DE2',
+  themeColor: '#000000',
   viewport: {
     width: 'device-width',
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
   },
   appleWebApp: {
     capable: true,

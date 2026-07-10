@@ -93,12 +93,33 @@ export async function POST(request: NextRequest) {
                 walletBalance: 0,
                 joinedAt: new Date().toISOString(),
                 phone: phone || '',
-                country: countryText || null,
-                region: regionText || null,
+                country: countryText || undefined,
+                region: regionText || undefined,
                 interests: []
             };
 
-            await addAppUser(newUser);
+            const dbResult = await addAppUser(newUser);
+            if (!dbResult) {
+                const { error: dbError } = await supabaseAdmin.from('app_users').insert([{
+                    id: newUser.id,
+                    name: newUser.name || newUser.handle.replace('@', ''),
+                    handle: newUser.handle,
+                    email: newUser.email,
+                    password: newUser.password,
+                    status: newUser.status,
+                    wallet_balance: newUser.walletBalance || 0,
+                    country: newUser.country,
+                    region: newUser.region,
+                    interests: newUser.interests || [],
+                    country_id: newUser.country_id,
+                    region_id: newUser.region_id,
+                    municipality_id: newUser.municipality_id
+                }]);
+                if (dbError) {
+                    console.error("Error inserting app_user:", dbError);
+                    return NextResponse.json({ error: `Database profile creation failed: ${dbError.message}` }, { status: 500 });
+                }
+            }
 
             return NextResponse.json({ 
                 success: true, 
@@ -118,10 +139,50 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: error.message }, { status: 400 });
             }
 
-            // Desbloqueamos la cuenta en app_users de forma eficiente
-            const targetUser = await getUserByEmail(email);
+            // Buscar el perfil en app_users
+            let targetUser = await getUserByEmail(email);
+
             if (targetUser) {
+                // El perfil existe -> activarlo
                 await updateAppUser(targetUser.id, { status: 'active' });
+            } else {
+                // El perfil NO existe (addAppUser falló durante el registro)
+                // Lo creamos ahora usando los datos del usuario de Auth verificado
+                const authUser = data.user;
+                if (authUser) {
+                    const username = authUser.user_metadata?.username || email.split('@')[0];
+                    const newUser: AppUser = {
+                        id: authUser.id,
+                        handle: `@${username}`,
+                        name: username,
+                        email: authUser.email || email,
+                        password: '',
+                        status: 'active',
+                        walletBalance: 0,
+                        joinedAt: new Date().toISOString(),
+                        phone: '',
+                        interests: []
+                    };
+                    const dbResult = await addAppUser(newUser);
+                    if (!dbResult) {
+                        const { error: dbError } = await supabaseAdmin.from('app_users').insert([{
+                            id: newUser.id,
+                            name: newUser.name || newUser.handle.replace('@', ''),
+                            handle: newUser.handle,
+                            email: newUser.email,
+                            password: newUser.password,
+                            status: newUser.status,
+                            wallet_balance: newUser.walletBalance || 0,
+                            country: newUser.country,
+                            region: newUser.region,
+                            interests: newUser.interests || []
+                        }]);
+                        if (dbError) {
+                            console.error('[verify_signup] Error creating missing profile:', dbError);
+                            return NextResponse.json({ error: `Database profile creation failed on verification: ${dbError.message}` }, { status: 500 });
+                        }
+                    }
+                }
             }
 
             return NextResponse.json({ success: true });

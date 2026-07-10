@@ -56,6 +56,8 @@ export interface AppUser {
     country_id?: number;
     region_id?: number;
     municipality_id?: number;
+    stripeAccountId?: string;
+    stripeOnboardingComplete?: boolean;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -127,6 +129,8 @@ export interface Campaign {
     targetRegions?: string[];
     targetInterests?: string[];
     target_municipalities?: number[];
+    priority?: string;
+    packSize?: number;
 }
 
 export interface Employee {
@@ -222,7 +226,9 @@ function mapUserRowToAppUser(u: any): AppUser {
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
-        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance)
+        earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
+        stripeAccountId: u.stripe_account_id,
+        stripeOnboardingComplete: u.stripe_onboarding_complete
     };
 }
 
@@ -1081,7 +1087,13 @@ export async function getCampaigns(): Promise<Campaign[]> {
         endDate: c.end_date,
         forceView: c.force_view,
         minViewTime: c.min_view_time || 0,
-        createdAt: c.created_at
+        createdAt: c.created_at,
+        targetCountries: c.target_countries || [],
+        targetRegions: c.target_regions || [],
+        targetInterests: c.target_interests || [],
+        target_municipalities: c.target_municipalities || [],
+        priority: c.priority || 'Local_Standard',
+        packSize: c.pack_size || 0
     }));
 }
 
@@ -1102,7 +1114,10 @@ export async function addCampaign(campaign: Campaign, employeeName: string): Pro
         investment: (campaign as any).investment || 0,
         target_countries: campaign.targetCountries || [],
         target_regions: campaign.targetRegions || [],
-        target_interests: campaign.targetInterests || []
+        target_interests: campaign.targetInterests || [],
+        target_municipalities: campaign.target_municipalities || [],
+        priority: campaign.priority || 'Local_Standard',
+        pack_size: campaign.packSize || 0
     }]).select().single();
 
     if (error) return null;

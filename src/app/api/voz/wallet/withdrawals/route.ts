@@ -33,9 +33,18 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         userId = request.headers.get('x-user-id') || '';
-        amount = body.amount;
+        if (!userId && body.userId) {
+            userId = body.userId;
+        }
 
-        if (!userId || !amount || amount <= 0) {
+        let rawAmount = body.amount;
+        if (typeof rawAmount === 'string') {
+            amount = Number(rawAmount.replace(',', '.'));
+        } else {
+            amount = Number(rawAmount);
+        }
+
+        if (!userId || isNaN(amount) || amount <= 0) {
             return NextResponse.json({ success: false, error: 'Parámetros inválidos' }, { status: 400 });
         }
 

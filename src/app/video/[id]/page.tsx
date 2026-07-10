@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/db';
 import Link from 'next/link';
+import { TopBarDownload, BottomDownload } from './VideoAuthWrappers';
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         const description = video.description
             ? `"${video.description}" — Escucha voces reales y participa en la comunidad.`
             : 'Escucha voces reales y participa en la comunidad de audio de VOZ.';
-        const imageUrl = video.thumbnail_url || 'https://server-taupe-six.vercel.app/logo/logo.png'; // Fallback
+        const imageUrl = video.thumbnail_url || 'https://server-taupe-six.vercel.app/logo/logo.png';
 
         return {
             title,
@@ -59,7 +60,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SharedVideoPage({ params }: Props) {
     const { id } = await params;
 
-    // Fetch video info to display context in the card
     const { data: video } = await supabaseAdmin
         .from('videos')
         .select('description, user_handle, views, likes, comments_count, video_url, thumbnail_url')
@@ -70,221 +70,137 @@ export default async function SharedVideoPage({ params }: Props) {
     const description = video?.description || 'Sin descripción';
     const likes = video?.likes || 0;
     const views = video?.views || 0;
+    const accentColor = '#8E2DE2';
 
     return (
         <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh',
+            minHeight: '100dvh',
             width: '100%',
-            backgroundColor: '#0c0c0e',
-            backgroundImage: 'radial-gradient(circle at top right, rgba(142, 45, 226, 0.15), transparent 400px), radial-gradient(circle at bottom left, rgba(74, 0, 224, 0.12), transparent 400px)',
+            backgroundColor: '#080810',
             color: 'white',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            padding: '20px',
-            boxSizing: 'border-box'
+            overflowX: 'hidden',
         }}>
-            {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-                <span style={{ fontSize: '36px', marginRight: '10px' }}>🎙️</span>
-                <span style={{
-                    fontSize: '28px',
-                    fontWeight: 'bold',
-                    letterSpacing: '1px',
-                    background: 'linear-gradient(to right, #8E2DE2, #4A00E0)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                }}>VOZ</span>
+            {/* Top bar */}
+            <div style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 100,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 16px',
+                height: '56px',
+                background: 'rgba(8,8,16,0.9)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+            }}>
+                <Link href="/feed" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '28px', objectFit: 'contain' }} />
+                </Link>
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Vídeo compartido</span>
+                <TopBarDownload accentColor={accentColor} />
             </div>
 
-            {/* Central download prompt card */}
+            {/* Main content */}
             <div style={{
-                width: '100%',
-                maxWidth: '480px',
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                borderRadius: '24px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '30px',
-                textAlign: 'center',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-                boxSizing: 'border-box'
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '0',
+                maxWidth: '600px',
+                margin: '0 auto',
             }}>
+                {/* VIDEO PLAYER */}
                 {video?.video_url ? (
                     <div style={{
                         width: '100%',
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        marginBottom: '20px',
                         backgroundColor: '#000',
-                        aspectRatio: '9/16',
-                        maxHeight: '340px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
+                        position: 'relative',
                     }}>
                         <video
                             src={video.video_url}
                             poster={video.thumbnail_url || undefined}
                             controls
+                            autoPlay
+                            playsInline
                             style={{
                                 width: '100%',
-                                height: '100%',
-                                objectFit: 'contain'
+                                maxHeight: '80dvh',
+                                display: 'block',
+                                objectFit: 'contain',
+                                backgroundColor: '#000',
                             }}
                         />
                     </div>
                 ) : (
                     <div style={{
-                        width: '64px',
-                        height: '64px',
-                        borderRadius: '32px',
-                        backgroundColor: 'rgba(255, 59, 48, 0.15)',
+                        width: '100%',
+                        height: '300px',
+                        backgroundColor: accentColor,
                         display: 'flex',
+                        flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        margin: '0 auto 20px auto'
+                        gap: '12px',
                     }}>
-                        <span style={{ fontSize: '28px' }}>🔴</span>
+                        <span style={{ fontSize: '64px' }}>🎙️</span>
+                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '16px' }}>Sólo disponible en la app</p>
                     </div>
                 )}
 
-                <h1 style={{
-                    fontSize: '20px',
-                    fontWeight: '800',
-                    lineHeight: '28px',
-                    marginBottom: '12px',
-                    color: '#fff'
-                }}>
-                    {video?.video_url ? 'Vídeo compartido en VOZ' : 'Para ver este vídeo debes descargar la aplicación'}
-                </h1>
-
-                <p style={{
-                    fontSize: '14px',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    lineHeight: '22px',
-                    marginBottom: '25px'
-                }}>
-                    {video?.video_url 
-                        ? 'Para dar me gusta, comentar o interactuar con la comunidad, descarga la aplicación oficial.'
-                        : 'Los vídeos y comentarios de voz de nuestra comunidad están disponibles exclusivamente en la aplicación oficial de VOZ.'}
-                </p>
-
-                {/* Video Info Card */}
-                {video && (
-                    <div style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                        borderRadius: '16px',
-                        padding: '16px',
-                        marginBottom: '30px',
-                        textAlign: 'left',
-                        borderWidth: '1px',
-                        borderStyle: 'solid',
-                        borderColor: 'rgba(255, 255, 255, 0.05)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#8E2DE2' }}>{creator}</span>
-                            <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
-                                👁️ {views} • ❤️ {likes}
-                            </span>
-                        </div>
-                        <p style={{
-                            fontSize: '13px',
-                            color: '#e0e0e0',
-                            lineHeight: '18px',
-                            margin: 0,
-                            fontStyle: 'italic',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
+                {/* Info section */}
+                <div style={{ width: '100%', padding: '16px 16px 24px', boxSizing: 'border-box' }}>
+                    {/* Creator + Stats */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <Link href={`/feed`} style={{
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: accentColor,
+                            textDecoration: 'none',
                         }}>
-                            &ldquo;{description}&rdquo;
-                        </p>
-                    </div>
-                )}
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Direct APK Download (Android Beta) */}
-                    <a href="/voz.apk" download style={{
-                        background: 'linear-gradient(to right, #8E2DE2, #4A00E0)',
-                        color: 'white',
-                        borderRadius: '16px',
-                        padding: '16px',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        boxShadow: '0 4px 12px rgba(142, 45, 226, 0.3)',
-                        cursor: 'pointer',
-                        transition: 'opacity 0.2s'
-                    }}>
-                        🤖 Descargar APK (Android Beta)
-                    </a>
-
-                    {/* TODO: Replace href with actual Google Play URL when the app is published */}
-                    {/* Android Play Store (Coming Soon) */}
-                    <div style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        color: 'rgba(255, 255, 255, 0.4)',
-                        borderRadius: '16px',
-                        padding: '16px',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        cursor: 'not-allowed',
-                        borderWidth: '1px',
-                        borderStyle: 'solid',
-                        borderColor: 'rgba(255, 255, 255, 0.02)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                    }}>
-                        🤖 Google Play (Próximamente)
+                            {creator}
+                        </Link>
+                        <div style={{ display: 'flex', gap: '14px', fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+                            <span>👁️ {views.toLocaleString()}</span>
+                            <span>❤️ {likes.toLocaleString()}</span>
+                        </div>
                     </div>
 
-                    {/* TODO: Replace href with actual App Store URL when the app is published */}
-                    {/* iOS App Store (Coming Soon) */}
-                    <div style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        color: 'rgba(255, 255, 255, 0.4)',
-                        borderRadius: '16px',
-                        padding: '16px',
-                        fontWeight: '600',
+                    {/* Description */}
+                    <p style={{
                         fontSize: '14px',
-                        cursor: 'not-allowed',
-                        borderWidth: '1px',
-                        borderStyle: 'solid',
-                        borderColor: 'rgba(255, 255, 255, 0.02)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
+                        color: 'rgba(255,255,255,0.75)',
+                        lineHeight: '1.6',
+                        margin: '0 0 20px',
                     }}>
-                        🍏 App Store (Próximamente)
+                        {description}
+                    </p>
+
+                    {/* Divider */}
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginBottom: '20px' }} />
+
+                    {/* CTA: Download app */}
+                    <BottomDownload accentColor={accentColor} />
+
+                    {/* Footer terms */}
+                    <div style={{
+                        marginTop: '32px',
+                        paddingTop: '16px',
+                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                        fontSize: '11px',
+                        color: 'rgba(255, 255, 255, 0.25)',
+                        display: 'flex',
+                        gap: '15px',
+                        justifyContent: 'center',
+                    }}>
+                        <Link href="/legal/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Términos de servicio</Link>
+                        <span>•</span>
+                        <Link href="/legal/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacidad</Link>
                     </div>
                 </div>
-            </div>
-
-            {/* Footer terms */}
-            <div style={{
-                marginTop: '40px',
-                fontSize: '11px',
-                color: 'rgba(255, 255, 255, 0.3)',
-                display: 'flex',
-                gap: '15px'
-            }}>
-                <Link href="/legal/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Términos de servicio</Link>
-                <span>•</span>
-                <Link href="/legal/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Privacidad</Link>
             </div>
         </div>
     );

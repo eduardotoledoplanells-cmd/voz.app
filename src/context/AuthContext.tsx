@@ -21,18 +21,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        // Check for stored user in localStorage or sessionStorage
-        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (error) {
-                console.error('Failed to parse stored user:', error);
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
+        const checkAuth = async () => {
+            // Check for auto-login parameters in the URL
+            if (typeof window !== 'undefined') {
+                const urlParams = new URLSearchParams(window.location.search);
+                const uid = urlParams.get('uid') || urlParams.get('token') || urlParams.get('userId');
+                
+                if (uid) {
+                    try {
+                        const res = await fetch(`/api/voz/users/profile?id=${encodeURIComponent(uid)}`);
+                        const data = await res.json();
+                        if (data.success && data.user) {
+                            setUser(data.user);
+                            localStorage.setItem('user', JSON.stringify(data.user));
+                            setIsLoading(false);
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Auto-login failed:', err);
+                    }
+                }
             }
-        }
-        setIsLoading(false);
+
+            // Check for stored user in localStorage or sessionStorage
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    setUser(JSON.parse(storedUser));
+                } catch (error) {
+                    console.error('Failed to parse stored user:', error);
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                }
+            }
+            setIsLoading(false);
+        };
+
+        checkAuth();
     }, []);
 
     const login = (userData: User, rememberMe: boolean = true) => {
