@@ -8,8 +8,30 @@ export default function DiscoverPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [videos, setVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [foundCreators, setFoundCreators] = useState<any[]>([]);
 
     const categories = ['Trending 🎙️', 'Relatos', 'Debates', 'Música', 'Humor', 'Noticias'];
+
+    useEffect(() => {
+        const query = searchQuery.trim();
+        if (query.length >= 2) {
+            const delayDebounceFn = setTimeout(() => {
+                fetch(`/api/voz/users/profile?query=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.users) {
+                            setFoundCreators(data.users);
+                        } else {
+                            setFoundCreators([]);
+                        }
+                    })
+                    .catch(() => setFoundCreators([]));
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            setFoundCreators([]);
+        }
+    }, [searchQuery]);
 
     useEffect(() => {
         fetch('/api/voz/videos?limit=50')
@@ -154,7 +176,36 @@ export default function DiscoverPage() {
                     </>
                 )}
 
-                {!loading && filteredItems.length === 0 && (
+                {/* Resultados de Creadores */}
+                {foundCreators.length > 0 && (
+                    <div style={{ padding: '0 16px 16px' }}>
+                        <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Creadores</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {foundCreators.map(creator => (
+                                <Link key={creator.id} href={`/profile/${creator.handle}`} style={{ textDecoration: 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '10px 14px' }}>
+                                        <div style={{
+                                            width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden',
+                                            background: creator.profile_color || 'linear-gradient(135deg,#8E2DE2,#4A00E0)',
+                                            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            {creator.profile_image
+                                                ? <img src={creator.profile_image} alt={creator.handle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                : <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>{(creator.name || creator.handle || '?')[0].toUpperCase()}</span>
+                                            }
+                                        </div>
+                                        <div>
+                                            <p style={{ color: 'white', fontWeight: '700', margin: 0, fontSize: '14px' }}>{creator.name || creator.handle}</p>
+                                            <p style={{ color: '#888', margin: 0, fontSize: '12px' }}>@{creator.handle}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {!loading && filteredItems.length === 0 && foundCreators.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '60px 20px', color: '#555' }}>
                         <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.4 }}>🔍</div>
                         <p style={{ fontWeight: '600' }}>Sin resultados para "{searchQuery}"</p>

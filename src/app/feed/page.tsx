@@ -55,10 +55,16 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                                 setIsPlaying(true);
                                 if (!hasViewed.current) {
                                     hasViewed.current = true;
+                                    // Generate a unique anonymous ID per session to avoid collisions
+                                    let anonId = typeof window !== 'undefined' ? sessionStorage.getItem('voz_anon_id') : null;
+                                    if (!anonId) {
+                                        anonId = 'anon_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+                                        if (typeof window !== 'undefined') sessionStorage.setItem('voz_anon_id', anonId);
+                                    }
                                     fetch('/api/voz/videos/view', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle || 'anonymous' })
+                                        body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle || anonId })
                                     }).catch(e => console.log('Error logging view', e));
                                 }
                             }).catch(e => console.log('Autoplay prevented', e));

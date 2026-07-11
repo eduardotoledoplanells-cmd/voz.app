@@ -9,9 +9,25 @@ export async function GET(request: NextRequest) {
         const handle = searchParams.get("handle");
         const id = searchParams.get("id");
         const email = searchParams.get("email");
+        const query = searchParams.get("query");
+
+        if (query) {
+            const cleanQuery = query.trim().replace('@', '');
+            const { data: users, error } = await supabaseAdmin
+                .from('app_users')
+                .select('id, handle, name, bio, profile_image, profile_color')
+                .or(`handle.ilike.%${cleanQuery}%,name.ilike.%${cleanQuery}%`)
+                .limit(10);
+
+            if (error) {
+                console.error("Search users error:", error);
+                return NextResponse.json({ error: error.message }, { status: 500 });
+            }
+            return NextResponse.json({ success: true, users: users || [] });
+        }
 
         if (!handle && !id && !email) {
-            return NextResponse.json({ error: "Missing identifying parameter (handle, id, or email)" }, { status: 400 });
+            return NextResponse.json({ error: "Missing identifying parameter (handle, id, email, or query)" }, { status: 400 });
         }
 
         const user = await getUserByIdOrHandleOrEmail(id || undefined, handle || undefined, email || undefined);

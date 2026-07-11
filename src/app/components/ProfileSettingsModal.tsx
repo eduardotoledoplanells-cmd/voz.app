@@ -537,8 +537,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#111', padding: '15px', borderRadius: '15px', border: 'none', cursor: isBuyingPack ? 'default' : 'pointer', textAlign: 'left', opacity: isBuyingPack ? 0.6 : 1 }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <div style={{ backgroundColor: 'rgba(142, 45, 226, 0.1)', padding: '10px', borderRadius: '12px', marginRight: '15px' }}>
-                                            💳
+                                        <div style={{ backgroundColor: 'rgba(142, 45, 226, 0.1)', padding: '10px', borderRadius: '12px', marginRight: '15px', fontSize: '1.2rem' }}>
+                                            {pack.coins === 500 ? '💎' : '💳'}
                                         </div>
                                         <div>
                                             <div style={{ color: 'white', fontWeight: 'bold' }}>{pack.name}</div>
