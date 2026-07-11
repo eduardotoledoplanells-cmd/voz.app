@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost } from "@/lib/db";
+import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost, supabaseAdmin } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { logSystemAlert } from '@/lib/alerts';
 
@@ -51,6 +51,35 @@ export async function POST(request: NextRequest) {
 
         if (!videoUrl || !user) {
             return corsHeaders(NextResponse.json({ error: "Missing required fields" }, { status: 400 }));
+        }
+
+        // Enforce video upload limits: max 150 videos unless user has 5000+ followers
+        const { count: videoCount, error: countError } = await supabaseAdmin
+            .from('videos')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_handle', user);
+
+        if (countError) {
+            console.error('[Upload Limit Check] Error counting existing videos:', countError);
+        }
+
+        if (videoCount !== null && videoCount >= 150) {
+            const { data: userData, error: userQueryError } = await supabaseAdmin
+                .from('app_users')
+                .select('followers_count, fans')
+                .eq('handle', user)
+                .maybeSingle();
+
+            if (userQueryError) {
+                console.error('[Upload Limit Check] Error querying user stats:', userQueryError);
+            }
+
+            const followers = userData ? (userData.followers_count || userData.fans || 0) : 0;
+            if (followers < 5000) {
+                return corsHeaders(NextResponse.json({ 
+                    error: "Tienes que tener 5.000 seguidores para subir más vídeos." 
+                }, { status: 403 }));
+            }
         }
 
         const newVideo: VideoPost = {

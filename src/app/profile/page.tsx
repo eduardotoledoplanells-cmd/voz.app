@@ -130,15 +130,18 @@ function ProfilePageContent() {
                         </div>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px', width: '100%', justifyContent: 'center' }}>
                         {isOwnProfile ? (
-                            <>
-                                <button onClick={() => setIsSettingsOpen(true)} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
-                                <button onClick={logout} style={{ padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
-                            </>
-                        ) : (
-                            <button onClick={() => router.push('/feed')} style={{ padding: '8px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Volver al Feed</button>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}>
+                                <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Editar perfil</button>
+                                <button onClick={() => router.push('/feed')} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Volver al Feed</button>
+                            </div>
+                            <button onClick={logout} style={{ width: '100%', maxWidth: '290px', padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Cerrar sesión</button>
+                        </div>
+                    ) : (
+                        <button onClick={() => router.push('/feed')} style={{ padding: '8px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Volver al Feed</button>
+                    )}
                     </div>
                 </div>
 

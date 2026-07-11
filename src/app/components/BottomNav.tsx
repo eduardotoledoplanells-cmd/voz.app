@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Plus, Bell, User } from 'lucide-react';
+import { Home, Search, Plus, Bell, User } from 'lucide-react';
 import ActivityModal from './ActivityModal';
 
 export default function BottomNav() {
@@ -88,9 +88,10 @@ export default function BottomNav() {
                 {/* Discover */}
                 <Link href="/discover" style={navItemStyle(isActive('/discover'))}>
                     {isActive('/discover') && <span style={activeDot} />}
-                    <Compass size={24} strokeWidth={isActive('/discover') ? 2.5 : 1.8} />
+                    <Search size={24} strokeWidth={isActive('/discover') ? 2.5 : 1.8} />
                     <span style={labelStyle(isActive('/discover'))}>Descubrir</span>
                 </Link>
+
 
                 {/* Upload — center button */}
                 <Link href="/upload" style={{
