@@ -57,24 +57,25 @@ export default function BottomNav() {
                 .bottom-nav-wrapper {
                     position: fixed;
                     bottom: 0;
-                    left: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
                     width: 100%;
+                    max-width: 450px;
                     background-color: rgba(0,0,0,0.94);
                     backdrop-filter: blur(20px);
                     -webkit-backdrop-filter: blur(20px);
                     border-top: 1px solid rgba(255,255,255,0.08);
+                    border-left: 1px solid rgba(255,255,255,0.08);
+                    border-right: 1px solid rgba(255,255,255,0.08);
                     display: flex;
                     justify-content: space-around;
                     align-items: center;
                     height: 65px;
                     padding-bottom: env(safe-area-inset-bottom, 0px);
                     z-index: 1000;
+                    border-radius: 12px 12px 0 0;
                 }
-                @media (min-width: 1025px) {
-                    .bottom-nav-wrapper {
-                        display: none;
-                    }
-                }
+
             `}</style>
             <div className="bottom-nav-wrapper">
                 {/* Home */}
