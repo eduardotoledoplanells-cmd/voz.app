@@ -37,6 +37,33 @@ export async function POST(request: Request) {
     // Handle the event
     try {
         switch (event.type) {
+            case 'checkout.session.completed':
+                const session = event.data.object as Stripe.Checkout.Session;
+                if (session.metadata?.type === 'coin_purchase') {
+                    const paymentIntentId = session.payment_intent as string;
+                    if (paymentIntentId) {
+                        const { data: existingTx } = await supabaseAdmin
+                            .from('ledger_transactions')
+                            .select('id')
+                            .eq('idempotency_key', paymentIntentId)
+                            .maybeSingle();
+
+                        if (existingTx) {
+                            console.log(`[Stripe Webhook] Session ${session.id} (PaymentIntent ${paymentIntentId}) already processed. Skipping.`);
+                            return NextResponse.json({ received: true, alreadyProcessed: true });
+                        }
+
+                        const mockPaymentIntent = {
+                            id: paymentIntentId,
+                            amount: session.amount_total || 0,
+                            metadata: session.metadata
+                        } as any;
+
+                        await handleCoinPurchaseSuccess(mockPaymentIntent);
+                    }
+                }
+                break;
+
             case 'payment_intent.succeeded':
                 const paymentIntent = event.data.object as Stripe.PaymentIntent;
                 if (paymentIntent.metadata.type === 'coin_purchase') {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUserById, getUserByHandle } from '@/lib/db';
-import { executeLedgerTransaction, getOrCreateUserWallet } from '@/lib/ledger';
+import { executeLedgerTransaction, getOrCreateUserWallet, Money } from '@/lib/ledger';
 import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         // 1. Process via Ledger: Move from PENDING (earnings) to AVAILABLE (wallet balance)
         const userWalletId = await getOrCreateUserWallet(user.id);
         const idempotencyKey = `transfer-${user.id}-${Date.now()}`;
+        const amountMicro = Money.fromCoins(amount).toMicrocoinsNumber();
         try {
             await executeLedgerTransaction(
                 'EARNINGS_TRANSFER',
@@ -53,12 +54,12 @@ export async function POST(request: Request) {
                     {
                         wallet_id: userWalletId,
                         entry_type: 'PENDING',
-                        amount: -amount
+                        amount: -amountMicro
                     },
                     {
                         wallet_id: userWalletId,
                         entry_type: 'AVAILABLE',
-                        amount: amount
+                        amount: amountMicro
                     }
                 ],
                 null,

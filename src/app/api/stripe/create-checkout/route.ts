@@ -66,6 +66,16 @@ export async function POST(request: Request) {
         const origin = request.headers.get('origin') || 'https://www.appvoz.com';
         const finalRedirectUrl = redirectUrl || `${origin}/profile`;
         
+        const sessionMetadata = {
+            type: 'coin_purchase',
+            packId: packId,
+            coins: pack.coins.toString(),
+            userId: userId || 'unknown',
+            userHandle: userHandle || 'unknown',
+            stripeProductId: pack.stripeProductId || 'pending',
+            stripePriceId: pack.stripePriceId || 'pending'
+        };
+
         const session = await stripe.checkout.sessions.create({
             ui_mode: 'embedded',
             payment_method_types: ['card'],
@@ -77,14 +87,9 @@ export async function POST(request: Request) {
             ],
             mode: 'payment',
             return_url: `${finalRedirectUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            metadata: {
-                type: 'coin_purchase',
-                packId: packId,
-                coins: pack.coins.toString(),
-                userId: userId || 'unknown',
-                userHandle: userHandle || 'unknown',
-                stripeProductId: pack.stripeProductId || 'pending',
-                stripePriceId: pack.stripePriceId || 'pending'
+            metadata: sessionMetadata,
+            payment_intent_data: {
+                metadata: sessionMetadata
             }
         });
 
