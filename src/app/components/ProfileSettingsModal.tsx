@@ -47,6 +47,62 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     const [contactMessage, setContactMessage] = useState('');
     const [isSendingContact, setIsSendingContact] = useState(false);
 
+    // States and handler for transfer
+    const [transferMode, setTransferMode] = useState(false);
+    const [transferAmount, setTransferAmount] = useState('');
+    const [isTransferring, setIsTransferring] = useState(false);
+
+    const handleTransferSubmit = async () => {
+        const amtStr = transferAmount.trim();
+        if (!amtStr) return;
+        const amount = parseFloat(amtStr.replace(',', '.'));
+        if (isNaN(amount) || amount <= 0) {
+            alert("Monto inválido. Introduce una cantidad mayor que cero.");
+            return;
+        }
+
+        const maxAvailable = Number(profile.earningsBalance || profile.earnings_balance || 0);
+        if (amount > maxAvailable) {
+            alert("Saldo insuficiente en cartera.");
+            return;
+        }
+
+        setIsTransferring(true);
+        try {
+            const res = await fetch('/api/voz/wallet/transfer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    handle: profile.handle,
+                    userId: profile.id,
+                    amount: amount
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`¡Se han transferido ${amount.toFixed(2).replace('.', ',')} monedas a tu saldo de compras exitosamente!`);
+                const updatedUser = {
+                    ...profile,
+                    earnings_balance: data.newEarnings,
+                    earningsBalance: data.newEarnings,
+                    wallet_balance: data.newWallet,
+                    walletBalance: data.newWallet
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                updateUser(updatedUser);
+                setTransferMode(false);
+                setTransferAmount('');
+            } else {
+                alert(data.error || "Error al realizar la transferencia.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión al procesar la transferencia.");
+        } finally {
+            setIsTransferring(false);
+        }
+    };
+
     if (!isOpen || !profile) return null;
 
     const handleEdit = (mode: 'name' | 'bio' | 'live_url') => {
@@ -292,10 +348,37 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 </div>
                                 <div>🎁</div>
                             </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button onClick={() => { onClose(); router.push('/profile/monetization'); }} style={{ flex: 1, backgroundColor: 'rgba(76, 217, 100, 0.15)', color: '#4CD964', border: '1px solid #4CD964', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Pasar a Saldo</button>
-                                <button onClick={() => { onClose(); router.push('/profile/monetization'); }} style={{ flex: 1, backgroundColor: '#4CD964', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Retirar cobro</button>
-                            </div>
+                            {transferMode ? (
+                                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Cantidad (ej. 5,00)" 
+                                            value={transferAmount}
+                                            onChange={(e) => setTransferAmount(e.target.value)}
+                                            style={{ flex: 1, backgroundColor: '#000', border: '1px solid #333', color: 'white', padding: '10px', borderRadius: '10px', outline: 'none', fontSize: '0.9rem' }}
+                                        />
+                                        <button 
+                                            onClick={handleTransferSubmit}
+                                            disabled={isTransferring}
+                                            style={{ backgroundColor: '#4CD964', color: 'black', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                                        >
+                                            {isTransferring ? '...' : 'Pasar'}
+                                        </button>
+                                        <button 
+                                            onClick={() => { setTransferMode(false); setTransferAmount(''); }}
+                                            style={{ backgroundColor: '#333', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                                        >
+                                            X
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button onClick={() => setTransferMode(true)} style={{ flex: 1, backgroundColor: 'rgba(76, 217, 100, 0.15)', color: '#4CD964', border: '1px solid #4CD964', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Pasar a Saldo</button>
+                                    <button onClick={() => { onClose(); router.push('/profile/monetization'); }} style={{ flex: 1, backgroundColor: '#4CD964', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Retirar cobro</button>
+                                </div>
+                            )}
                             <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '10px', fontStyle: 'italic' }}>* El saldo de Cartera se genera mediante donaciones recibidas y regalos.</div>
                         </div>
                     </div>

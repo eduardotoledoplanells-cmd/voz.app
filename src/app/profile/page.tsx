@@ -129,7 +129,7 @@ function ProfilePageContent() {
     };
 
     return (
-        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', overflowX: 'hidden' }}>
             <div style={{ 
                 width: '100%', 
                 maxWidth: '450px', 
