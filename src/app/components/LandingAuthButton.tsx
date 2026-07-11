@@ -43,7 +43,7 @@ export default function LandingAuthButton() {
     }
 
     return (
-        <Link href="/login" style={{
+        <Link href="/feed" style={{
             display: 'inline-block',
             background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
             color: '#fff',

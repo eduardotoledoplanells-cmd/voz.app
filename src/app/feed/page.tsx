@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Heart, Mic, Gift, Bookmark, Play } from 'lucide-react';
+import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import LiveStreamModal from '../components/LiveStreamModal';
@@ -220,9 +221,11 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                 )}
 
                 {/* UI Superpuesta (Usuario, Título) */}
-                <div style={{ position: 'absolute', bottom: '20px', left: '15px', color: 'white', maxWidth: '70%', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', pointerEvents: 'none' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{v.userHandle || '@usuario'}</h3>
-                    <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem' }}>{v.description || 'Sin descripción'}</p>
+                <div style={{ position: 'absolute', bottom: '95px', left: '15px', color: 'white', maxWidth: '70%', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', pointerEvents: 'auto', zIndex: 20 }}>
+                    <Link href={`/profile?handle=${encodeURIComponent(v.userHandle || v.user)}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none', color: 'white', cursor: 'pointer' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{v.userHandle || '@usuario'}</h3>
+                    </Link>
+                    <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', fontWeight: '500', opacity: 0.95 }}>{v.description || 'Sin descripción'}</p>
                 </div>
 
                 {/* Iconos laterales */}

@@ -7,18 +7,49 @@ import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 
 function ProfilePageContent() {
-    const { user, logout, isLoading } = useAuth();
+    const { user: loggedInUser, logout, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingVideos, setLoadingVideos] = useState(true);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [profileUser, setProfileUser] = useState<any>(null);
+    const [loadingProfile, setLoadingProfile] = useState(true);
+
+    const targetHandle = searchParams.get('handle');
+    const targetId = searchParams.get('id');
 
     useEffect(() => {
-        if (!isLoading && !user) {
-            router.push('/login');
+        if (targetHandle || targetId) {
+            setLoadingProfile(true);
+            const query = targetHandle 
+                ? `handle=${encodeURIComponent(targetHandle)}` 
+                : `id=${encodeURIComponent(targetId!)}`;
+            fetch(`/api/voz/users/profile?${query}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.user) {
+                        setProfileUser(data.user);
+                    } else {
+                        setProfileUser(null);
+                    }
+                    setLoadingProfile(false);
+                })
+                .catch(() => {
+                    setProfileUser(null);
+                    setLoadingProfile(false);
+                });
+        } else {
+            if (!authLoading) {
+                if (loggedInUser) {
+                    setProfileUser(loggedInUser);
+                    setLoadingProfile(false);
+                } else {
+                    router.push('/login');
+                }
+            }
         }
-    }, [user, isLoading, router]);
+    }, [targetHandle, targetId, loggedInUser, authLoading, router]);
 
     useEffect(() => {
         if (searchParams.get('settings') === 'true' || searchParams.get('edit') === 'true') {
@@ -27,8 +58,9 @@ function ProfilePageContent() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (user) {
-            fetch(`/api/voz/videos?userHandle=${user.handle || '@'+user.name}`)
+        if (profileUser) {
+            setLoadingVideos(true);
+            fetch(`/api/voz/videos?userHandle=${profileUser.handle || '@'+profileUser.name}`)
                 .then(res => res.json())
                 .then(data => {
                     const videoList = Array.isArray(data) ? data : (data.videos || []);
@@ -40,44 +72,61 @@ function ProfilePageContent() {
                     setLoadingVideos(false);
                 });
         }
-    }, [user]);
+    }, [profileUser]);
 
-    if (isLoading || !user) {
-        return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
+    if (authLoading || loadingProfile) {
+        return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando perfil...</div>;
     }
+
+    if (!profileUser) {
+        return (
+            <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
+                <p>Usuario no encontrado</p>
+                <button onClick={() => router.push('/feed')} style={{ padding: '8px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Volver al Feed</button>
+            </div>
+        );
+    }
+
+    const isOwnProfile = loggedInUser && (profileUser.id === loggedInUser.id || profileUser.handle === loggedInUser.handle);
 
     return (
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', paddingBottom: '60px' }}>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
                 <div style={{ 
                     width: '100px', height: '100px', borderRadius: '50%', 
-                    backgroundColor: user.profileColor || '#8E2DE2', 
+                    backgroundColor: profileUser.profileColor || '#8E2DE2', 
                     display: 'flex', justifyContent: 'center', alignItems: 'center',
                     fontSize: '40px', fontWeight: 'bold', marginBottom: '15px',
-                    backgroundImage: user.profileImage ? `url(${user.profileImage})` : 'none',
+                    backgroundImage: profileUser.profileImage ? `url(${profileUser.profileImage})` : 'none',
                     backgroundSize: 'cover'
                 }}>
-                    {!user.profileImage && (user.name ? user.name.charAt(0).toUpperCase() : '?')}
+                    {!profileUser.profileImage && (profileUser.name ? profileUser.name.charAt(0).toUpperCase() : '?')}
                 </div>
-                <h2 style={{ margin: 0 }}>{user.name}</h2>
-                <p style={{ color: '#aaa', margin: '5px 0' }}>{user.handle || '@'+user.name.toLowerCase().replace(/\s+/g, '')}</p>
-                <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px' }}>{user.bio || 'Sin biografía todavía.'}</p>
+                <h2 style={{ margin: 0 }}>{profileUser.name}</h2>
+                <p style={{ color: '#aaa', margin: '5px 0' }}>{profileUser.handle || '@'+profileUser.name.toLowerCase().replace(/\s+/g, '')}</p>
+                <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px' }}>{profileUser.bio || 'Sin biografía todavía.'}</p>
                 
                 <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
                     <div style={{ textAlign: 'center' }}>
-                        <strong>{user.followingCount || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Siguiendo</span>
+                        <strong>{profileUser.followingCount || profileUser.following || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Siguiendo</span>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <strong>{user.followersCount || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Seguidores</span>
+                        <strong>{profileUser.followersCount || profileUser.fans || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Seguidores</span>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <strong>{user.likesCount || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Me gusta</span>
+                        <strong>{profileUser.likesCount || profileUser.likes || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Me gusta</span>
                     </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    <button onClick={() => setIsSettingsOpen(true)} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
-                    <button onClick={logout} style={{ padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
+                    {isOwnProfile ? (
+                        <>
+                            <button onClick={() => setIsSettingsOpen(true)} style={{ padding: '8px 20px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
+                            <button onClick={logout} style={{ padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
+                        </>
+                    ) : (
+                        <button onClick={() => router.push('/feed')} style={{ padding: '8px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Volver al Feed</button>
+                    )}
                 </div>
             </div>
 
@@ -130,12 +179,14 @@ function ProfilePageContent() {
                 )}
             </div>
 
-            <ProfileSettingsModal 
-                isOpen={isSettingsOpen} 
-                onClose={() => setIsSettingsOpen(false)} 
-                profile={user} 
-                onLogout={logout} 
-            />
+            {loggedInUser && (
+                <ProfileSettingsModal 
+                    isOpen={isSettingsOpen} 
+                    onClose={() => setIsSettingsOpen(false)} 
+                    profile={loggedInUser} 
+                    onLogout={logout} 
+                />
+            )}
             <BottomNav />
         </div>
     );
