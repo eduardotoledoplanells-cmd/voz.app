@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             return corsHeaders(NextResponse.json({ error: "Missing required fields" }, { status: 400 }));
         }
 
-        // Enforce video upload limits: max 150 videos unless user has 5000+ followers
+        // Enforce video upload limits based on follower count tiers
         const { count: videoCount, error: countError } = await supabaseAdmin
             .from('videos')
             .select('id', { count: 'exact', head: true })
@@ -63,21 +63,41 @@ export async function POST(request: NextRequest) {
             console.error('[Upload Limit Check] Error counting existing videos:', countError);
         }
 
-        if (videoCount !== null && videoCount >= 150) {
-            const { data: userData, error: userQueryError } = await supabaseAdmin
-                .from('app_users')
-                .select('followers_count, fans')
-                .eq('handle', user)
-                .maybeSingle();
+        const { data: userData, error: userQueryError } = await supabaseAdmin
+            .from('app_users')
+            .select('followers_count, fans')
+            .eq('handle', user)
+            .maybeSingle();
 
-            if (userQueryError) {
-                console.error('[Upload Limit Check] Error querying user stats:', userQueryError);
-            }
+        if (userQueryError) {
+            console.error('[Upload Limit Check] Error querying user stats:', userQueryError);
+        }
 
-            const followers = userData ? (userData.followers_count || userData.fans || 0) : 0;
-            if (followers < 5000) {
+        const followers = userData ? (userData.followers_count || userData.fans || 0) : 0;
+        const currentCount = videoCount || 0;
+
+        if (followers < 3000) {
+            if (currentCount >= 50) {
                 return corsHeaders(NextResponse.json({ 
-                    error: "Tienes que tener 5.000 seguidores para subir más vídeos." 
+                    error: "Tienes que tener más de 3.000 seguidores para subir más de 50 vídeos." 
+                }, { status: 403 }));
+            }
+        } else if (followers < 5000) {
+            if (currentCount >= 100) {
+                return corsHeaders(NextResponse.json({ 
+                    error: "Tienes que tener 5.000 seguidores para subir más de 100 vídeos." 
+                }, { status: 403 }));
+            }
+        } else if (followers < 10000) {
+            if (currentCount >= 150) {
+                return corsHeaders(NextResponse.json({ 
+                    error: "Tienes que tener 10.000 seguidores para subir más de 150 vídeos." 
+                }, { status: 403 }));
+            }
+        } else {
+            if (currentCount >= 250) {
+                return corsHeaders(NextResponse.json({ 
+                    error: "Has alcanzado el límite máximo de 250 vídeos en tu cuenta." 
                 }, { status: 403 }));
             }
         }

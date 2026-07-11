@@ -89,6 +89,45 @@ function ProfilePageContent() {
 
     const isOwnProfile = loggedInUser && (profileUser.id === loggedInUser.id || profileUser.handle === loggedInUser.handle);
 
+    const handleDonate = async () => {
+        if (!loggedInUser) {
+            alert("Inicia sesión para donar monedas.");
+            router.push('/login');
+            return;
+        }
+
+        const amountStr = prompt(`¿Cuántas monedas deseas donar a ${profileUser.name || 'este creador'}?`);
+        if (!amountStr) return;
+
+        const parsedAmount = parseFloat(amountStr.replace(',', '.'));
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            alert("Monto inválido. Introduce una cantidad mayor que cero.");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/voz/donate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    creatorHandle: profileUser.handle,
+                    senderHandle: loggedInUser.handle,
+                    amount: parsedAmount
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert(`¡Has apoyado a ${profileUser.name || profileUser.handle} con ${parsedAmount} monedas de forma exitosa!`);
+            } else {
+                alert(data.error || "Ocurrió un error al realizar la donación.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error al procesar la donación.");
+        }
+    };
+
     return (
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center' }}>
             <div style={{ 
@@ -140,7 +179,10 @@ function ProfilePageContent() {
                             <button onClick={logout} style={{ width: '100%', maxWidth: '290px', padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Cerrar sesión</button>
                         </div>
                     ) : (
-                        <button onClick={() => router.push('/feed')} style={{ padding: '8px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Volver al Feed</button>
+                        <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}>
+                            <button onClick={handleDonate} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Donar Monedas</button>
+                            <button onClick={() => router.push('/feed')} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}>Volver al Feed</button>
+                        </div>
                     )}
                     </div>
                 </div>

@@ -32,11 +32,17 @@ export default function DiscoverPage() {
         const cleanQuery = rawQuery.toLowerCase();
         const searchTerms = cleanQuery.split(/\s+/).map(t => t.replace('#', '')).filter(Boolean);
         if (searchTerms.length === 0) return true;
+        
         const description = (item.description || '').toLowerCase();
         const category = (item.category || '').toLowerCase();
         const title = (item.title || '').toLowerCase();
+        const userHandle = (item.user_handle || item.user || '').toLowerCase();
+
         return searchTerms.every(term =>
-            description.includes(term) || category.includes(term) || title.includes(term)
+            description.includes(term) || 
+            category.includes(term) || 
+            title.includes(term) ||
+            userHandle.includes(term)
         );
     });
 
