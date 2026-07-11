@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/db';
 import Link from 'next/link';
 import { TopBarDownload, BottomDownload } from './VideoAuthWrappers';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
     params: Promise<{ id: string }>;
 }

@@ -1887,6 +1887,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             id: v.id,
             videoUrl: v.video_url,
             user: v.user_handle,
+            userHandle: v.user_handle,
             description: v.description,
             likes: v.likes,
             shares: v.shares,
@@ -1907,6 +1908,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             forceView: campMeta ? campMeta.force_view : (v.force_view || false),
             minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0),
             is_live: u.is_live || false,
+            isLive: u.is_live || false,
             live_url: u.live_url || null
         };
     });
@@ -2008,6 +2010,7 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
             id: v.id,
             videoUrl: v.video_url,
             user: v.user_handle,
+            userHandle: v.user_handle,
             description: v.description,
             likes: v.likes,
             shares: v.shares,
@@ -2025,6 +2028,7 @@ export async function getVideosByUser(handle: string, currentUserHandle?: string
             isLikedByMe: likedSet.has(v.id),
             isBookmarkedByMe: bookmarkedSet.has(v.id),
             is_live: u.is_live || false,
+            isLive: u.is_live || false,
             live_url: u.live_url || null
         };
     });

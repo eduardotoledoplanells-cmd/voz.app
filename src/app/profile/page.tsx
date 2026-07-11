@@ -31,9 +31,8 @@ function ProfilePageContent() {
             fetch(`/api/voz/videos?userHandle=${user.handle || '@'+user.name}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.videos) {
-                        setVideos(data.videos);
-                    }
+                    const videoList = Array.isArray(data) ? data : (data.videos || []);
+                    setVideos(videoList);
                     setLoadingVideos(false);
                 })
                 .catch(err => {
