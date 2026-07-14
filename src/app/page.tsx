@@ -126,6 +126,9 @@ export default async function LandingPage() {
     redirect('/feed');
 
     // Si queremos que la raíz sea el feed por defecto, redireccionamos.
+    redirect('/feed');
+
+    // Si queremos que la raíz sea el feed por defecto, redireccionamos.
     // redirect('/feed');
 
     const { stats, creators } = await getLandingData();

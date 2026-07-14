@@ -98,18 +98,49 @@ function ProfilePageContent() {
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
                         {videos.map(v => (
-                            <Link href={`/video/${v.id}`} key={v.id} style={{ textDecoration: 'none', display: 'block' }}>
-                                <div style={{ aspectRatio: '9/16', backgroundColor: '#222', position: 'relative', height: '100%' }}>
-                                    {v.videoUrl ? (
-                                        <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
-                                    )}
-                                    <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
-                                        ▶ {v.views || 0}
+                            <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
+                                <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                                    <div style={{ height: '100%' }}>
+                                        {v.videoUrl ? (
+                                            <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
+                                        )}
+                                        <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
+                                            ▶ {v.views || 0}
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
+                                </Link>
+                                <button 
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
+                                        try {
+                                            const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user.handle || '@'+user.name}`, {
+                                                method: 'DELETE'
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                                setVideos(prev => prev.filter(item => item.id !== v.id));
+                                                alert("Vídeo eliminado con éxito.");
+                                            } else {
+                                                alert(data.error || "No se pudo eliminar el vídeo.");
+                                            }
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert("Error al conectar con el servidor.");
+                                        }
+                                    }} 
+                                    style={{ 
+                                        position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
+                                        background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
+                                        display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
+                                    }}
+                                >
+                                    <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
+                                </button>
+                            </div>
                         ))}
                     </div>
                 )}
