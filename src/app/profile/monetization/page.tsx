@@ -222,6 +222,27 @@ export default function MonetizationPage() {
                             </div>
                         ) : (
                             <>
+                                {/* Campaña de Publicidad Section */}
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: '1px solid rgba(142, 45, 226, 0.3)' }}>
+                                    <h4 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ marginRight: '10px' }}>📢</span> Campañas de Publicidad
+                                    </h4>
+                                    <p style={{ color: 'gray', fontSize: '14px', marginBottom: '15px' }}>
+                                        Promociona tus publicaciones de VOZ para llegar a más audiencia geolocalizada en España.
+                                    </p>
+                                    <Link 
+                                        href="/profile/creator-panel" 
+                                        style={{ 
+                                            display: 'block', textDecoration: 'none', textAlign: 'center',
+                                            background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', 
+                                            color: 'white', padding: '12px', borderRadius: '8px', fontWeight: 'bold',
+                                            cursor: 'pointer', transition: 'opacity 0.2s'
+                                        }}
+                                    >
+                                        Crear Campaña de Publicidad
+                                    </Link>
+                                </div>
+
                                 {/* Twitch Link Section */}
                                 <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px' }}>
                                     <h4 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
