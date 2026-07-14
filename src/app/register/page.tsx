@@ -209,9 +209,18 @@ export default function RegisterPage() {
                             className={styles.input}
                         >
                             <option value="">Selecciona un país</option>
-                            {countries.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
+                            {countries.map(c => {
+                                const isSpain = c.name.toLowerCase() === 'españa';
+                                return (
+                                    <option 
+                                        key={c.id} 
+                                        value={c.id} 
+                                        disabled={!isSpain}
+                                    >
+                                        {c.name} {!isSpain ? '(Próximamente)' : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
 

@@ -1042,21 +1042,45 @@ export async function toggleVideoLike(videoId: string, userHandle: string, isLik
 }
 
 export async function incrementVideoView(videoId: string, userHandle: string): Promise<boolean> {
+    // Try to insert a unique view record (duplicate = already viewed by this user)
     const { error: viewError } = await supabaseAdmin
         .from('video_views')
         .insert([{ video_id: videoId, user_handle: userHandle }]);
 
     if (viewError) {
+        // 23505 = unique violation = already viewed, that's ok, don't increment
         if (viewError.code === '23505') return true;
-        return false;
+        // Any other insert error: still try to increment views (best effort)
+        console.warn('[db] video_views insert error (non-duplicate):', viewError.code, viewError.message);
     }
 
-    // Atomic update of views in videos table via RPC
-    const { error: rpcError } = await supabaseAdmin.rpc('increment_video_views', { vid: videoId });
+    // Atomic update: try RPC first (may use 'vid' or 'video_id' as parameter name)
+    let rpcSuccess = false;
+    const { error: rpcError1 } = await supabaseAdmin.rpc('increment_video_views', { vid: videoId });
+    if (!rpcError1) {
+        rpcSuccess = true;
+    } else {
+        // Try alternate parameter name
+        const { error: rpcError2 } = await supabaseAdmin.rpc('increment_video_views', { video_id: videoId });
+        if (!rpcError2) {
+            rpcSuccess = true;
+        } else {
+            console.warn('[db] RPC increment_video_views failed, using direct update fallback');
+        }
+    }
 
-    if (rpcError) {
-        console.error('[db] RPC increment_video_views failed:', rpcError);
-        return false;
+    if (!rpcSuccess) {
+        // Direct fallback: read current views and increment by 1
+        const { data: current } = await supabaseAdmin
+            .from('videos')
+            .select('views')
+            .eq('id', videoId)
+            .single();
+
+        await supabaseAdmin
+            .from('videos')
+            .update({ views: (current?.views || 0) + 1 })
+            .eq('id', videoId);
     }
 
     return true;

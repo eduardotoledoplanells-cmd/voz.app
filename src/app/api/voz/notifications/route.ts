@@ -13,7 +13,14 @@ export async function GET(request: Request) {
         let query = supabaseAdmin.from('notifications').select('*');
         if (rawRecipientId) {
             const cleanId = rawRecipientId.replace('@', '');
-            query = query.or(`recipient_id.ilike.${cleanId},recipient_id.ilike.@${cleanId}`);
+            query = query.in('recipient_id', [
+                cleanId, 
+                `@${cleanId}`, 
+                cleanId.toLowerCase(), 
+                `@${cleanId.toLowerCase()}`,
+                cleanId.toUpperCase(),
+                `@${cleanId.toUpperCase()}`
+            ]);
         }
         
         const { data, error } = await query.order('timestamp', { ascending: false });

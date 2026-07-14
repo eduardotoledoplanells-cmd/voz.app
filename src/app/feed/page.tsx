@@ -45,12 +45,25 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
 
     const hasViewed = useRef(false);
 
+    // Pause video when tab is hidden (prevents double audio when app and web are open simultaneously)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && videoRef.current) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        if (!isManualPause && videoRef.current) {
+                        // Only autoplay if tab is visible
+                        if (!isManualPause && videoRef.current && !document.hidden) {
                             videoRef.current.play().then(() => {
                                 setIsPlaying(true);
                                 if (!hasViewed.current) {

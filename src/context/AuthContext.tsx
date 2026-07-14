@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '@/types';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,7 @@ interface AuthContextType {
     logout: () => void;
     isLoading: boolean;
     updateUser: (userData: User) => void;
+    refreshUser: () => Promise<void>;
     toggleFavorite: (productId: string) => Promise<void>;
 }
 
@@ -19,6 +20,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+
+    // Fetch fresh user data from server and update state + storage
+    const refreshUserWithData = useCallback(async (u: User) => {
+        if (!u?.id && !u?.handle) return;
+        try {
+            const query = u.id ? `id=${encodeURIComponent(u.id)}` : `handle=${encodeURIComponent(u.handle)}`;
+            const res = await fetch(`/api/voz/users/profile?${query}`);
+            const data = await res.json();
+            if (data.success && data.user) {
+                const fresh = { ...u, ...data.user };
+                setUser(fresh);
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(fresh));
+                } else if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(fresh));
+                }
+            }
+        } catch (e) {
+            console.warn('[Auth] refreshUser failed:', e);
+        }
+    }, []);
+
+    const refreshUser = useCallback(async () => {
+        setUser(current => {
+            if (current) {
+                refreshUserWithData(current);
+            }
+            return current;
+        });
+    }, [refreshUserWithData]);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -47,7 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
             if (storedUser) {
                 try {
-                    setUser(JSON.parse(storedUser));
+                    const parsed = JSON.parse(storedUser);
+                    setUser(parsed);
+                    // Immediately fetch fresh data in the background to sync balance
+                    setTimeout(() => refreshUserWithData(parsed), 800);
                 } catch (error) {
                     console.error('Failed to parse stored user:', error);
                     localStorage.removeItem('user');
@@ -59,6 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         checkAuth();
     }, []);
+
+    // Poll server every 30s to keep balance/coins in sync with app
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => refreshUserWithData(user), 30000);
+        return () => clearInterval(interval);
+    }, [user?.id, refreshUserWithData]);
 
     const login = (userData: User, rememberMe: boolean = true) => {
         setUser(userData);
@@ -90,14 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const toggleFavorite = async (productId: string) => {
         if (!user) return;
-
         try {
             const res = await fetch('/api/users/favorites', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id, productId }),
             });
-
             if (res.ok) {
                 const data = await res.json();
                 updateUser(data.user);
@@ -108,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, isLoading, updateUser, toggleFavorite }}>
+        <AuthContext.Provider value={{ user, login, logout, isLoading, updateUser, refreshUser, toggleFavorite }}>
             {children}
         </AuthContext.Provider>
     );

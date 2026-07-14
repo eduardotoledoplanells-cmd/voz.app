@@ -101,6 +101,7 @@ function VozAdminContent({
         { href: '/hr', label: '👥 Recursos Humanos', roles: [1] },
         { href: '/logs', label: '📜 Logs del Director', roles: [1] },
         { href: '/errors', label: '🔔 Errores de Sistema', roles: [1, 2, 5, 6] },
+        { href: '/servers', label: '🖥️ Servidores', roles: [1, 2, 5, 6] },
     ];
 
     const currentRole = employee ? Number(employee.role) : 1;

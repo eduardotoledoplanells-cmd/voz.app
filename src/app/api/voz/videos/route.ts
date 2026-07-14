@@ -27,15 +27,120 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const userHandle = searchParams.get('userHandle') || undefined;
+        const bookmarkedBy = searchParams.get('bookmarkedBy') || undefined;
+        const likedBy = searchParams.get('likedBy') || undefined;
         
         const limitParam = searchParams.get('limit');
         const offsetParam = searchParams.get('offset');
         const limit = limitParam ? parseInt(limitParam, 10) : 10;
         const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
-        const videos = userHandle 
-            ? await getVideosByUser(userHandle) 
-            : await getVideos(undefined, limit, offset);
+        let videos: any[] = [];
+        if (bookmarkedBy) {
+            const { data: bookmarks, error: bookmarkError } = await supabaseAdmin
+                .from('video_bookmarks')
+                .select('video_id')
+                .eq('user_handle', bookmarkedBy);
+            
+            if (bookmarkError) throw bookmarkError;
+            
+            const bookmarkedIds = bookmarks?.map(b => b.video_id) || [];
+            if (bookmarkedIds.length === 0) {
+                videos = [];
+            } else {
+                const { data: rawVideos, error: videosError } = await supabaseAdmin
+                    .from('videos')
+                    .select('*')
+                    .in('id', bookmarkedIds);
+                if (videosError) throw videosError;
+
+                const handles = [...new Set((rawVideos || []).map(v => v.user_handle))];
+                const { data: users } = await supabaseAdmin
+                    .from('app_users')
+                    .select('name, handle, profile_image, is_live, live_url')
+                    .in('handle', handles);
+
+                const usersMap = new Map((users || []).map(u => [u.handle, u]));
+
+                videos = (rawVideos || []).map(v => {
+                    const u: any = usersMap.get(v.user_handle) || {};
+                    return {
+                        id: v.id,
+                        videoUrl: v.video_url,
+                        user: v.user_handle,
+                        userHandle: v.user_handle,
+                        description: v.description,
+                        likes: v.likes,
+                        shares: v.shares,
+                        commentsCount: v.comments_count,
+                        views: v.views,
+                        music: v.music,
+                        thumbnailUrl: v.thumbnail_url,
+                        filterConfig: v.filter_config,
+                        createdAt: v.created_at,
+                        isMuted: v.is_muted,
+                        userName: u.name || v.user_handle,
+                        userImage: u.profile_image || null,
+                        isLive: u.is_live || false,
+                        liveUrl: u.live_url || null
+                    };
+                });
+            }
+        } else if (likedBy) {
+            const { data: likes, error: likeError } = await supabaseAdmin
+                .from('video_likes')
+                .select('video_id')
+                .eq('user_handle', likedBy);
+            
+            if (likeError) throw likeError;
+            
+            const likedIds = likes?.map(l => l.video_id) || [];
+            if (likedIds.length === 0) {
+                videos = [];
+            } else {
+                const { data: rawVideos, error: videosError } = await supabaseAdmin
+                    .from('videos')
+                    .select('*')
+                    .in('id', likedIds);
+                if (videosError) throw videosError;
+
+                const handles = [...new Set((rawVideos || []).map(v => v.user_handle))];
+                const { data: users } = await supabaseAdmin
+                    .from('app_users')
+                    .select('name, handle, profile_image, is_live, live_url')
+                    .in('handle', handles);
+
+                const usersMap = new Map((users || []).map(u => [u.handle, u]));
+
+                videos = (rawVideos || []).map(v => {
+                    const u: any = usersMap.get(v.user_handle) || {};
+                    return {
+                        id: v.id,
+                        videoUrl: v.video_url,
+                        user: v.user_handle,
+                        userHandle: v.user_handle,
+                        description: v.description,
+                        likes: v.likes,
+                        shares: v.shares,
+                        commentsCount: v.comments_count,
+                        views: v.views,
+                        music: v.music,
+                        thumbnailUrl: v.thumbnail_url,
+                        filterConfig: v.filter_config,
+                        createdAt: v.created_at,
+                        isMuted: v.is_muted,
+                        userName: u.name || v.user_handle,
+                        userImage: u.profile_image || null,
+                        isLive: u.is_live || false,
+                        liveUrl: u.live_url || null
+                    };
+                });
+            }
+        } else {
+            videos = userHandle 
+                ? await getVideosByUser(userHandle) 
+                : await getVideos(undefined, limit, offset);
+        }
         return corsHeaders(NextResponse.json(videos));
     } catch (error) {
         console.error("Error fetching videos:", error);
