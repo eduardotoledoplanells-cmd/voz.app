@@ -47,13 +47,12 @@ function ProfilePageContent() {
     }
 
     return (
-        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', paddingBottom: '60px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: '100%', maxWidth: '450px', borderLeft: '1px solid #111', borderRight: '1px solid #111' }}>
-                <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
-                    <div style={{ 
-                        width: '100px', height: '100px', borderRadius: '50%', 
-                        backgroundColor: user.profileColor || '#8E2DE2', 
-                        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100vw', paddingBottom: '60px' }}>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
+                <div style={{ 
+                    width: '100px', height: '100px', borderRadius: '50%', 
+                    backgroundColor: user.profileColor || '#8E2DE2', 
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
                     fontSize: '40px', fontWeight: 'bold', marginBottom: '15px',
                     backgroundImage: user.profileImage ? `url(${user.profileImage})` : 'none',
                     backgroundSize: 'cover'
@@ -152,7 +151,6 @@ function ProfilePageContent() {
                 onLogout={logout} 
             />
             <BottomNav />
-            </div>
         </div>
     );
 }
