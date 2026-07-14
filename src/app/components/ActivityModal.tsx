@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [touchStartY, setTouchStartY] = useState(0);
+    const [pullOffset, setPullOffset] = useState(0);
 
-    useEffect(() => {
-        if (!isOpen) return;
-        
+    const loadNotifications = async (showLoading = true) => {
         const storedUser = localStorage.getItem('user');
         if (!storedUser) {
             window.location.href = '/login';
@@ -17,28 +18,67 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
         const user = JSON.parse(storedUser);
         const recipientId = user.handle || `@${user.name}`;
 
-        setLoading(true);
-        fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`)
-            .then(res => res.json())
-            .then(data => {
-                const notifs = Array.isArray(data) ? data : [];
-                setNotifications(notifs);
-                setLoading(false);
-                
-                // Mark as read after 2 seconds
-                setTimeout(() => {
-                    fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, {
-                        method: 'PUT'
-                    }).catch(console.error);
-                }, 2000);
-            })
-            .catch(err => {
-                console.error("Error fetching notifications:", err);
-                setLoading(false);
-            });
+        if (showLoading) setLoading(true);
+        try {
+            const res = await fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`);
+            const data = await res.json();
+            const notifs = Array.isArray(data) ? data : [];
+            setNotifications(notifs);
+            setLoading(false);
+            setRefreshing(false);
+            setPullOffset(0);
+
+            // Mark as read after 2 seconds
+            setTimeout(() => {
+                fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, {
+                    method: 'PUT'
+                }).catch(console.error);
+            }, 2000);
+        } catch (err) {
+            console.error("Error fetching notifications:", err);
+            setLoading(false);
+            setRefreshing(false);
+            setPullOffset(0);
+        }
+    };
+
+    useEffect(() => {
+        if (!isOpen) return;
+        loadNotifications(true);
     }, [isOpen]);
 
     if (!isOpen) return null;
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        const container = e.currentTarget;
+        // Only trigger pull-to-refresh if we're at the top of the scrollable container
+        if (container.scrollTop === 0) {
+            setTouchStartY(touch.clientY);
+        } else {
+            setTouchStartY(0);
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (touchStartY === 0 || refreshing) return;
+        const touch = e.touches[0];
+        const diff = touch.clientY - touchStartY;
+        if (diff > 0) {
+            // Cap pull-to-refresh offset at 80px
+            setPullOffset(Math.min(diff * 0.4, 80));
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (pullOffset > 50 && !refreshing) {
+            setRefreshing(true);
+            loadNotifications(false);
+        } else {
+            setPullOffset(0);
+        }
+        setTouchStartY(0);
+    };
 
     const getIconForType = (type: string) => {
         switch (type) {
@@ -77,8 +117,38 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
                 </div>
 
+                {/* Pull down indicator */}
+                {(pullOffset > 0 || refreshing) && (
+                    <div style={{
+                        height: refreshing ? '40px' : `${pullOffset}px`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#8E2DE2',
+                        fontSize: '13px',
+                        overflow: 'hidden',
+                        transition: refreshing ? 'height 0.2s' : 'none',
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                        borderBottom: '1px solid rgba(255,255,255,0.02)',
+                        fontWeight: '600'
+                    }}>
+                        {refreshing ? 'Actualizando...' : pullOffset > 50 ? 'Suelta para actualizar' : 'Desliza hacia abajo para actualizar'}
+                    </div>
+                )}
+
                 {/* Body */}
-                <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+                <div 
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ 
+                        padding: '20px', 
+                        overflowY: 'auto', 
+                        flex: 1,
+                        transform: pullOffset > 0 && !refreshing ? `translateY(${pullOffset}px)` : 'none',
+                        transition: touchStartY === 0 ? 'transform 0.2s' : 'none'
+                    }}
+                >
                     {loading ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: 'gray' }}>Cargando...</div>
                     ) : notifications.length === 0 ? (
