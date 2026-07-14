@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import BottomNav from '../../components/BottomNav';
 import Link from 'next/link';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 
 export default function CreatorPanelPage() {
     const [user, setUser] = useState<any>(null);
@@ -27,6 +29,11 @@ export default function CreatorPanelPage() {
     const [municipalitiesDb, setMunicipalitiesDb] = useState<any[]>([]);
     const [targetMunicipalities, setTargetMunicipalities] = useState<number[]>([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
+
+    // Stripe checkout states
+    const [stripePromise, setStripePromise] = useState<any>(null);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
     const modalities = [
         { id: 1, name: 'Modalidad 1', packSize: 1000, price: '10.00 €', duration: '7 Días', priority: 'Local_Standard' },
@@ -78,6 +85,14 @@ export default function CreatorPanelPage() {
                 }
             })
             .catch(console.error);
+
+        // Parse query params to handle Stripe redirects
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            alert('¡Pago recibido! Tu campaña de publicidad ha sido activada y comenzará a mostrarse.');
+            // Clean up the URL query params so they don't see the alert on reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }, []);
 
     useEffect(() => {
@@ -108,8 +123,19 @@ export default function CreatorPanelPage() {
             return;
         }
 
+        if (!selectedRegionId) {
+            alert("Debe seleccionar una Comunidad Autónoma / Región");
+            return;
+        }
+
+        if (targetMunicipalities.length === 0) {
+            alert("Debe seleccionar al menos un municipio / localidad para tu campaña");
+            return;
+        }
+
         setSubmitting(true);
         try {
+            // Step 1: Create the campaign in pending_payment status
             const res = await fetch('/api/voz/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -126,14 +152,37 @@ export default function CreatorPanelPage() {
             const data = await res.json();
             
             if (data.success && data.campaign) {
-                alert("¡Campaña creada con éxito!");
-                setCampaigns([data.campaign, ...campaigns]);
-                setShowForm(false);
-                setSelectedModalityId(null);
-                setTargetMunicipalities([]);
-                setSelectedRegionId('');
-                setSelectedRegionName('');
-                setFormData({ name: '', videoUrl: '', packSize: 1000, priority: 'Local_Standard' });
+                // Step 2: Request Stripe Checkout Session
+                const stripeRes = await fetch('/api/stripe/create-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        packId: `camp_mod${selectedModalityId}`, // camp_mod1, camp_mod2, camp_mod3
+                        type: 'campaign_payment',
+                        campaignId: data.campaign.id,
+                        userId: user.id,
+                        userHandle: user.handle || user.name,
+                        redirectUrl: window.location.origin + '/profile/creator-panel'
+                    })
+                });
+                const stripeData = await stripeRes.json();
+                
+                if (stripeData.clientSecret) {
+                    setStripePromise(loadStripe(stripeData.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''));
+                    setClientSecret(stripeData.clientSecret);
+                    setShowStripeCheckout(true);
+
+                    // Add campaign to local list so user sees it immediately
+                    setCampaigns([data.campaign, ...campaigns]);
+                    setShowForm(false);
+                    setSelectedModalityId(null);
+                    setTargetMunicipalities([]);
+                    setSelectedRegionId('');
+                    setSelectedRegionName('');
+                    setFormData({ name: '', videoUrl: '', packSize: 1000, priority: 'Local_Standard' });
+                } else {
+                    alert(stripeData.error || "Error al iniciar pasarela de pago");
+                }
             } else {
                 alert(data.error || "Error al crear la campaña");
             }
@@ -162,7 +211,7 @@ export default function CreatorPanelPage() {
                 {/* 1. Modalidades de Campaña (Three Squares Selection) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Elige una Modalidad de Campaña</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                         {modalities.map(mod => {
                             const isSelected = selectedModalityId === mod.id;
                             return (
@@ -178,17 +227,21 @@ export default function CreatorPanelPage() {
                                         backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.15)' : 'rgba(255,255,255,0.03)',
                                         border: isSelected ? '2px solid #8E2DE2' : '1px solid #333',
                                         borderRadius: '12px',
-                                        padding: '12px 8px',
+                                        padding: '20px 12px',
                                         textAlign: 'center',
                                         cursor: showForm ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.2s',
-                                        opacity: showForm && !isSelected ? 0.5 : 1
+                                        opacity: showForm && !isSelected ? 0.5 : 1,
+                                        minHeight: '130px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center'
                                     }}
                                 >
-                                    <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '8px', color: isSelected ? '#8E2DE2' : 'white' }}>{mod.name}</div>
-                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#4CD964', marginBottom: '5px' }}>{mod.price}</div>
-                                    <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>{mod.packSize.toLocaleString()} Impresiones</div>
-                                    <div style={{ fontSize: '10px', color: '#666' }}>Duración: {mod.duration}</div>
+                                    <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '8px', color: isSelected ? '#8E2DE2' : 'white' }}>{mod.name}</div>
+                                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#4CD964', marginBottom: '6px' }}>{mod.price}</div>
+                                    <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>{mod.packSize.toLocaleString()} Impresiones</div>
+                                    <div style={{ fontSize: '11px', color: '#666' }}>Duración: {mod.duration}</div>
                                 </div>
                             );
                         })}
@@ -260,19 +313,19 @@ export default function CreatorPanelPage() {
 
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Nombre de la campaña</label>
+                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Nombre de la campaña *</label>
                                 <input 
                                     type="text" 
                                     value={formData.name}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
-                                    placeholder="Ej. Promoción de mi nuevo cover"
+                                    placeholder="Ej. Promoción de mi nuevo video"
                                     style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'gray', fontSize: '14px' }}>Selecciona el vídeo a promocionar</label>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'gray', fontSize: '14px' }}>Selecciona el vídeo a promocionar *</label>
                                 {videos.length === 0 ? (
                                     <div style={{ color: '#FF3B30', fontSize: '14px' }}>No tienes vídeos publicados. Sube un vídeo primero.</div>
                                 ) : (
@@ -320,7 +373,7 @@ export default function CreatorPanelPage() {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Página Web de destino</label>
+                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Página Web de destino (Opcional)</label>
                                 <input 
                                     type="url" 
                                     placeholder="https://tuweb.com/mi-perfil"
@@ -333,7 +386,7 @@ export default function CreatorPanelPage() {
                             {/* Geotargeting segment */}
                             <div style={{ border: '1px solid #222', padding: '15px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                 <h5 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', display: 'flex', alignItems: 'center', margin: 0 }}>
-                                    <span style={{ marginRight: '8px' }}>🌍</span> Segmentación Geográfica
+                                    <span style={{ marginRight: '8px' }}>🌍</span> Segmentación Geográfica *
                                 </h5>
 
                                 <div style={{ marginBottom: '12px', marginTop: '10px' }}>
@@ -347,7 +400,7 @@ export default function CreatorPanelPage() {
                                 </div>
 
                                 <div style={{ marginBottom: '12px' }}>
-                                    <label style={{ display: 'block', marginBottom: '4px', color: 'gray', fontSize: '12px' }}>Comunidad Autónoma / Región</label>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'gray', fontSize: '12px' }}>Comunidad Autónoma / Región *</label>
                                     <select 
                                         value={selectedRegionId}
                                         onChange={e => {
@@ -369,7 +422,7 @@ export default function CreatorPanelPage() {
                                 {selectedRegionId && (
                                     <div style={{ marginTop: '15px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                            <label style={{ color: 'gray', fontSize: '12px', margin: 0 }}>Municipios / Localidades</label>
+                                            <label style={{ color: 'gray', fontSize: '12px', margin: 0 }}>Municipios / Localidades * (Elige al menos uno)</label>
                                             {municipalitiesDb.length > 0 && (
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button 
@@ -452,7 +505,7 @@ export default function CreatorPanelPage() {
                                     opacity: submitting ? 0.7 : 1
                                 }}
                             >
-                                {submitting ? 'Creando...' : 'Lanzar Campaña'}
+                                {submitting ? 'Iniciando Pago...' : 'Lanzar Campaña'}
                             </button>
                         </form>
                     </div>
@@ -468,19 +521,19 @@ export default function CreatorPanelPage() {
                         </div>
                     ) : (
                         campaigns.map(camp => (
-                            <div key={camp.id} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '10px', borderLeft: `4px solid ${camp.status === 'active' ? '#4CD964' : '#FFA500'}` }}>
+                            <div key={camp.id} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '10px', borderLeft: `4px solid ${camp.status === 'active' ? '#4CD964' : camp.status === 'pending_payment' ? '#FFA500' : '#888'}` }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                                     <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{camp.name}</div>
                                     <span style={{ 
-                                        backgroundColor: camp.status === 'active' ? 'rgba(76,217,100,0.2)' : 'rgba(255,165,0,0.2)',
-                                        color: camp.status === 'active' ? '#4CD964' : '#FFA500',
+                                        backgroundColor: camp.status === 'active' ? 'rgba(76,217,100,0.2)' : camp.status === 'pending_payment' ? 'rgba(255,165,0,0.2)' : 'rgba(255,255,255,0.1)',
+                                        color: camp.status === 'active' ? '#4CD964' : camp.status === 'pending_payment' ? '#FFA500' : '#888',
                                         padding: '4px 8px',
                                         borderRadius: '12px',
                                         fontSize: '10px',
                                         fontWeight: 'bold',
                                         textTransform: 'uppercase'
                                     }}>
-                                        {camp.status}
+                                        {camp.status === 'active' ? 'ACTIVA' : camp.status === 'pending_payment' ? 'PAGO PENDIENTE' : camp.status}
                                     </span>
                                 </div>
                                 
@@ -509,6 +562,25 @@ export default function CreatorPanelPage() {
                     )}
                 </div>
             </div>
+
+            {/* Sub-modal Stripe Checkout */}
+            {showStripeCheckout && clientSecret && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 11000,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center'
+                }}>
+                    <div style={{ width: '100%', maxWidth: '500px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #222' }}>
+                        <h3 style={{ color: 'white', margin: 0, fontSize: '16px' }}>Pago Seguro de Campaña</h3>
+                        <button onClick={() => { setShowStripeCheckout(false); setClientSecret(null); }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <div style={{ width: '100%', maxWidth: '500px', flex: 1, overflowY: 'auto', padding: '15px' }}>
+                        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                            <EmbeddedCheckout />
+                        </EmbeddedCheckoutProvider>
+                    </div>
+                </div>
+            )}
 
             <BottomNav />
         </div>

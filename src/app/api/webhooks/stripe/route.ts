@@ -61,6 +61,9 @@ export async function POST(request: Request) {
 
                         await handleCoinPurchaseSuccess(mockPaymentIntent);
                     }
+                } else if (session.metadata?.type === 'campaign_payment') {
+                    const campaignId = session.metadata.campaignId;
+                    await handleCampaignPaymentSuccess(campaignId);
                 }
                 break;
 
@@ -80,6 +83,9 @@ export async function POST(request: Request) {
                     }
 
                     await handleCoinPurchaseSuccess(paymentIntent);
+                } else if (paymentIntent.metadata.type === 'campaign_payment') {
+                    const campaignId = paymentIntent.metadata.campaignId;
+                    await handleCampaignPaymentSuccess(campaignId);
                 }
                 break;
 
@@ -88,6 +94,9 @@ export async function POST(request: Request) {
                 if (failedPayment.metadata.type === 'coin_purchase') {
                     console.error(`❌ Coin purchase failed for user ${failedPayment.metadata.userId}`);
                     await logSystemAlert('Stripe', `Coin purchase PaymentIntent failed: ${failedPayment.last_payment_error?.message || 'Unknown payment error'} (User: ${failedPayment.metadata.userId})`);
+                } else if (failedPayment.metadata.type === 'campaign_payment') {
+                    console.error(`❌ Campaign payment failed for campaign ${failedPayment.metadata.campaignId}`);
+                    await logSystemAlert('Stripe', `Campaign payment PaymentIntent failed for campaign: ${failedPayment.metadata.campaignId}`);
                 }
                 break;
 
@@ -153,5 +162,29 @@ async function handleCoinPurchaseSuccess(paymentIntent: Stripe.PaymentIntent) {
     } catch (error: any) {
         console.error('Error updating coin balance:', error);
         await logSystemAlert('Stripe', `Error updating coin balance for PaymentIntent ${paymentIntent.id}: ${error.message}`);
+    }
+}
+
+async function handleCampaignPaymentSuccess(campaignId: string) {
+    if (!campaignId) {
+        console.error('[Stripe Webhook] Missing campaignId in handleCampaignPaymentSuccess');
+        return;
+    }
+    try {
+        console.log(`[Stripe Webhook] Activating campaign: ${campaignId}`);
+        const { data, error } = await supabaseAdmin
+            .from('campaigns')
+            .update({ status: 'active' })
+            .eq('id', campaignId);
+
+        if (error) {
+            console.error(`[Stripe Webhook] Error updating campaign ${campaignId} to active:`, error);
+            await logSystemAlert('Stripe', `Error updating campaign ${campaignId} to active: ${error.message}`);
+        } else {
+            console.log(`[Stripe Webhook] Campaign ${campaignId} successfully activated.`);
+        }
+    } catch (err: any) {
+        console.error('[Stripe Webhook] Exception in handleCampaignPaymentSuccess:', err);
+        await logSystemAlert('Stripe', `Exception in handleCampaignPaymentSuccess: ${err.message}`);
     }
 }

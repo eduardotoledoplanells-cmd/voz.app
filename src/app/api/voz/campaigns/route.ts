@@ -98,10 +98,7 @@ export async function POST(request: Request) {
             packSize: campaignData.packSize || 1000 // Default 1000 impressions pack
         };
 
-        // If packSize is 0, it means infinite/budget based. But for creators we use packs.
-        if (newCampaign.packSize > 0) {
-             newCampaign.status = 'active'; // Auto-activate creator packs for testing
-        }
+        newCampaign.status = 'pending_payment';
 
         const result = await addCampaign(newCampaign, userHandle);
         return NextResponse.json({ success: true, campaign: result });

@@ -37,6 +37,24 @@ const COIN_PACKS_SERVER = {
     },
 };
 
+const CAMPAIGN_PACKS_SERVER = {
+    'camp_mod1': {
+        price: 10.00,
+        stripeProductId: 'prod_TjX4aO2Rxu7RSa',
+        stripePriceId: 'price_1TYvEz3BtXxsW9ynSoyhq42g'
+    },
+    'camp_mod2': {
+        price: 45.00,
+        stripeProductId: 'prod_TjXCeIKcU0gyzp',
+        stripePriceId: 'price_1TYvF03BtXxsW9ynVddbrspc'
+    },
+    'camp_mod3': {
+        price: 150.00,
+        stripeProductId: 'prod_TjXF3kLaarGv61',
+        stripePriceId: 'price_1TYvF03BtXxsW9ynfl7DBKlq'
+    }
+};
+
 export async function POST(request: Request) {
     try {
         let body;
@@ -47,16 +65,47 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
         }
 
-        const { packId, userId, userHandle, redirectUrl } = body;
-        console.log('[Stripe Checkout API] Payment request received for pack:', packId, 'from user:', userHandle);
+        const { packId, userId, userHandle, redirectUrl, type, campaignId } = body;
+        console.log('[Stripe Checkout API] Payment request received. Type:', type || 'coin_purchase', 'Pack:', packId);
 
-        if (!packId || !COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER]) {
-            console.error('Invalid packId requested:', packId);
-            return NextResponse.json({ error: 'Paquete de monedas no válido' }, { status: 400 });
+        let priceId = '';
+        let sessionMetadata: any = {};
+
+        if (type === 'campaign_payment') {
+            if (!campaignId) {
+                return NextResponse.json({ error: 'campaignId es requerido para pagos de campañas' }, { status: 400 });
+            }
+            const campPack = CAMPAIGN_PACKS_SERVER[packId as keyof typeof CAMPAIGN_PACKS_SERVER];
+            if (!campPack) {
+                return NextResponse.json({ error: 'Paquete de campaña no válido' }, { status: 400 });
+            }
+            priceId = campPack.stripePriceId;
+            sessionMetadata = {
+                type: 'campaign_payment',
+                campaignId: campaignId,
+                packId: packId,
+                userId: userId || 'unknown',
+                userHandle: userHandle || 'unknown',
+                stripePriceId: priceId
+            };
+        } else {
+            // coin_purchase
+            if (!packId || !COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER]) {
+                console.error('Invalid packId requested:', packId);
+                return NextResponse.json({ error: 'Paquete de monedas no válido' }, { status: 400 });
+            }
+            const pack = COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER];
+            priceId = pack.stripePriceId;
+            sessionMetadata = {
+                type: 'coin_purchase',
+                packId: packId,
+                coins: pack.coins.toString(),
+                userId: userId || 'unknown',
+                userHandle: userHandle || 'unknown',
+                stripeProductId: pack.stripeProductId || 'pending',
+                stripePriceId: pack.stripePriceId || 'pending'
+            };
         }
-
-        const pack = COIN_PACKS_SERVER[packId as keyof typeof COIN_PACKS_SERVER];
-        const amount = Math.round(pack.price * 100); // Ensure integer cents
 
         if (!process.env.STRIPE_SECRET_KEY) {
             console.error('STRIPE_SECRET_KEY is missing');
@@ -66,22 +115,12 @@ export async function POST(request: Request) {
         const origin = request.headers.get('origin') || 'https://www.appvoz.com';
         const finalRedirectUrl = redirectUrl || `${origin}/profile`;
         
-        const sessionMetadata = {
-            type: 'coin_purchase',
-            packId: packId,
-            coins: pack.coins.toString(),
-            userId: userId || 'unknown',
-            userHandle: userHandle || 'unknown',
-            stripeProductId: pack.stripeProductId || 'pending',
-            stripePriceId: pack.stripePriceId || 'pending'
-        };
-
         const session = await stripe.checkout.sessions.create({
             ui_mode: 'embedded',
             payment_method_types: ['card'],
             line_items: [
                 {
-                    price: pack.stripePriceId,
+                    price: priceId,
                     quantity: 1,
                 },
             ],
