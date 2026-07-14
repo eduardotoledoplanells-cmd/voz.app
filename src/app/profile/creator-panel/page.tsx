@@ -139,25 +139,72 @@ export default function CreatorPanelPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Video a promocionar</label>
+                                <label style={{ display: 'block', marginBottom: '8px', color: 'gray', fontSize: '14px' }}>Selecciona el vídeo a promocionar</label>
                                 {videos.length === 0 ? (
                                     <div style={{ color: '#FF3B30', fontSize: '14px' }}>No tienes vídeos publicados. Sube un vídeo primero.</div>
                                 ) : (
-                                    <select 
-                                        value={formData.videoUrl}
-                                        onChange={e => setFormData({...formData, videoUrl: e.target.value})}
-                                        style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
-                                        required
-                                    >
-                                        <option value="">-- Selecciona un vídeo --</option>
-                                        {videos.map(v => (
-                                            <option key={v.id} value={v.videoUrl}>
-                                                {v.description ? (v.description.length > 40 ? v.description.substring(0,40) + '...' : v.description) : 'Video sin título'}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '12px', maxHeight: '200px', overflowY: 'auto', padding: '8px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '10px', border: '1px solid #333', marginBottom: '10px' }}>
+                                        {videos.map(v => {
+                                            const isSelected = formData.videoUrl === v.videoUrl;
+                                            return (
+                                                <div 
+                                                    key={v.id} 
+                                                    onClick={() => setFormData({...formData, videoUrl: v.videoUrl})}
+                                                    style={{ 
+                                                        cursor: 'pointer', 
+                                                        border: isSelected ? '2px solid #8E2DE2' : '2px solid transparent', 
+                                                        borderRadius: '8px', 
+                                                        padding: '4px',
+                                                        backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.15)' : 'rgba(255,255,255,0.02)',
+                                                        textAlign: 'center',
+                                                        transition: 'all 0.2s',
+                                                        position: 'relative'
+                                                    }}
+                                                >
+                                                    <div style={{ width: '100%', height: '100px', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px', position: 'relative' }}>
+                                                        {v.thumbnailUrl ? (
+                                                            <img src={v.thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : v.videoUrl ? (
+                                                            <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline preload="metadata" />
+                                                        ) : (
+                                                            <span style={{ fontSize: '10px', color: '#666' }}>Sin Vista</span>
+                                                        )}
+                                                        {isSelected && (
+                                                            <div style={{ position: 'absolute', top: '4px', right: '4px', backgroundColor: '#8E2DE2', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                                                ✓
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isSelected ? '#8E2DE2' : '#ccc', padding: '0 2px' }}>
+                                                        {v.description || 'Sin descripción'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 )}
+                                <input type="hidden" value={formData.videoUrl} required />
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Página Web de destino</label>
+                                <input 
+                                    type="url" 
+                                    placeholder="https://tuweb.com/mi-perfil"
+                                    value={(formData as any).targetUrl || ''}
+                                    onChange={e => setFormData({...formData, ...{ targetUrl: e.target.value } as any})}
+                                    style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Segmentación Geográfica (Ciudad/Municipio)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ej. Madrid, Barcelona..."
+                                    value={(formData as any).geoTarget || ''}
+                                    onChange={e => setFormData({...formData, ...{ geoTarget: e.target.value } as any})}
+                                    style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                />
                             </div>
 
                             <div>
@@ -167,10 +214,26 @@ export default function CreatorPanelPage() {
                                     onChange={e => setFormData({...formData, packSize: parseInt(e.target.value)})}
                                     style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
                                 >
-                                    <option value={1000}>1,000 Impresiones - Básico</option>
-                                    <option value={5000}>5,000 Impresiones - Popular</option>
-                                    <option value={20000}>20,000 Impresiones - Viral</option>
+                                    <option value={1000}>1,000 Impresiones</option>
+                                    <option value={5000}>5,000 Impresiones</option>
+                                    <option value={20000}>20,000 Impresiones</option>
                                 </select>
+                            </div>
+
+                            {/* Informative Locked Budget / Duration Boxes */}
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
+                                <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #222', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Precio Fijo</span>
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#4CD964' }}>
+                                        {formData.packSize === 1000 ? '10.00 €' : formData.packSize === 5000 ? '45.00 €' : '150.00 €'}
+                                    </span>
+                                </div>
+                                <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #222', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Duración Campaña</span>
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#007AFF' }}>
+                                        {formData.packSize === 1000 ? '7 Días' : formData.packSize === 5000 ? '15 Días' : '30 Días'}
+                                    </span>
+                                </div>
                             </div>
 
                             <button 
