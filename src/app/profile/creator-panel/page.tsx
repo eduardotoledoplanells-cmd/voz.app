@@ -19,6 +19,21 @@ export default function CreatorPanelPage() {
         priority: 'Local_Standard'
     });
 
+    // Modalities & Geolocalisation States
+    const [selectedModalityId, setSelectedModalityId] = useState<number | null>(null);
+    const [regionsDb, setRegionsDb] = useState<any[]>([]);
+    const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+    const [selectedRegionName, setSelectedRegionName] = useState<string>('');
+    const [municipalitiesDb, setMunicipalitiesDb] = useState<any[]>([]);
+    const [targetMunicipalities, setTargetMunicipalities] = useState<number[]>([]);
+    const [loadingLocations, setLoadingLocations] = useState(false);
+
+    const modalities = [
+        { id: 1, name: 'Modalidad 1', packSize: 1000, price: '10.00 €', duration: '7 Días', priority: 'Local_Standard' },
+        { id: 2, name: 'Modalidad 2', packSize: 5000, price: '45.00 €', duration: '15 Días', priority: 'Local_Standard' },
+        { id: 3, name: 'Modalidad 3', packSize: 20000, price: '150.00 €', duration: '30 Días', priority: 'Local_Standard' },
+    ];
+
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (!storedUser) {
@@ -53,7 +68,38 @@ export default function CreatorPanelPage() {
                 console.error(err);
                 setLoading(false);
             });
+
+        // Fetch CCAA Regions of Spain
+        fetch('/api/locations?type=regions&countryId=1')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setRegionsDb(data);
+                }
+            })
+            .catch(console.error);
     }, []);
+
+    useEffect(() => {
+        if (selectedRegionId) {
+            setLoadingLocations(true);
+            fetch(`/api/locations?type=municipalities&regionId=${selectedRegionId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setMunicipalitiesDb(data);
+                    }
+                    setLoadingLocations(false);
+                })
+                .catch(err => {
+                    console.error(err);
+                    setLoadingLocations(false);
+                });
+        } else {
+            setMunicipalitiesDb([]);
+            setTargetMunicipalities([]);
+        }
+    }, [selectedRegionId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,7 +117,10 @@ export default function CreatorPanelPage() {
                     ...formData,
                     userHandle: user.handle || `@${user.name}`,
                     userRealName: user.name,
-                    userEmail: user.email
+                    userEmail: user.email,
+                    targetCountries: ['España'],
+                    targetRegions: selectedRegionName ? [selectedRegionName] : [],
+                    target_municipalities: targetMunicipalities
                 })
             });
             const data = await res.json();
@@ -80,6 +129,10 @@ export default function CreatorPanelPage() {
                 alert("¡Campaña creada con éxito!");
                 setCampaigns([data.campaign, ...campaigns]);
                 setShowForm(false);
+                setSelectedModalityId(null);
+                setTargetMunicipalities([]);
+                setSelectedRegionId('');
+                setSelectedRegionName('');
                 setFormData({ name: '', videoUrl: '', packSize: 1000, priority: 'Local_Standard' });
             } else {
                 alert(data.error || "Error al crear la campaña");
@@ -105,27 +158,106 @@ export default function CreatorPanelPage() {
             </div>
 
             <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>Tus Campañas Activas</h3>
-                    <button 
-                        onClick={() => setShowForm(!showForm)}
-                        style={{
-                            background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 15px',
-                            borderRadius: '8px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        {showForm ? 'Cancelar' : '+ Nueva Campaña'}
-                    </button>
+                
+                {/* 1. Modalidades de Campaña (Three Squares Selection) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Elige una Modalidad de Campaña</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                        {modalities.map(mod => {
+                            const isSelected = selectedModalityId === mod.id;
+                            return (
+                                <div 
+                                    key={mod.id}
+                                    onClick={() => {
+                                        if (!showForm) {
+                                            setSelectedModalityId(mod.id);
+                                            setFormData(prev => ({ ...prev, packSize: mod.packSize, priority: mod.priority }));
+                                        }
+                                    }}
+                                    style={{
+                                        backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.15)' : 'rgba(255,255,255,0.03)',
+                                        border: isSelected ? '2px solid #8E2DE2' : '1px solid #333',
+                                        borderRadius: '12px',
+                                        padding: '12px 8px',
+                                        textAlign: 'center',
+                                        cursor: showForm ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s',
+                                        opacity: showForm && !isSelected ? 0.5 : 1
+                                    }}
+                                >
+                                    <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '8px', color: isSelected ? '#8E2DE2' : 'white' }}>{mod.name}</div>
+                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#4CD964', marginBottom: '5px' }}>{mod.price}</div>
+                                    <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>{mod.packSize.toLocaleString()} Impresiones</div>
+                                    <div style={{ fontSize: '10px', color: '#666' }}>Duración: {mod.duration}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {!showForm && (
+                        <button 
+                            onClick={() => {
+                                if (selectedModalityId !== null) {
+                                    setShowForm(true);
+                                }
+                            }}
+                            disabled={selectedModalityId === null}
+                            style={{
+                                background: selectedModalityId !== null ? 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)' : '#333',
+                                color: selectedModalityId !== null ? 'white' : '#666',
+                                border: 'none',
+                                padding: '15px',
+                                borderRadius: '10px',
+                                fontWeight: 'bold',
+                                fontSize: '16px',
+                                cursor: selectedModalityId !== null ? 'pointer' : 'not-allowed',
+                                transition: 'opacity 0.2s',
+                                textAlign: 'center',
+                                width: '100%'
+                            }}
+                        >
+                            + Nueva Campaña
+                        </button>
+                    )}
                 </div>
 
                 {showForm && (
                     <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: '1px solid rgba(142, 45, 226, 0.3)' }}>
-                        <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>Lanzar Publicidad</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h4 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>Lanzar Publicidad</h4>
+                            <button 
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setSelectedModalityId(null);
+                                }}
+                                style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', color: '#FF3B30', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+
+                        {/* Modality stats display */}
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                            <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid #222', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase' }}>Modalidad</span>
+                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#8E2DE2' }}>
+                                    {selectedModalityId === 1 ? 'Modalidad 1' : selectedModalityId === 2 ? 'Modalidad 2' : 'Modalidad 3'}
+                                </span>
+                            </div>
+                            <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid #222', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase' }}>Precio Fijo</span>
+                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4CD964' }}>
+                                    {formData.packSize === 1000 ? '10.00 €' : formData.packSize === 5000 ? '45.00 €' : '150.00 €'}
+                                </span>
+                            </div>
+                            <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid #222', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase' }}>Duración</span>
+                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#007AFF' }}>
+                                    {formData.packSize === 1000 ? '7 Días' : formData.packSize === 5000 ? '15 Días' : '30 Días'}
+                                </span>
+                            </div>
+                        </div>
+
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Nombre de la campaña</label>
@@ -139,6 +271,7 @@ export default function CreatorPanelPage() {
                                 />
                             </div>
 
+                            <div>
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'gray', fontSize: '14px' }}>Selecciona el vídeo a promocionar</label>
                                 {videos.length === 0 ? (
                                     <div style={{ color: '#FF3B30', fontSize: '14px' }}>No tienes vídeos publicados. Sube un vídeo primero.</div>
@@ -184,6 +317,7 @@ export default function CreatorPanelPage() {
                                     </div>
                                 )}
                                 <input type="hidden" value={formData.videoUrl} required />
+                            </div>
 
                             <div>
                                 <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Página Web de destino</label>
@@ -196,44 +330,110 @@ export default function CreatorPanelPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Segmentación Geográfica (Ciudad/Municipio)</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="Ej. Madrid, Barcelona..."
-                                    value={(formData as any).geoTarget || ''}
-                                    onChange={e => setFormData({...formData, ...{ geoTarget: e.target.value } as any})}
-                                    style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
-                                />
-                            </div>
+                            {/* Geotargeting segment */}
+                            <div style={{ border: '1px solid #222', padding: '15px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                <h5 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', display: 'flex', alignItems: 'center', margin: 0 }}>
+                                    <span style={{ marginRight: '8px' }}>🌍</span> Segmentación Geográfica
+                                </h5>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px', color: 'gray', fontSize: '14px' }}>Alcance (Impresiones)</label>
-                                <select 
-                                    value={formData.packSize}
-                                    onChange={e => setFormData({...formData, packSize: parseInt(e.target.value)})}
-                                    style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
-                                >
-                                    <option value={1000}>1,000 Impresiones</option>
-                                    <option value={5000}>5,000 Impresiones</option>
-                                    <option value={20000}>20,000 Impresiones</option>
-                                </select>
-                            </div>
+                                <div style={{ marginBottom: '12px', marginTop: '10px' }}>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'gray', fontSize: '12px' }}>País</label>
+                                    <select 
+                                        style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                        disabled
+                                    >
+                                        <option value="1">España</option>
+                                    </select>
+                                </div>
 
-                            {/* Informative Locked Budget / Duration Boxes */}
-                            <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
-                                <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #222', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                                    <span style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Precio Fijo</span>
-                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#4CD964' }}>
-                                        {formData.packSize === 1000 ? '10.00 €' : formData.packSize === 5000 ? '45.00 €' : '150.00 €'}
-                                    </span>
+                                <div style={{ marginBottom: '12px' }}>
+                                    <label style={{ display: 'block', marginBottom: '4px', color: 'gray', fontSize: '12px' }}>Comunidad Autónoma / Región</label>
+                                    <select 
+                                        value={selectedRegionId}
+                                        onChange={e => {
+                                            const id = e.target.value;
+                                            setSelectedRegionId(id);
+                                            const found = regionsDb.find(r => r.id === parseInt(id));
+                                            setSelectedRegionName(found ? found.name : '');
+                                        }}
+                                        style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #333', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                        required
+                                    >
+                                        <option value="">-- Selecciona una región --</option>
+                                        {regionsDb.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid #222', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                                    <span style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase' }}>Duración Campaña</span>
-                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#007AFF' }}>
-                                        {formData.packSize === 1000 ? '7 Días' : formData.packSize === 5000 ? '15 Días' : '30 Días'}
-                                    </span>
-                                </div>
+
+                                {selectedRegionId && (
+                                    <div style={{ marginTop: '15px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <label style={{ color: 'gray', fontSize: '12px', margin: 0 }}>Municipios / Localidades</label>
+                                            {municipalitiesDb.length > 0 && (
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setTargetMunicipalities(municipalitiesDb.map(m => m.id))}
+                                                        style={{ backgroundColor: 'rgba(142, 45, 226, 0.2)', color: '#a855f7', border: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                    >
+                                                        Marcar todo
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setTargetMunicipalities([])}
+                                                        style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', color: '#FF3B30', border: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                    >
+                                                        Desmarcar todo
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {loadingLocations ? (
+                                            <div style={{ color: 'gray', fontSize: '12px', textAlign: 'center', padding: '10px' }}>Cargando localidades...</div>
+                                        ) : municipalitiesDb.length === 0 ? (
+                                            <div style={{ color: 'gray', fontSize: '12px', textAlign: 'center', padding: '10px' }}>No hay localidades registradas.</div>
+                                        ) : (
+                                            <div style={{ 
+                                                maxHeight: '150px', 
+                                                overflowY: 'auto', 
+                                                border: '1px solid #333', 
+                                                borderRadius: '8px', 
+                                                backgroundColor: 'rgba(0,0,0,0.4)', 
+                                                padding: '8px',
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                                                gap: '6px'
+                                            }}>
+                                                {municipalitiesDb.map(m => {
+                                                    const isChecked = targetMunicipalities.includes(m.id);
+                                                    return (
+                                                        <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: isChecked ? 'white' : '#aaa' }}>
+                                                            <input 
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => {
+                                                                    setTargetMunicipalities(prev => 
+                                                                        prev.includes(m.id) 
+                                                                            ? prev.filter(id => id !== m.id) 
+                                                                            : [...prev, m.id]
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.name}>
+                                                                {m.name}
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'right' }}>
+                                            {targetMunicipalities.length} de {municipalitiesDb.length} seleccionados
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <button 
@@ -259,6 +459,7 @@ export default function CreatorPanelPage() {
                 )}
 
                 {/* Campaigns List */}
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', marginTop: '20px' }}>Tus Campañas Activas</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {campaigns.length === 0 && !showForm ? (
                         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'gray', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '15px' }}>
@@ -313,4 +514,3 @@ export default function CreatorPanelPage() {
         </div>
     );
 }
-
