@@ -1,4 +1,5 @@
 'use client';
+import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
 import { useState, useEffect } from 'react';
 import styles from '../voz-admin.module.css';
 
@@ -54,14 +55,11 @@ export default function ServersPage() {
     const fetchRealMetrics = async () => {
         setMetricsLoading(true);
         try {
-            const stored = localStorage.getItem('vozEmployee');
-            const emp = stored ? JSON.parse(stored) : null;
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (emp) {
-                headers['x-employee-username'] = emp.username;
-                headers['x-employee-password'] = emp.password;
-            }
-            const res = await fetch('/api/voz/servers/metrics', { headers });
+            const { getAdminJsonHeaders, getEmployeeSession } = await import('@/lib/adminSession');
+            const emp = getEmployeeSession();
+            const res = await fetch('/api/voz/servers/metrics', {
+                headers: getAdminJsonHeaders(emp)
+            });
             if (res.ok) {
                 const data = await res.json();
                 setRealMetrics(data.metrics || {});

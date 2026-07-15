@@ -1,4 +1,5 @@
-'use client';
+'use client';import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
+
 import { useState, useEffect, useRef } from 'react';
 import '98.css';
 
@@ -340,9 +341,10 @@ export default function VozModerationPage() {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'x-employee-id': employee.id || '',
-                'x-employee-username': employee.username || '',
-                'x-employee-password': employee.password || ''
+                ...(employee.token ? { 'Authorization': `Bearer ${employee.token}` } : {
+                    'x-employee-id': employee.id || '',
+                    'x-employee-username': employee.username || '',
+                })
             },
             body: JSON.stringify({
                 id: selectedItem.id,

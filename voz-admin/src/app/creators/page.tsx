@@ -1,4 +1,5 @@
 'use client';
+import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
 
 import React, { useState, useEffect } from 'react';
 import '98.css';
@@ -143,9 +144,10 @@ export default function CreatorsPage() {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'x-employee-id': emp.id || '',
-                    'x-employee-username': emp.username || '',
-                    'x-employee-password': emp.password || ''
+                    ...(emp.token ? { 'Authorization': `Bearer ${emp.token}` } : {
+                        'x-employee-id': emp.id || '',
+                        'x-employee-username': emp.username || '',
+                    })
                 },
                 body: JSON.stringify({ 
                     userId, 
@@ -187,9 +189,10 @@ export default function CreatorsPage() {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'x-employee-id': emp.id || '',
-                    'x-employee-username': emp.username || '',
-                    'x-employee-password': emp.password || ''
+                    ...(emp.token ? { 'Authorization': `Bearer ${emp.token}` } : {
+                        'x-employee-id': emp.id || '',
+                        'x-employee-username': emp.username || '',
+                    })
                 },
                 body: JSON.stringify({ id: selectedCreator.id, status: newStatus })
             });

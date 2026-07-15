@@ -6,6 +6,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        // SECURITY: Require authenticated employee for all user data access
+        const auth = await validateEmployee(request, 0);
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const { searchParams } = new URL(request.url);
         const handle = searchParams.get('handle');
         const isProfile = searchParams.get('isProfile') === 'true';

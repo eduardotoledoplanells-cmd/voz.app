@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getViralStats, trackVideoEvent, getAppUsers, getLogs, getVideos, getCoinSales, getTransactions } from '@/lib/db';
+import { validateEmployee } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        // SECURITY: Stats contain sensitive business data — require employee auth
+        const auth = await validateEmployee(request, 0);
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         // 1. Basic Stats
         const [users, videos, coinSales, logs, transactions] = await Promise.all([
             getAppUsers(),

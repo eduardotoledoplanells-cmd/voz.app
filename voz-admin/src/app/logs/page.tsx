@@ -1,4 +1,5 @@
-'use client';
+'use client';import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
+
 import { useState, useEffect } from 'react';
 import '98.css';
 
@@ -66,9 +67,7 @@ export default function DirectorLogsPage() {
 
         fetch(endpoint, {
             headers: {
-                'x-employee-id': emp.id,
-                'x-employee-username': emp.username,
-                'x-employee-password': emp.password
+                ...getAdminHeaders(emp)
             }
         })
             .then(res => res.json())
@@ -93,9 +92,7 @@ export default function DirectorLogsPage() {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'x-employee-id': emp.id,
-                'x-employee-username': emp.username,
-                'x-employee-password': emp.password
+                ...getAdminHeaders(emp)
             },
             body: JSON.stringify(newEmp)
         })
@@ -121,9 +118,7 @@ export default function DirectorLogsPage() {
         fetch(`/api/voz/employees?id=${empToDelete}`, { 
             method: 'DELETE',
             headers: {
-                'x-employee-id': emp.id,
-                'x-employee-username': emp.username,
-                'x-employee-password': emp.password
+                ...getAdminHeaders(emp)
             }
         })
             .then(() => {

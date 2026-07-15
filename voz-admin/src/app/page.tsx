@@ -103,20 +103,21 @@ export default function VozAdminDashboard() {
                 }
 
                 const emp = data.employee;
+                const token = data.token; // ← JWT from server, expires in 8h
 
                 const sessionData = {
                     id: emp.id,
                     username: emp.username,
                     role: emp.role,
-                    password: cleanPass, // Store the PLAINTEXT password entered by the user
-                    worker_number: emp.worker_number || '???'
+                    worker_number: emp.worker_number || '???',
+                    token: token, // JWT — no password stored
                 };
 
-                // Save session (simulated)
+                // Save session with JWT (NO plaintext password)
                 localStorage.setItem('vozEmployee', JSON.stringify(sessionData));
                 setCurrentEmployee(sessionData);
 
-                // Register log WITH WORKER NUMBER and UPDATE lastLogin
+                // Register login log using Bearer token auth
                 fetch('/api/voz/logs', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -124,20 +125,13 @@ export default function VozAdminDashboard() {
                         action: 'Inicio de Sesión',
                         details: `Rol: ${emp.role}. Inicio de jornada.`
                     }),
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
-                // Update Employee Last Login in DB
-                fetch('/api/voz/employees', {
-                    method: 'PATCH',
-                    body: JSON.stringify({
-                        id: emp.id,
-                        lastLogin: new Date().toLocaleTimeString()
-                    }),
-                    headers: { 'Content-Type': 'application/json' }
-                }).then(() => {
-                    fetchLogs();
-                    alert(`Bienvenido, [${emp.worker_number || '???'}] ${emp.username}. Jornada iniciada.`);
+
                     setUsername('');
                     setEmployeeId('');
                 });
