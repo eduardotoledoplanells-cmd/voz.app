@@ -101,7 +101,20 @@ export default function VozAdminDashboard() {
 
                 // Verify password
                 const expectedPass = emp.password || '123';
-                if (cleanPass !== expectedPass) {
+                let isCorrect = false;
+                if (expectedPass.startsWith('$2b$')) {
+                    try {
+                        const bcrypt = require('bcryptjs');
+                        isCorrect = bcrypt.compareSync(cleanPass, expectedPass);
+                    } catch (e) {
+                        console.error('Bcrypt loading failed:', e);
+                        isCorrect = false;
+                    }
+                } else {
+                    isCorrect = (cleanPass === expectedPass);
+                }
+
+                if (!isCorrect) {
                     setLoginError('Código de Empleado (Password) incorrecto.');
                     return;
                 }
