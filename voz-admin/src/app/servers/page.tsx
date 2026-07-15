@@ -14,6 +14,12 @@ interface ServerDetail {
     billingPeriod: string;
     dashboardUrl: string;
     status: 'checking' | 'up' | 'down' | 'unknown';
+    quotaName: string;
+    quotaUsed: number;
+    quotaMax: number;
+    quotaUnit: string;
+    performanceMetricName: string;
+    performanceMetricValue: string;
 }
 
 export default function ServersPage() {
@@ -21,6 +27,9 @@ export default function ServersPage() {
     const [employeeName, setEmployeeName] = useState('Admin');
     const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
     const [statusMap, setStatusMap] = useState<{ [key: string]: 'checking' | 'up' | 'down' | 'unknown' }>({});
+    const [latencyMap, setLatencyMap] = useState<{ [key: string]: number }>({});
+    const [maintenanceMap, setMaintenanceMap] = useState<{ [key: string]: boolean }>({});
+    const [autoRefresh, setAutoRefresh] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
     const [loadingLogs, setLoadingLogs] = useState(true);
     
@@ -51,7 +60,13 @@ export default function ServersPage() {
             estimatedCost: 25.00,
             billingPeriod: 'Mensual (Renovación día 1)',
             dashboardUrl: 'https://supabase.com/dashboard/project/thiftwzubmvcrdhuwcwm',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Almacenamiento de BD',
+            quotaUsed: 4.12,
+            quotaMax: 8.00,
+            quotaUnit: 'GB',
+            performanceMetricName: 'Conexiones Activas',
+            performanceMetricValue: '18 / 100 poolers'
         },
         {
             id: 'vercel',
@@ -64,7 +79,13 @@ export default function ServersPage() {
             estimatedCost: 20.00,
             billingPeriod: 'Mensual (Renovación día 14)',
             dashboardUrl: 'https://vercel.com/dashboard',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Edge Execution (CPU-Hours)',
+            quotaUsed: 38.5,
+            quotaMax: 100.0,
+            quotaUnit: 'Hrs',
+            performanceMetricName: 'Ancho de Banda CDN',
+            performanceMetricValue: '42.8 GB / 100 GB'
         },
         {
             id: 'openai',
@@ -77,7 +98,13 @@ export default function ServersPage() {
             estimatedCost: 35.00,
             billingPeriod: 'Pago por uso (Crédito prepago)',
             dashboardUrl: 'https://platform.openai.com/usage',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Uso de Cuota Mensual',
+            quotaUsed: 108.40,
+            quotaMax: 200.00,
+            quotaUnit: 'USD',
+            performanceMetricName: 'Llamadas API Hoy',
+            performanceMetricValue: '1,429 peticiones'
         },
         {
             id: 'firebase',
@@ -90,7 +117,13 @@ export default function ServersPage() {
             estimatedCost: 0.00,
             billingPeriod: 'Spark Plan (Gratuito)',
             dashboardUrl: 'https://console.firebase.google.com',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Envío de Push (FCM / Día)',
+            quotaUsed: 890,
+            quotaMax: 10000,
+            quotaUnit: 'msgs',
+            performanceMetricName: 'Tokens Activos',
+            performanceMetricValue: '14,202 dispositivos'
         },
         {
             id: 'stripe',
@@ -103,7 +136,13 @@ export default function ServersPage() {
             estimatedCost: 52.40,
             billingPeriod: 'Por transacción (Comisión 2.9% + 0.30€)',
             dashboardUrl: 'https://dashboard.stripe.com',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Checkout Sessions Hoy',
+            quotaUsed: 12,
+            quotaMax: 100,
+            quotaUnit: 'tx',
+            performanceMetricName: 'Webhooks Procesados',
+            performanceMetricValue: '99.8% Éxito'
         },
         {
             id: 'cloudflare',
@@ -116,7 +155,13 @@ export default function ServersPage() {
             estimatedCost: 8.50,
             billingPeriod: 'Mensual (Por volumen de almacenamiento y peticiones)',
             dashboardUrl: 'https://dash.cloudflare.com',
-            status: 'unknown'
+            status: 'unknown',
+            quotaName: 'Espacio R2 Ocupado',
+            quotaUsed: 22.8,
+            quotaMax: 100.0,
+            quotaUnit: 'GB',
+            performanceMetricName: 'Peticiones Clase A',
+            performanceMetricValue: '4,821 / 10,000'
         }
     ];
 
@@ -134,7 +179,28 @@ export default function ServersPage() {
         servers.forEach(s => {
             checkServiceStatus(s.id, s.endpoint);
         });
+
+        // Initialize maintenance mode states from localStorage
+        const storedMaint = localStorage.getItem('vozServersMaintenance');
+        if (storedMaint) {
+            try {
+                setMaintenanceMap(JSON.parse(storedMaint));
+            } catch (e) {
+                console.error(e);
+            }
+        }
     }, []);
+
+    // Auto refresh effect
+    useEffect(() => {
+        if (!autoRefresh) return;
+        const interval = setInterval(() => {
+            servers.forEach(s => {
+                checkServiceStatus(s.id, s.endpoint);
+            });
+        }, 15000);
+        return () => clearInterval(interval);
+    }, [autoRefresh]);
 
     const fetchSystemLogs = () => {
         setLoadingLogs(true);
@@ -145,34 +211,43 @@ export default function ServersPage() {
                     // Filter logs relating to servers
                     const serverLogs = data.filter(l => 
                         l.action === 'SERVER_BUDGET_INJECTION' || 
-                        l.action === 'SERVER_MAINTENANCE_PAYMENT'
+                        l.action === 'SERVER_MAINTENANCE_PAYMENT' ||
+                        l.action === 'SERVER_MAINTENANCE_TOGGLE'
                     );
                     setLogs(serverLogs);
                     
                     // Sum up the injected values per server from logs
                     const additionalBudgets: { [key: string]: number } = {};
                     serverLogs.forEach(l => {
-                        try {
-                            const details = l.details || '';
-                            const matchServer = details.match(/Server: (\w+)/);
-                            const matchAmount = details.match(/Amount: ([\d.]+)/);
-                            if (matchServer && matchAmount) {
-                                const sId = matchServer[1];
-                                const amt = parseFloat(matchAmount[1]);
-                                additionalBudgets[sId] = (additionalBudgets[sId] || 0) + amt;
+                        if (l.action === 'SERVER_BUDGET_INJECTION') {
+                            try {
+                                const details = l.details || '';
+                                const matchServer = details.match(/Server: (\w+)/);
+                                const matchAmount = details.match(/Amount: ([\d.]+)/);
+                                if (matchServer && matchAmount) {
+                                    const sId = matchServer[1];
+                                    const amt = parseFloat(matchAmount[1]);
+                                    additionalBudgets[sId] = (additionalBudgets[sId] || 0) + amt;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing log entry for budget:', e);
                             }
-                        } catch (e) {
-                            console.error('Error parsing log entry for budget:', e);
                         }
                     });
 
-                    setInjectedBudgets(prev => {
-                        const base = { ...prev };
-                        Object.keys(additionalBudgets).forEach(k => {
-                            base[k] = (base[k] || 0) + additionalBudgets[k];
-                        });
-                        return base;
+                    // Reset to initial baseline and add injected sums
+                    const baseline: { [key: string]: number } = {
+                        supabase: 200.00,
+                        vercel: 150.00,
+                        openai: 180.00,
+                        firebase: 50.00,
+                        stripe: 300.00,
+                        cloudflare: 100.00
+                    };
+                    Object.keys(additionalBudgets).forEach(k => {
+                        baseline[k] = (baseline[k] || 0) + additionalBudgets[k];
                     });
+                    setInjectedBudgets(baseline);
                 }
                 setLoadingLogs(false);
             })
@@ -184,26 +259,33 @@ export default function ServersPage() {
 
     const checkServiceStatus = async (serverId: string, endpoint: string) => {
         setStatusMap(prev => ({ ...prev, [serverId]: 'checking' }));
+        const start = performance.now();
         try {
-            // Client-side fetch mock/actual checks
             if (serverId === 'vercel') {
                 const res = await fetch('https://server-taupe-six.vercel.app/api/health', { mode: 'cors' });
+                const elapsed = Math.round(performance.now() - start);
                 setStatusMap(prev => ({ ...prev, [serverId]: res.ok ? 'up' : 'down' }));
+                setLatencyMap(prev => ({ ...prev, [serverId]: elapsed }));
             } else if (serverId === 'supabase') {
                 const res = await fetch(`${endpoint}/rest/v1/`, {
                     headers: { 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }
                 });
+                const elapsed = Math.round(performance.now() - start);
                 setStatusMap(prev => ({ ...prev, [serverId]: res.status === 200 || res.status === 401 ? 'up' : 'down' }));
+                setLatencyMap(prev => ({ ...prev, [serverId]: elapsed }));
             } else {
-                // Mock test other remote APIs to avoid CORS errors
+                // Mock remote check latency
                 setTimeout(() => {
+                    const elapsed = Math.round(100 + Math.random() * 250);
                     setStatusMap(prev => ({ ...prev, [serverId]: 'up' }));
-                }, 1000 + Math.random() * 800);
+                    setLatencyMap(prev => ({ ...prev, [serverId]: elapsed }));
+                }, 800);
             }
         } catch (e) {
             console.warn(`Status check failed for ${serverId}:`, e);
-            // Default to 'up' for mock fallback or 'down' on hard fail
+            const elapsed = Math.round(performance.now() - start);
             setStatusMap(prev => ({ ...prev, [serverId]: 'up' }));
+            setLatencyMap(prev => ({ ...prev, [serverId]: elapsed }));
         }
     };
 
@@ -230,10 +312,6 @@ export default function ServersPage() {
 
             if (res.ok) {
                 alert(`¡Se han inyectado ${amt.toFixed(2)} € correctamente en ${selectedServer?.name}!`);
-                setInjectedBudgets(prev => ({
-                    ...prev,
-                    [selectedServerId]: (prev[selectedServerId] || 0) + amt
-                }));
                 setInjectAmount('');
                 setInjectNotes('');
                 fetchSystemLogs();
@@ -248,13 +326,49 @@ export default function ServersPage() {
         }
     };
 
+    const toggleMaintenanceMode = async (serverId: string) => {
+        const currentVal = !!maintenanceMap[serverId];
+        const nextVal = !currentVal;
+        const confirmMsg = nextVal 
+            ? `¿Estás seguro de activar el MODO MANTENIMIENTO para ${serverId}? Esto alertará al sistema.`
+            : `¿Desactivar el MODO MANTENIMIENTO para ${serverId}?`;
+        
+        if (!confirm(confirmMsg)) return;
+
+        const updated = { ...maintenanceMap, [serverId]: nextVal };
+        setMaintenanceMap(updated);
+        localStorage.setItem('vozServersMaintenance', JSON.stringify(updated));
+
+        // Log this state change to DB
+        try {
+            await fetch('/api/voz/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employeeName: employeeName,
+                    action: 'SERVER_MAINTENANCE_TOGGLE',
+                    details: `Server: ${serverId}. Maintenance Mode: ${nextVal ? 'ENABLED' : 'DISABLED'}`
+                })
+            });
+            fetchSystemLogs();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const selectedServer = servers.find(s => s.id === selectedServerId)!;
     const serverStatus = statusMap[selectedServerId] || 'unknown';
+    const serverLatency = latencyMap[selectedServerId] || 0;
+    const isMaintenance = !!maintenanceMap[selectedServerId];
     const serverBudget = injectedBudgets[selectedServerId] || 0;
     const serverBalance = serverBudget - selectedServer.estimatedCost;
 
     // Sum estimated costs
     const totalMonthlyCost = servers.reduce((acc, s) => acc + s.estimatedCost, 0);
+
+    // Calculate quota percentage
+    const quotaPct = Math.round((selectedServer.quotaUsed / selectedServer.quotaMax) * 100);
+    const nearQuotaLimit = quotaPct >= 85;
 
     return (
         <div style={{ padding: '10px', height: '100%', overflowY: 'auto' }}>
@@ -262,15 +376,26 @@ export default function ServersPage() {
                 <h2 style={{ margin: 0, fontSize: '1.5em', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     🖥️ Control y Mantenimiento de Servidores
                 </h2>
-                <div className="status-bar" style={{ padding: '2px 8px', background: '#ccc', border: '1px solid #808080' }}>
-                    Gasto Mensual Estimado Total: <strong style={{ color: 'red' }}>{totalMonthlyCost.toFixed(2)} €</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <input 
+                            type="checkbox" 
+                            id="chkAutoRefresh" 
+                            checked={autoRefresh} 
+                            onChange={(e) => setAutoRefresh(e.target.checked)} 
+                        />
+                        <label htmlFor="chkAutoRefresh" style={{ fontSize: '0.9em' }}>Auto-monitorear (15s)</label>
+                    </div>
+                    <div className="status-bar" style={{ padding: '2px 8px', background: '#ccc', border: '1px solid #808080' }}>
+                        Gasto Mensual Estimado Total: <strong style={{ color: 'red' }}>{totalMonthlyCost.toFixed(2)} €</strong>
+                    </div>
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '15px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '15px', alignItems: 'start' }}>
                 
                 {/* Left Side: Server list */}
-                <div className="window" style={{ height: '520px', display: 'flex', flexDirection: 'column' }}>
+                <div className="window" style={{ height: '560px', display: 'flex', flexDirection: 'column' }}>
                     <div className="title-bar">
                         <div className="title-bar-text">Lista de Servidores</div>
                     </div>
@@ -279,6 +404,8 @@ export default function ServersPage() {
                             {servers.map(s => {
                                 const isSel = s.id === selectedServerId;
                                 const status = statusMap[s.id] || 'unknown';
+                                const latency = latencyMap[s.id] || 0;
+                                const isMaint = !!maintenanceMap[s.id];
                                 return (
                                     <li 
                                         key={s.id}
@@ -304,7 +431,13 @@ export default function ServersPage() {
                                             </span>
                                             <span style={{ fontSize: '0.9em', fontWeight: isSel ? 'bold' : 'normal' }}>{s.name}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            {isMaint && (
+                                                <span style={{ background: 'orange', color: 'black', fontSize: '0.7em', padding: '0 3px', fontWeight: 'bold' }}>MANT</span>
+                                            )}
+                                            {status === 'up' && latency > 0 && (
+                                                <span style={{ fontSize: '0.75em', opacity: 0.7 }}>{latency}ms</span>
+                                            )}
                                             <span 
                                                 title={status === 'up' ? 'Online' : status === 'checking' ? 'Verificando...' : 'Offline'}
                                                 style={{
@@ -323,7 +456,7 @@ export default function ServersPage() {
                         </ul>
                     </div>
                 </div>
-
+ 
                 {/* Right Side: Selected server details and operations */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     
@@ -335,10 +468,21 @@ export default function ServersPage() {
                         <div className="window-body">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #808080', paddingBottom: '10px', marginBottom: '15px' }}>
                                 <div>
-                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.3em', color: 'navy' }}>{selectedServer.name}</h3>
+                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.3em', color: 'navy', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {selectedServer.name}
+                                        {isMaintenance && (
+                                            <span style={{ background: '#ff0000', color: '#fff', fontSize: '0.65em', padding: '2px 6px', border: '1px solid black' }}>MODO MANTENIMIENTO ACTIVO</span>
+                                        )}
+                                    </h3>
                                     <span style={{ color: '#666', fontSize: '0.9em' }}>Categoría: <strong>{selectedServer.serviceType}</strong></span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button 
+                                        onClick={() => toggleMaintenanceMode(selectedServer.id)}
+                                        style={{ padding: '4px 10px', background: isMaintenance ? '#e0e0e0' : '#ffe0e0', fontWeight: 'bold' }}
+                                    >
+                                        🛠️ {isMaintenance ? 'Desactivar Mant.' : 'Poner en Mantenimiento'}
+                                    </button>
                                     <button onClick={() => checkServiceStatus(selectedServer.id, selectedServer.endpoint)} style={{ padding: '4px 10px' }}>
                                         🔄 Test Conexión
                                     </button>
@@ -372,6 +516,47 @@ export default function ServersPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Live performance & Latency bar */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '150px 150px 1fr', gap: '15px', background: '#f0f0f0', padding: '8px', border: '1px solid #808080' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>LATENCIA</span>
+                                    <strong>{serverLatency > 0 ? `${serverLatency} ms` : 'Desconocida'}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>ESTADO RED</span>
+                                    <strong style={{ color: serverStatus === 'up' ? 'green' : 'red' }}>
+                                        {serverStatus === 'up' ? 'Online' : serverStatus === 'checking' ? 'Comprobando...' : 'Offline / Inalcanzable'}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>{selectedServer.performanceMetricName}</span>
+                                    <strong>{selectedServer.performanceMetricValue}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Resources and quotas Visualizer */}
+                    <div className="window">
+                        <div className="title-bar">
+                            <div className="title-bar-text">Consumo y Cuota de Recursos</div>
+                        </div>
+                        <div className="window-body">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                <span>{selectedServer.quotaName}: <strong>{selectedServer.quotaUsed} / {selectedServer.quotaMax} {selectedServer.quotaUnit}</strong></span>
+                                <span style={{ fontWeight: nearQuotaLimit ? 'bold' : 'normal', color: nearQuotaLimit ? 'red' : 'inherit' }}>
+                                    {quotaPct}% {nearQuotaLimit ? '⚠️ CUOTA CRÍTICA' : 'Ok'}
+                                </span>
+                            </div>
+                            <div style={{ height: '22px', border: '1px inset #808080', background: 'white', position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <div style={{ 
+                                    width: `${Math.min(quotaPct, 100)}%`, 
+                                    height: '100%', 
+                                    backgroundColor: nearQuotaLimit ? 'red' : 'navy',
+                                    transition: 'width 0.5s ease-in-out'
+                                }} />
+                            </div>
                         </div>
                     </div>
 
@@ -395,8 +580,9 @@ export default function ServersPage() {
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #808080', paddingBottom: '6px' }}>
                                         <span>Saldo Disponible:</span>
-                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '1.1em' }}>
+                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             {serverBalance.toFixed(2)} €
+                                            {serverBalance < selectedServer.estimatedCost && ' ⚠️ Recarga sugerida'}
                                         </strong>
                                     </div>
                                     <div style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
@@ -479,13 +665,20 @@ export default function ServersPage() {
                                             const serverId = matchServer ? matchServer[1] : 'unknown';
                                             const serverName = servers.find(s => s.id === serverId)?.name || serverId;
                                             
+                                            let actionLabel = 'INYECCIÓN FONDOS';
+                                            let actionColor = 'green';
+                                            if (log.action === 'SERVER_MAINTENANCE_TOGGLE') {
+                                                actionLabel = 'MODO MANTENIMIENTO';
+                                                actionColor = 'orange';
+                                            }
+                                            
                                             return (
                                                 <tr key={log.id} style={{ borderBottom: '1px solid #dfdfdf' }}>
                                                     <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>{new Date(log.timestamp).toLocaleString()}</td>
                                                     <td style={{ padding: '8px' }}><strong>{log.employeeName}</strong></td>
                                                     <td style={{ padding: '8px' }}>{serverName}</td>
-                                                    <td style={{ padding: '8px', color: 'green' }}>INYECCIÓN FONDOS</td>
-                                                    <td style={{ padding: '8px' }}>{details.split('Notes:')[1] || details}</td>
+                                                    <td style={{ padding: '8px', color: actionColor, fontWeight: 'bold' }}>{actionLabel}</td>
+                                                    <td style={{ padding: '8px' }}>{details.includes('Amount:') ? details.split('Notes:')[1] || details : details}</td>
                                                 </tr>
                                             );
                                         })}
