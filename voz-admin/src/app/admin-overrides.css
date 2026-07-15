@@ -1,0 +1,115 @@
+/*
+ * VOZ Admin Panel - Font & Readability Overrides
+ * Sobreescribe los tamaños de letra diminutos de 98.css
+ * con fuentes legibles de verdad.
+ */
+
+/* Base: todos los elementos heredan Arial a 13px */
+*, *::before, *::after {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+body {
+    font-size: 13px;
+}
+
+/* Textos generales dentro de ventanas */
+.window-body,
+.window .window-body {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+}
+
+/* Etiquetas y texto de formulario */
+label, input, select, textarea, button, td, th, p, span, div {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+}
+
+/* Encabezados de ventana */
+.title-bar-text {
+    font-size: 13px !important;
+    font-weight: bold !important;
+}
+
+/* Botones */
+button {
+    font-size: 12px !important;
+    padding: 3px 10px !important;
+    min-height: 24px !important;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+select,
+textarea {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+}
+
+/* Tablas */
+table {
+    font-size: 13px !important;
+    border-collapse: collapse;
+}
+
+th {
+    font-size: 12px !important;
+    font-weight: bold !important;
+    padding: 4px 8px !important;
+}
+
+td {
+    padding: 3px 8px !important;
+}
+
+/* Títulos H2, H3 dentro del panel */
+h2 {
+    font-size: 16px !important;
+    font-weight: bold !important;
+    margin: 0 0 8px 0 !important;
+}
+
+h3 {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin: 0 0 6px 0 !important;
+}
+
+/* Fieldsets y agrupaciones */
+fieldset {
+    font-size: 13px !important;
+}
+
+legend {
+    font-size: 13px !important;
+    font-weight: bold !important;
+}
+
+/* Menú lateral de navegación */
+nav a, nav span, nav div {
+    font-size: 13px !important;
+}
+
+/* Status badge dots */
+.status-dot {
+    font-size: 13px !important;
+}
+
+/* Scrollbars más anchas */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: #c0c0c0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #808080;
+    border: 2px solid #c0c0c0;
+}
