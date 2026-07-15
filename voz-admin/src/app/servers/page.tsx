@@ -32,7 +32,10 @@ export default function ServersPage() {
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
     const [loadingLogs, setLoadingLogs] = useState(true);
-    
+    const [realMetrics, setRealMetrics] = useState<Record<string, any>>({});
+    const [metricsLoading, setMetricsLoading] = useState(true);
+    const [metricsLastUpdated, setMetricsLastUpdated] = useState<string | null>(null);
+
     // Injected budgets state (stored locally, initialized with mock data plus logs)
     const [injectedBudgets, setInjectedBudgets] = useState<{ [key: string]: number }>({
         supabase: 200.00,
@@ -47,6 +50,38 @@ export default function ServersPage() {
     const [injectAmount, setInjectAmount] = useState('');
     const [injectNotes, setInjectNotes] = useState('');
     const [injecting, setInjecting] = useState(false);
+
+    const fetchRealMetrics = async () => {
+        setMetricsLoading(true);
+        try {
+            const stored = localStorage.getItem('vozEmployee');
+            const emp = stored ? JSON.parse(stored) : null;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (emp) {
+                headers['x-employee-username'] = emp.username;
+                headers['x-employee-password'] = emp.password;
+            }
+            const res = await fetch('/api/voz/servers/metrics', { headers });
+            if (res.ok) {
+                const data = await res.json();
+                setRealMetrics(data.metrics || {});
+                setMetricsLastUpdated(data.timestamp);
+                // Apply real latencies to latencyMap
+                const newLatency: Record<string, number> = {};
+                const newStatus: Record<string, 'up' | 'down' | 'checking' | 'unknown'> = {};
+                Object.entries(data.metrics || {}).forEach(([key, val]: [string, any]) => {
+                    if (val?.latencyMs) newLatency[key] = val.latencyMs;
+                    if (typeof val?.online === 'boolean') newStatus[key] = val.online ? 'up' : 'down';
+                });
+                setLatencyMap(prev => ({ ...prev, ...newLatency }));
+                setStatusMap(prev => ({ ...prev, ...newStatus }));
+            }
+        } catch (e) {
+            console.error('Error fetching real metrics:', e);
+        } finally {
+            setMetricsLoading(false);
+        }
+    };
 
     const servers: ServerDetail[] = [
         {
@@ -175,6 +210,9 @@ export default function ServersPage() {
         // Fetch logs
         fetchSystemLogs();
 
+        // Fetch real metrics from all services
+        fetchRealMetrics();
+
         // Perform initial status checks
         servers.forEach(s => {
             checkServiceStatus(s.id, s.endpoint);
@@ -191,13 +229,22 @@ export default function ServersPage() {
         }
     }, []);
 
-    // Auto refresh effect
+    // Auto refresh real metrics every 60 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchRealMetrics();
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Auto refresh connectivity status every 15 seconds
     useEffect(() => {
         if (!autoRefresh) return;
         const interval = setInterval(() => {
             servers.forEach(s => {
                 checkServiceStatus(s.id, s.endpoint);
             });
+            fetchRealMetrics();
         }, 15000);
         return () => clearInterval(interval);
     }, [autoRefresh]);
@@ -521,17 +568,31 @@ export default function ServersPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '150px 150px 1fr', gap: '15px', background: '#f0f0f0', padding: '8px', border: '1px solid #808080' }}>
                                 <div>
                                     <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>LATENCIA</span>
-                                    <strong>{serverLatency > 0 ? `${serverLatency} ms` : 'Desconocida'}</strong>
+                                    <strong>{serverLatency > 0 ? `${serverLatency} ms` : metricsLoading ? 'Midiendo...' : 'Desconocida'}</strong>
                                 </div>
                                 <div>
                                     <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>ESTADO RED</span>
-                                    <strong style={{ color: serverStatus === 'up' ? 'green' : 'red' }}>
-                                        {serverStatus === 'up' ? 'Online' : serverStatus === 'checking' ? 'Comprobando...' : 'Offline / Inalcanzable'}
+                                    <strong style={{ color: serverStatus === 'up' ? 'green' : serverStatus === 'checking' ? 'orange' : '#999' }}>
+                                        {serverStatus === 'up' ? '✅ Online' : serverStatus === 'checking' ? '⏳ Comprobando...' : metricsLoading ? '⏳ Midiendo...' : '❌ Offline'}
                                     </strong>
                                 </div>
                                 <div>
-                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>{selectedServer.performanceMetricName}</span>
-                                    <strong>{selectedServer.performanceMetricValue}</strong>
+                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>
+                                        {selectedServer.id === 'supabase' ? 'Registros en BD' :
+                                         selectedServer.id === 'stripe' ? 'Cobros Hoy' :
+                                         selectedServer.performanceMetricName}
+                                    </span>
+                                    <strong>
+                                        {selectedServer.id === 'supabase' && realMetrics.supabase ? (
+                                            `${realMetrics.supabase.userCount ?? '?'} usuarios · ${realMetrics.supabase.videoCount ?? '?'} vídeos`
+                                        ) : selectedServer.id === 'stripe' && realMetrics.stripe ? (
+                                            `${realMetrics.stripe.chargesToday ?? 0} transacciones · ${realMetrics.stripe.revenueToday?.toFixed(2) ?? '0.00'} €`
+                                        ) : selectedServer.id === 'openai' && realMetrics.openai?.totalTokensMonth ? (
+                                            `${(realMetrics.openai.totalTokensMonth / 1000).toFixed(0)}k tokens este mes`
+                                        ) : (
+                                            selectedServer.performanceMetricValue
+                                        )}
+                                    </strong>
                                 </div>
                             </div>
                         </div>
@@ -543,20 +604,61 @@ export default function ServersPage() {
                             <div className="title-bar-text">Consumo y Cuota de Recursos</div>
                         </div>
                         <div className="window-body">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                <span>{selectedServer.quotaName}: <strong>{selectedServer.quotaUsed} / {selectedServer.quotaMax} {selectedServer.quotaUnit}</strong></span>
-                                <span style={{ fontWeight: nearQuotaLimit ? 'bold' : 'normal', color: nearQuotaLimit ? 'red' : 'inherit' }}>
-                                    {quotaPct}% {nearQuotaLimit ? '⚠️ CUOTA CRÍTICA' : 'Ok'}
-                                </span>
-                            </div>
-                            <div style={{ height: '22px', border: '1px inset #808080', background: 'white', position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <div style={{ 
-                                    width: `${Math.min(quotaPct, 100)}%`, 
-                                    height: '100%', 
-                                    backgroundColor: nearQuotaLimit ? 'red' : 'navy',
-                                    transition: 'width 0.5s ease-in-out'
-                                }} />
-                            </div>
+                            {(() => {
+                                // Use real data when available
+                                const rm = realMetrics[selectedServer.id];
+                                let quotaName = selectedServer.quotaName;
+                                let quotaUsed = selectedServer.quotaUsed;
+                                let quotaMax = selectedServer.quotaMax;
+                                let quotaUnit = selectedServer.quotaUnit;
+                                if (selectedServer.id === 'supabase' && rm?.dbSizeGB) {
+                                    quotaName = 'Almacenamiento de BD (REAL)';
+                                    quotaUsed = rm.dbSizeGB;
+                                    quotaMax = 8;
+                                    quotaUnit = 'GB';
+                                }
+                                if (selectedServer.id === 'stripe' && rm?.availableEur !== null && rm?.availableEur !== undefined) {
+                                    quotaName = 'Balance Stripe Disponible (REAL)';
+                                    quotaUsed = rm.availableEur;
+                                    quotaMax = 1000;
+                                    quotaUnit = '€';
+                                }
+                                if (selectedServer.id === 'openai' && rm?.estimatedCostUsd) {
+                                    quotaName = 'Coste Estimado Mensual (REAL)';
+                                    quotaUsed = rm.estimatedCostUsd;
+                                    quotaMax = 50;
+                                    quotaUnit = '$';
+                                }
+                                const pct = quotaMax > 0 ? Math.round((quotaUsed / quotaMax) * 100) : 0;
+                                const isNear = pct >= 80;
+                                return (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                            <span>{quotaName}: <strong style={{ color: rm ? 'darkgreen' : 'inherit' }}>{quotaUsed} / {quotaMax} {quotaUnit}</strong>
+                                                {rm && <span style={{ fontSize: '0.75em', color: 'darkgreen', marginLeft: '6px' }}>● DATOS REALES</span>}
+                                                {!rm && metricsLoading && <span style={{ fontSize: '0.75em', color: '#999', marginLeft: '6px' }}>⏳ cargando...</span>}
+                                            </span>
+                                            <span style={{ fontWeight: isNear ? 'bold' : 'normal', color: isNear ? 'red' : 'inherit' }}>
+                                                {pct}% {isNear ? '⚠️ CUOTA CRÍTICA' : 'Ok'}
+                                            </span>
+                                        </div>
+                                        <div style={{ height: '22px', border: '1px inset #808080', background: 'white', position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                            <div style={{ 
+                                                width: `${Math.min(pct, 100)}%`, 
+                                                height: '100%', 
+                                                backgroundColor: isNear ? 'red' : 'navy',
+                                                transition: 'width 0.5s ease-in-out'
+                                            }} />
+                                        </div>
+                                        {metricsLastUpdated && (
+                                            <div style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>
+                                                Actualizado: {new Date(metricsLastUpdated).toLocaleTimeString('es-ES')}
+                                                <button onClick={fetchRealMetrics} style={{ marginLeft: '10px', fontSize: '0.85em', padding: '1px 6px' }}>🔄 Actualizar</button>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -570,22 +672,37 @@ export default function ServersPage() {
                             </div>
                             <div className="window-body">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
-                                        <span>Consumo Estimado:</span>
-                                        <strong style={{ color: 'red' }}>{selectedServer.estimatedCost.toFixed(2)} €</strong>
-                                    </div>
+                                    {/* Real cost from API if available */}
+                                    {realMetrics[selectedServer.id]?.monthlyCostEur !== undefined && realMetrics[selectedServer.id]?.monthlyCostEur !== null && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
+                                            <span>💳 Coste Mensual ({realMetrics[selectedServer.id]?.plan}):</span>
+                                            <strong style={{ color: 'darkgreen' }}>● {realMetrics[selectedServer.id].monthlyCostEur.toFixed(2)} €/mes</strong>
+                                        </div>
+                                    )}
+                                    {selectedServer.id === 'stripe' && realMetrics.stripe?.availableEur !== undefined && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
+                                            <span>💰 Balance en Stripe:</span>
+                                            <strong style={{ color: 'darkgreen' }}>● {realMetrics.stripe.availableEur?.toFixed(2) ?? '—'} €</strong>
+                                        </div>
+                                    )}
+                                    {selectedServer.id === 'openai' && realMetrics.openai?.estimatedCostUsd !== undefined && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
+                                            <span>📊 Coste OpenAI este mes:</span>
+                                            <strong style={{ color: 'darkorange' }}>~{realMetrics.openai.estimatedCostUsd?.toFixed(2) ?? '—'} USD</strong>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
                                         <span>Presupuesto Inyectado:</span>
                                         <strong style={{ color: 'green' }}>{serverBudget.toFixed(2)} €</strong>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #808080', paddingBottom: '6px' }}>
                                         <span>Saldo Disponible:</span>
-                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '1.1em' }}>
                                             {serverBalance.toFixed(2)} €
                                             {serverBalance < selectedServer.estimatedCost && ' ⚠️ Recarga sugerida'}
                                         </strong>
                                     </div>
-                                    <div style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
+                                    <div style={{ fontSize: '0.8em', color: '#666' }}>
                                         Ciclo: {selectedServer.billingPeriod}
                                     </div>
                                 </div>

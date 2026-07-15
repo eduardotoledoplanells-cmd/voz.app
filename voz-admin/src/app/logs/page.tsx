@@ -29,9 +29,29 @@ export default function DirectorLogsPage() {
         6: 'Desarrollador'
     };
 
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
     useEffect(() => {
-        fetchData();
-    }, [activeTab]);
+        const stored = localStorage.getItem('vozEmployee');
+        if (stored) {
+            const emp = JSON.parse(stored);
+            // Allow only role 1 (Director)
+            if (emp.role === 1 || emp.role === '1') {
+                setIsAuthorized(true);
+            } else {
+                alert("Acceso denegado: Se requiere perfil de Director.");
+                window.location.href = '/';
+            }
+        } else {
+            window.location.href = '/';
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isAuthorized) {
+            fetchData();
+        }
+    }, [activeTab, isAuthorized]);
 
     const fetchData = () => {
         setLoading(true);
@@ -40,7 +60,17 @@ export default function DirectorLogsPage() {
         if (activeTab === 'moderation') endpoint = '/api/voz/moderation/stats';
         if (activeTab === 'alerts') endpoint = '/api/voz/admin/alerts';
 
-        fetch(endpoint)
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
+        fetch(endpoint, {
+            headers: {
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (activeTab === 'logs' && Array.isArray(data)) setLogs(data);
@@ -55,9 +85,18 @@ export default function DirectorLogsPage() {
 
     const handleAddEmployee = (e: React.FormEvent) => {
         e.preventDefault();
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
         fetch('/api/voz/employees', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            },
             body: JSON.stringify(newEmp)
         })
             .then(res => res.json())
@@ -75,7 +114,18 @@ export default function DirectorLogsPage() {
 
     const confirmDeleteEmployee = () => {
         if (!empToDelete) return;
-        fetch(`/api/voz/employees?id=${empToDelete}`, { method: 'DELETE' })
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
+        fetch(`/api/voz/employees?id=${empToDelete}`, { 
+            method: 'DELETE',
+            headers: {
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            }
+        })
             .then(() => {
                 fetchData();
                 setShowDeleteModal(false);
@@ -93,6 +143,9 @@ export default function DirectorLogsPage() {
         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    if (!isAuthorized)
+        return <div style={{ padding: 10 }}>Verificando credenciales de Director...</div>;
 
     if (loading && logs.length === 0 && employees.length === 0 && alerts.length === 0)
         return <div style={{ padding: 10 }}>Cargando datos del sistema...</div>;
