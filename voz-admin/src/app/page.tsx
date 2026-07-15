@@ -344,8 +344,8 @@ export default function VozAdminDashboard() {
                         {currentEmployee ? (
                             <div style={{ textAlign: 'center' }}>
                                 <p><strong>Identificado como:</strong></p>
-                                <p style={{ fontSize: '1.2em', margin: '5px 0' }}>{currentEmployee.username}</p>
-                                <p style={{ color: '#808080', fontSize: '0.9em' }}>Rol: {currentEmployee.role}</p>
+                                <p style={{ fontSize: '16px', margin: '5px 0' }}>{currentEmployee.username}</p>
+                                <p style={{ color: '#808080', fontSize: '13px' }}>Rol: {currentEmployee.role}</p>
                                 <hr style={{ margin: '15px 0' }} />
                                 <button
                                     onClick={handleLogout}

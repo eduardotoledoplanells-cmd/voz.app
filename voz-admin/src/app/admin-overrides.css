@@ -1,115 +1,116 @@
 /*
  * VOZ Admin Panel - Font & Readability Overrides
- * Sobreescribe los tamaños de letra diminutos de 98.css
- * con fuentes legibles de verdad.
+ * Fuerza fuentes legibles sobre 98.css (que usa 11px base)
  */
 
-/* Base: todos los elementos heredan Arial a 13px */
-*, *::before, *::after {
-    font-family: Arial, Helvetica, sans-serif !important;
+/* ── Raíz: anular el 11px de 98.css ────────────────────── */
+html {
+    font-size: 14px !important;
 }
 
 body {
-    font-size: 13px;
-}
-
-/* Textos generales dentro de ventanas */
-.window-body,
-.window .window-body {
-    font-size: 13px !important;
+    font-size: 14px !important;
+    font-family: Arial, Helvetica, sans-serif !important;
     line-height: 1.5 !important;
 }
 
-/* Etiquetas y texto de formulario */
-label, input, select, textarea, button, td, th, p, span, div {
-    font-size: 13px !important;
-    line-height: 1.4 !important;
+/* ── Fuente global en TODOS los elementos ───────────────── */
+*,
+*::before,
+*::after {
+    font-family: Arial, Helvetica, sans-serif !important;
+    box-sizing: border-box;
 }
 
-/* Encabezados de ventana */
+/* ── Ventanas 98.css ─────────────────────────────────────── */
+.window,
+.window * {
+    font-size: 14px !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.window-body {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    padding: 8px !important;
+}
+
 .title-bar-text {
     font-size: 13px !important;
     font-weight: bold !important;
+    letter-spacing: 0 !important;
 }
 
-/* Botones */
-button {
+/* ── Tipografía de contenido ─────────────────────────────── */
+h1 { font-size: 22px !important; font-weight: bold !important; }
+h2 { font-size: 18px !important; font-weight: bold !important; margin: 0 0 10px 0 !important; }
+h3 { font-size: 16px !important; font-weight: bold !important; margin: 0 0 8px 0 !important; }
+h4 { font-size: 14px !important; font-weight: bold !important; }
+
+p, span, div, li, td, th, label {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+/* Textos secundarios (los que usan 0.8em inline) */
+small {
     font-size: 12px !important;
-    padding: 3px 10px !important;
-    min-height: 24px !important;
 }
 
-/* Inputs */
+/* ── Botones ─────────────────────────────────────────────── */
+button,
+input[type="button"],
+input[type="submit"] {
+    font-size: 13px !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    padding: 4px 12px !important;
+    min-height: 26px !important;
+    line-height: 1.4 !important;
+    cursor: pointer;
+}
+
+/* ── Inputs y selects ────────────────────────────────────── */
 input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="email"],
+input[type="search"],
 select,
 textarea {
-    font-size: 13px !important;
-    padding: 2px 5px !important;
-}
-
-/* Tablas */
-table {
-    font-size: 13px !important;
-    border-collapse: collapse;
-}
-
-th {
-    font-size: 12px !important;
-    font-weight: bold !important;
-    padding: 4px 8px !important;
-}
-
-td {
-    padding: 3px 8px !important;
-}
-
-/* Títulos H2, H3 dentro del panel */
-h2 {
-    font-size: 16px !important;
-    font-weight: bold !important;
-    margin: 0 0 8px 0 !important;
-}
-
-h3 {
     font-size: 14px !important;
-    font-weight: bold !important;
-    margin: 0 0 6px 0 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    padding: 3px 6px !important;
+    min-height: 24px !important;
+    line-height: 1.4 !important;
 }
 
-/* Fieldsets y agrupaciones */
-fieldset {
-    font-size: 13px !important;
+/* ── Tablas ──────────────────────────────────────────────── */
+table { font-size: 14px !important; border-collapse: collapse; }
+th    { font-size: 13px !important; font-weight: bold !important; padding: 5px 10px !important; }
+td    { font-size: 14px !important; padding: 4px 10px !important; }
+
+/* ── Menú inicio y navegación ────────────────────────────── */
+nav, nav * { font-size: 14px !important; }
+
+/* ── Fieldsets ───────────────────────────────────────────── */
+fieldset { font-size: 14px !important; }
+legend   { font-size: 13px !important; font-weight: bold !important; }
+
+/* ── Taskbar y reloj ─────────────────────────────────────── */
+.taskbar, .taskbar * { font-size: 13px !important; }
+
+/* ── Scrollbars más cómodas ──────────────────────────────── */
+::-webkit-scrollbar       { width: 14px; height: 14px; }
+::-webkit-scrollbar-track { background: #c0c0c0; }
+::-webkit-scrollbar-thumb { background: #808080; border: 2px solid #c0c0c0; }
+
+/* ── Forzar override en spans con estilo inline pequeño ──── */
+/* Cualquier span/div que tenga fontSize 0.7-0.9em inline
+   lo ignoramos; el !important en estas reglas prevalece   */
+span[style*="fontSize"],
+div[style*="fontSize"] {
+    font-size: 14px !important;
 }
 
-legend {
-    font-size: 13px !important;
-    font-weight: bold !important;
-}
-
-/* Menú lateral de navegación */
-nav a, nav span, nav div {
-    font-size: 13px !important;
-}
-
-/* Status badge dots */
-.status-dot {
-    font-size: 13px !important;
-}
-
-/* Scrollbars más anchas */
-::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-}
-
-::-webkit-scrollbar-track {
-    background: #c0c0c0;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #808080;
-    border: 2px solid #c0c0c0;
-}
+/* Excepción: badges de estado muy pequeños permitimos 12px mínimo */
+.status-badge, .badge { font-size: 12px !important; }

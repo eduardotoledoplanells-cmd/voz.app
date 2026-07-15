@@ -143,7 +143,7 @@ function VozAdminContent({
                     <div className="title-bar">
                         <div className="title-bar-text">
                             {getWindowTitle()}
-                            {employee && <span style={{ marginLeft: 10, fontSize: '0.7em', opacity: 0.7 }}>([{employee.workerNumber}] {employee.username})</span>}
+                            {employee && <span style={{ marginLeft: 10, fontSize: '11px', opacity: 0.7 }}>([{employee.workerNumber}] {employee.username})</span>}
                         </div>
                         <div className="title-bar-controls">
                             <button aria-label="Minimize" onClick={() => setWindowState('minimized')}></button>

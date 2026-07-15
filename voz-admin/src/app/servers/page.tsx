@@ -420,7 +420,7 @@ export default function ServersPage() {
     return (
         <div style={{ padding: '10px', height: '100%', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ margin: 0, fontSize: '1.5em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     🖥️ Control y Mantenimiento de Servidores
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -431,7 +431,7 @@ export default function ServersPage() {
                             checked={autoRefresh} 
                             onChange={(e) => setAutoRefresh(e.target.checked)} 
                         />
-                        <label htmlFor="chkAutoRefresh" style={{ fontSize: '0.9em' }}>Auto-monitorear (15s)</label>
+                        <label htmlFor="chkAutoRefresh" style={{ fontSize: '13px' }}>Auto-monitorear (15s)</label>
                     </div>
                     <div className="status-bar" style={{ padding: '2px 8px', background: '#ccc', border: '1px solid #808080' }}>
                         Gasto Mensual Estimado Total: <strong style={{ color: 'red' }}>{totalMonthlyCost.toFixed(2)} €</strong>
@@ -469,21 +469,21 @@ export default function ServersPage() {
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ fontSize: '1.2em' }}>
+                                            <span style={{ fontSize: '16px' }}>
                                                 {s.id === 'supabase' ? '🗄️' : 
                                                  s.id === 'vercel' ? '⚡' : 
                                                  s.id === 'openai' ? '🧠' : 
                                                  s.id === 'firebase' ? '🔔' : 
                                                  s.id === 'stripe' ? '💳' : '📦'}
                                             </span>
-                                            <span style={{ fontSize: '0.9em', fontWeight: isSel ? 'bold' : 'normal' }}>{s.name}</span>
+                                            <span style={{ fontSize: '13px', fontWeight: isSel ? 'bold' : 'normal' }}>{s.name}</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             {isMaint && (
                                                 <span style={{ background: 'orange', color: 'black', fontSize: '0.7em', padding: '0 3px', fontWeight: 'bold' }}>MANT</span>
                                             )}
                                             {status === 'up' && latency > 0 && (
-                                                <span style={{ fontSize: '0.75em', opacity: 0.7 }}>{latency}ms</span>
+                                                <span style={{ fontSize: '11px', opacity: 0.7 }}>{latency}ms</span>
                                             )}
                                             <span 
                                                 title={status === 'up' ? 'Online' : status === 'checking' ? 'Verificando...' : 'Offline'}
@@ -515,13 +515,13 @@ export default function ServersPage() {
                         <div className="window-body">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #808080', paddingBottom: '10px', marginBottom: '15px' }}>
                                 <div>
-                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.3em', color: 'navy', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '17px', color: 'navy', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {selectedServer.name}
                                         {isMaintenance && (
-                                            <span style={{ background: '#ff0000', color: '#fff', fontSize: '0.65em', padding: '2px 6px', border: '1px solid black' }}>MODO MANTENIMIENTO ACTIVO</span>
+                                            <span style={{ background: '#ff0000', color: '#fff', fontSize: '11px', padding: '2px 6px', border: '1px solid black' }}>MODO MANTENIMIENTO ACTIVO</span>
                                         )}
                                     </h3>
-                                    <span style={{ color: '#666', fontSize: '0.9em' }}>Categoría: <strong>{selectedServer.serviceType}</strong></span>
+                                    <span style={{ color: '#666', fontSize: '13px' }}>Categoría: <strong>{selectedServer.serviceType}</strong></span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button 
@@ -545,18 +545,18 @@ export default function ServersPage() {
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '15px' }}>
                                 <div className="field-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: '#e0e0e0', padding: '8px', border: '1px solid #808080' }}>
-                                    <span style={{ fontSize: '0.8em', color: '#555' }}>ENDPOINT / API URL</span>
-                                    <strong style={{ fontSize: '0.95em', wordBreak: 'break-all', marginTop: '3px' }}>{selectedServer.endpoint}</strong>
+                                    <span style={{ fontSize: '12px', color: '#555' }}>ENDPOINT / API URL</span>
+                                    <strong style={{ fontSize: '13px', wordBreak: 'break-all', marginTop: '3px' }}>{selectedServer.endpoint}</strong>
                                 </div>
                                 <div className="field-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: '#e0e0e0', padding: '8px', border: '1px solid #808080' }}>
-                                    <span style={{ fontSize: '0.8em', color: '#555' }}>CREDENCIAL / API KEY</span>
+                                    <span style={{ fontSize: '12px', color: '#555' }}>CREDENCIAL / API KEY</span>
                                     <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                                        <strong style={{ fontSize: '0.9em', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                                        <strong style={{ fontSize: '13px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
                                             {showKeys[selectedServer.id] ? selectedServer.fullKey : selectedServer.maskedKey}
                                         </strong>
                                         <button 
                                             onClick={() => setShowKeys(prev => ({ ...prev, [selectedServer.id]: !prev[selectedServer.id] }))}
-                                            style={{ padding: '1px 5px', fontSize: '0.8em' }}
+                                            style={{ padding: '1px 5px', fontSize: '12px' }}
                                         >
                                             {showKeys[selectedServer.id] ? 'Ocultar' : 'Mostrar'}
                                         </button>
@@ -567,17 +567,17 @@ export default function ServersPage() {
                             {/* Live performance & Latency bar */}
                             <div style={{ display: 'grid', gridTemplateColumns: '150px 150px 1fr', gap: '15px', background: '#f0f0f0', padding: '8px', border: '1px solid #808080' }}>
                                 <div>
-                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>LATENCIA</span>
+                                    <span style={{ fontSize: '12px', color: '#555', display: 'block' }}>LATENCIA</span>
                                     <strong>{serverLatency > 0 ? `${serverLatency} ms` : metricsLoading ? 'Midiendo...' : 'Desconocida'}</strong>
                                 </div>
                                 <div>
-                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>ESTADO RED</span>
+                                    <span style={{ fontSize: '12px', color: '#555', display: 'block' }}>ESTADO RED</span>
                                     <strong style={{ color: serverStatus === 'up' ? 'green' : serverStatus === 'checking' ? 'orange' : '#999' }}>
                                         {serverStatus === 'up' ? '✅ Online' : serverStatus === 'checking' ? '⏳ Comprobando...' : metricsLoading ? '⏳ Midiendo...' : '❌ Offline'}
                                     </strong>
                                 </div>
                                 <div>
-                                    <span style={{ fontSize: '0.8em', color: '#555', display: 'block' }}>
+                                    <span style={{ fontSize: '12px', color: '#555', display: 'block' }}>
                                         {selectedServer.id === 'supabase' ? 'Registros en BD' :
                                          selectedServer.id === 'stripe' ? 'Cobros Hoy' :
                                          selectedServer.performanceMetricName}
@@ -635,8 +635,8 @@ export default function ServersPage() {
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                                             <span>{quotaName}: <strong style={{ color: rm ? 'darkgreen' : 'inherit' }}>{quotaUsed} / {quotaMax} {quotaUnit}</strong>
-                                                {rm && <span style={{ fontSize: '0.75em', color: 'darkgreen', marginLeft: '6px' }}>● DATOS REALES</span>}
-                                                {!rm && metricsLoading && <span style={{ fontSize: '0.75em', color: '#999', marginLeft: '6px' }}>⏳ cargando...</span>}
+                                                {rm && <span style={{ fontSize: '11px', color: 'darkgreen', marginLeft: '6px' }}>● DATOS REALES</span>}
+                                                {!rm && metricsLoading && <span style={{ fontSize: '11px', color: '#999', marginLeft: '6px' }}>⏳ cargando...</span>}
                                             </span>
                                             <span style={{ fontWeight: isNear ? 'bold' : 'normal', color: isNear ? 'red' : 'inherit' }}>
                                                 {pct}% {isNear ? '⚠️ CUOTA CRÍTICA' : 'Ok'}
@@ -651,9 +651,9 @@ export default function ServersPage() {
                                             }} />
                                         </div>
                                         {metricsLastUpdated && (
-                                            <div style={{ fontSize: '0.75em', color: '#666', marginTop: '4px' }}>
+                                            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
                                                 Actualizado: {new Date(metricsLastUpdated).toLocaleTimeString('es-ES')}
-                                                <button onClick={fetchRealMetrics} style={{ marginLeft: '10px', fontSize: '0.85em', padding: '1px 6px' }}>🔄 Actualizar</button>
+                                                <button onClick={fetchRealMetrics} style={{ marginLeft: '10px', fontSize: '12px', padding: '1px 6px' }}>🔄 Actualizar</button>
                                             </div>
                                         )}
                                     </>
@@ -697,12 +697,12 @@ export default function ServersPage() {
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #808080', paddingBottom: '6px' }}>
                                         <span>Saldo Disponible:</span>
-                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '1.1em' }}>
+                                        <strong style={{ color: serverBalance >= 0 ? 'green' : 'red', fontSize: '15px' }}>
                                             {serverBalance.toFixed(2)} €
                                             {serverBalance < selectedServer.estimatedCost && ' ⚠️ Recarga sugerida'}
                                         </strong>
                                     </div>
-                                    <div style={{ fontSize: '0.8em', color: '#666' }}>
+                                    <div style={{ fontSize: '12px', color: '#666' }}>
                                         Ciclo: {selectedServer.billingPeriod}
                                     </div>
                                 </div>
@@ -718,7 +718,7 @@ export default function ServersPage() {
                                 <form onSubmit={handleInjectBudget} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     <div style={{ display: 'flex', gap: '15px' }}>
                                         <div style={{ flex: 1 }}>
-                                            <label htmlFor="injectAmt" style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Importe a Inyectar (€) *</label>
+                                            <label htmlFor="injectAmt" style={{ display: 'block', fontSize: '13px', marginBottom: '4px' }}>Importe a Inyectar (€) *</label>
                                             <input 
                                                 id="injectAmt"
                                                 type="number"
@@ -732,7 +732,7 @@ export default function ServersPage() {
                                             />
                                         </div>
                                         <div style={{ flex: 2 }}>
-                                            <label htmlFor="injectNts" style={{ display: 'block', fontSize: '0.9em', marginBottom: '4px' }}>Concepto / Notas</label>
+                                            <label htmlFor="injectNts" style={{ display: 'block', fontSize: '13px', marginBottom: '4px' }}>Concepto / Notas</label>
                                             <input 
                                                 id="injectNts"
                                                 type="text"
@@ -765,7 +765,7 @@ export default function ServersPage() {
                             ) : logs.length === 0 ? (
                                 <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No hay registros de inyecciones de presupuesto históricos.</div>
                             ) : (
-                                <table className="interactive" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9em' }}>
+                                <table className="interactive" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                                     <thead>
                                         <tr style={{ background: '#e0e0e0', borderBottom: '1px solid #808080' }}>
                                             <th style={{ padding: '8px' }}>Fecha y Hora</th>

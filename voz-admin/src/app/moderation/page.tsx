@@ -579,7 +579,7 @@ export default function VozModerationPage() {
                                                     }}
                                                 >
                                                     <div style={{ fontWeight: 'bold' }}>{item.type === 'video' ? '📹 Video' : item.type === 'audio' ? '🔊 Audio' : '📝 Contenido'}</div>
-                                                    <div style={{ fontSize: '0.8em', opacity: selectedItem?.id === item.id ? 0.9 : 0.7 }}>
+                                                    <div style={{ fontSize: '12px', opacity: selectedItem?.id === item.id ? 0.9 : 0.7 }}>
                                                         Por: {item.userHandle}
                                                     </div>
                                                 </li>
