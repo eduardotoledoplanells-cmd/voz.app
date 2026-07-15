@@ -89,36 +89,26 @@ export default function VozAdminDashboard() {
             return;
         }
 
-        // Fetch employees to find the one logging in
-        fetch('/api/voz/employees')
-            .then(res => res.json())
-            .then(employees => {
-                const emp = employees.find((e: any) => e.username.toLowerCase() === cleanUsername.toLowerCase());
-
-                if (!emp) {
-                    setLoginError('Usuario no encontrado en la base de datos.');
+        // Fetch to secure login endpoint
+        fetch('/api/voz/employees/login', {
+            method: 'POST',
+            body: JSON.stringify({ username: cleanUsername, password: cleanPass }),
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok) {
+                    setLoginError(data.error || 'Error de autenticación.');
                     return;
                 }
 
-                // Verify password
-                const expectedPass = emp.password || '123';
-                let isCorrect = false;
-                if (expectedPass.startsWith('$2b$')) {
-                    isCorrect = bcrypt.compareSync(cleanPass, expectedPass);
-                } else {
-                    isCorrect = (cleanPass === expectedPass);
-                }
-
-                if (!isCorrect) {
-                    setLoginError('Código de Empleado (Password) incorrecto.');
-                    return;
-                }
+                const emp = data.employee;
 
                 const sessionData = {
                     id: emp.id,
                     username: emp.username,
                     role: emp.role,
-                    password: expectedPass,
+                    password: cleanPass, // Store the PLAINTEXT password entered by the user
                     worker_number: emp.worker_number || '???'
                 };
 
@@ -151,6 +141,9 @@ export default function VozAdminDashboard() {
                     setUsername('');
                     setEmployeeId('');
                 });
+            })
+            .catch(err => {
+                setLoginError('Error de red al intentar iniciar sesión.');
             });
     };
 
@@ -171,6 +164,70 @@ export default function VozAdminDashboard() {
             alert('Jornada finalizada. Sesión cerrada.');
         });
     };
+
+    if (!currentEmployee) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                backgroundColor: '#008080',
+                padding: '20px'
+            }}>
+                <div className="window" style={{ width: '350px' }}>
+                    <div className="title-bar">
+                        <div className="title-bar-text">Control de Acceso - VOZ OS 98</div>
+                    </div>
+                    <div className="window-body">
+                        <p>Identifícate para registrar tu actividad en el sistema.</p>
+                        <form onSubmit={handleLogin}>
+                            <div className="field-row-stacked" style={{ marginBottom: '10px' }}>
+                                <label>Nombre de Usuario:</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => { setUsername(e.target.value); setLoginError(null); }}
+                                    placeholder="ej: Director"
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                            <div className="field-row-stacked" style={{ marginBottom: '15px' }}>
+                                <label>Código de Empleado (Password):</label>
+                                <input
+                                    type="password"
+                                    value={employeeId}
+                                    onChange={(e) => { setEmployeeId(e.target.value); setLoginError(null); }}
+                                    placeholder="••••••••"
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+
+                            {loginError && (
+                                <div style={{
+                                    backgroundColor: '#ffbaba',
+                                    color: '#d8000c',
+                                    border: '1px solid #d8000c',
+                                    padding: '8px',
+                                    marginBottom: '15px',
+                                    fontSize: '0.85rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}>
+                                    <span>⚠️</span> {loginError}
+                                </div>
+                            )}
+                            <div className="field-row" style={{ justifyContent: 'flex-end', gap: '5px' }}>
+                                <button type="submit" style={{ fontWeight: 'bold' }}>Acceder</button>
+                                <button type="button" onClick={() => { setUsername(''); setEmployeeId(''); }}>Limpiar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', overflowY: 'auto' }}>

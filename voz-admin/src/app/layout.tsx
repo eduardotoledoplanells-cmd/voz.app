@@ -104,21 +104,29 @@ function VozAdminContent({
         { href: '/servers', label: '🖥️ Servidores', roles: [1, 2, 5, 6] },
     ];
 
-    const currentRole = employee ? Number(employee.role) : 1;
-    const navItems = allNavItems.filter(item => {
-        if (currentRole === 1 || currentRole === 6) return true;
-        return item.roles.includes(currentRole);
-    });
+    const currentRole = employee ? Number(employee.role) : null;
+    const navItems = currentRole !== null
+        ? allNavItems.filter(item => {
+            if (currentRole === 1 || currentRole === 6) return true;
+            return item.roles.includes(currentRole);
+          })
+        : [];
 
     useEffect(() => {
         const currentItem = allNavItems.find(i => i.href === pathname);
-        if (currentItem && employee) {
-            const role = Number(employee.role);
-            if (!currentItem.roles.includes(role) && role !== 1 && role !== 6) {
-                router.push('/');
+        if (currentItem) {
+            if (!employee) {
+                if (pathname !== '/') {
+                    router.push('/');
+                }
+            } else {
+                const role = Number(employee.role);
+                if (!currentItem.roles.includes(role) && role !== 1 && role !== 6) {
+                    router.push('/');
+                }
             }
         }
-    }, [pathname, employee]);
+    }, [pathname, employee, router]);
 
     const getWindowTitle = () => {
         const item = allNavItems.find(i => i.href === pathname);
@@ -146,7 +154,13 @@ function VozAdminContent({
                         </div>
                     </div>
                     <div className={`window-body ${styles.windowBody}`}>
-                        {children}
+                        {!employee && pathname !== '/' ? (
+                            <div style={{ padding: '20px', textAlign: 'center' }}>
+                                <p>Redireccionando al Control de Acceso...</p>
+                            </div>
+                        ) : (
+                            children
+                        )}
                     </div>
                 </div>
             </div>

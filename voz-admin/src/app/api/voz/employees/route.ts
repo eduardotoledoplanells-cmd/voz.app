@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getEmployees, addEmployee, updateEmployee, deleteEmployee, addLog, Employee } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { validateEmployee } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const auth = await validateEmployee(request, 1); // Min role 1 (Director) to get employee list
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
         const employees = await getEmployees();
         return NextResponse.json(employees);
     } catch (error) {
@@ -15,12 +21,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const auth = await validateEmployee(request, 1); // Min role 1 (Director) to create employee
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const body = await request.json();
         const { username, role, password } = body;
 
         if (!username || !role) {
             return NextResponse.json({ error: 'Missing username or role' }, { status: 400 });
         }
+
+        // HASH the password with bcrypt
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password || '123', salt);
 
         const employees = await getEmployees();
 
@@ -44,7 +59,7 @@ export async function POST(request: Request) {
             id: uuidv4(),
             username,
             worker_number: nextNumber,
-            password: password || '123',
+            password: hashedPassword, // Store the hashed password
             role: parseInt(role) as any,
             lastLogin: 'Nunca',
             active: true
@@ -77,6 +92,21 @@ export async function PATCH(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
+        // Skip auth checks only if self-updating lastLogin or lastLogout (non-administrative actions)
+        const isSelfUpdate = Object.keys(updates).every(k => k === 'lastLogin' || k === 'lastLogout');
+        if (!isSelfUpdate) {
+            const auth = await validateEmployee(request, 1); // Min role 1 (Director) to update employee data
+            if (!auth.isValid) {
+                return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+            }
+        }
+
+        // Hash password if being updated
+        if (updates.password) {
+            const salt = await bcrypt.genSalt(10);
+            updates.password = await bcrypt.hash(updates.password, salt);
+        }
+
         const updated = await updateEmployee(id, updates);
         if (!updated) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
@@ -99,6 +129,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
+        const auth = await validateEmployee(request, 1); // Min role 1 (Director) to delete employee
+        if (!auth.isValid) {
+            return NextResponse.json({ error: auth.errorText }, { status: auth.errorStatus });
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
@@ -112,4 +147,5 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
     }
 }
+
 

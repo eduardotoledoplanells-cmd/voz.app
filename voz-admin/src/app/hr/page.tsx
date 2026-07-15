@@ -20,11 +20,11 @@ export default function VozHrPage() {
         const stored = localStorage.getItem('vozEmployee');
         if (stored) {
             const emp = JSON.parse(stored);
-            // Allow role 1 (Director) and role 2 (Admin)
-            if (emp.role === 1 || emp.role === 2 || emp.role === '1' || emp.role === '2') {
+            // Allow only role 1 (Director)
+            if (emp.role === 1 || emp.role === '1') {
                 setIsAuthorized(true);
             } else {
-                alert("Acceso denegado: Se requiere perfil de Director o Administrador.");
+                alert("Acceso denegado: Se requiere perfil de Director.");
                 window.location.href = '/';
             }
         } else {
@@ -35,10 +35,24 @@ export default function VozHrPage() {
 
     const fetchEmployees = () => {
         setLoading(true);
-        fetch('/api/voz/employees')
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
+        fetch('/api/voz/employees', {
+            headers: {
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            }
+        })
             .then(res => res.json())
             .then(data => {
-                setEmployees(data);
+                if (Array.isArray(data)) {
+                    setEmployees(data);
+                } else {
+                    console.error("Failed to load employees:", data);
+                }
                 setLoading(false);
             })
             .catch(err => setLoading(false));
@@ -52,10 +66,19 @@ export default function VozHrPage() {
             return;
         }
 
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
         fetch('/api/voz/employees', {
             method: 'POST',
             body: JSON.stringify(newEmp),
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            }
         })
             .then(res => res.json())
             .then(() => {
@@ -70,8 +93,17 @@ export default function VozHrPage() {
             return;
         }
 
+        const stored = localStorage.getItem('vozEmployee');
+        if (!stored) return;
+        const emp = JSON.parse(stored);
+
         fetch(`/api/voz/employees?id=${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'x-employee-id': emp.id,
+                'x-employee-username': emp.username,
+                'x-employee-password': emp.password
+            }
         })
             .then(res => res.json())
             .then(data => {
