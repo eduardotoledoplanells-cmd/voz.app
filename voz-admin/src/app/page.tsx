@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import bcrypt from 'bcryptjs';
 import '98.css';
 
 export default function VozAdminDashboard() {
@@ -103,13 +104,7 @@ export default function VozAdminDashboard() {
                 const expectedPass = emp.password || '123';
                 let isCorrect = false;
                 if (expectedPass.startsWith('$2b$')) {
-                    try {
-                        const bcrypt = require('bcryptjs');
-                        isCorrect = bcrypt.compareSync(cleanPass, expectedPass);
-                    } catch (e) {
-                        console.error('Bcrypt loading failed:', e);
-                        isCorrect = false;
-                    }
+                    isCorrect = bcrypt.compareSync(cleanPass, expectedPass);
                 } else {
                     isCorrect = (cleanPass === expectedPass);
                 }
