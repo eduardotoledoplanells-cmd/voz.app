@@ -262,6 +262,21 @@ export default function RootLayout({
 }) {
     return (
         <html lang="es" suppressHydrationWarning>
+            <head>
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @font-face {
+                        font-family: "Pixelated MS Sans Serif";
+                        src: local("Segoe UI"), local("Arial"), local("sans-serif") !important;
+                    }
+                    @font-face {
+                        font-family: "MS Sans Serif";
+                        src: local("Segoe UI"), local("Arial"), local("sans-serif") !important;
+                    }
+                    *, *::before, *::after, input, button, select, textarea, label, li, span, td, th, div, p, strong {
+                        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+                    }
+                `}} />
+            </head>
             <body>
                 <AuthProvider>
                     <VozAdminContent>
