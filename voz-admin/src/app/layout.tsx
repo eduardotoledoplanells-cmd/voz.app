@@ -266,14 +266,26 @@ export default function RootLayout({
                 <style dangerouslySetInnerHTML={{ __html: `
                     @font-face {
                         font-family: "Pixelated MS Sans Serif";
-                        src: local("Segoe UI"), local("Arial"), local("sans-serif") !important;
+                        src: local("Segoe UI");
+                        font-weight: normal;
+                        font-style: normal;
                     }
                     @font-face {
                         font-family: "MS Sans Serif";
-                        src: local("Segoe UI"), local("Arial"), local("sans-serif") !important;
+                        src: local("Segoe UI");
+                        font-weight: normal;
+                        font-style: normal;
                     }
-                    *, *::before, *::after, input, button, select, textarea, label, li, span, td, th, div, p, strong {
+                    html, body {
                         font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+                        font-size: 14px !important;
+                    }
+                    *, *::before, *::after {
+                        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+                    }
+                    input, button, select, textarea, label, li, span, td, th, div, p, strong, h1, h2, h3, h4, h5, h6, a {
+                        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
+                        font-size: revert;
                     }
                 `}} />
             </head>

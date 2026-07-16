@@ -416,7 +416,7 @@ export default function ServersPage() {
     const nearQuotaLimit = quotaPct >= 85;
 
     return (
-        <div style={{ padding: '10px', height: '100%', overflowY: 'auto' }}>
+        <div style={{ padding: '10px', height: '100%', overflowY: 'auto', fontFamily: 'Arial, Helvetica, sans-serif' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     🖥️ Control y Mantenimiento de Servidores

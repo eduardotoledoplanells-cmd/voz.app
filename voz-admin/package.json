@@ -6,7 +6,8 @@
         "dev": "next dev -p 3001 -H 0.0.0.0",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "postinstall": "patch-package"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.98.0",
@@ -27,6 +28,7 @@
         "@types/uuid": "^10.0.0",
         "eslint": "^9",
         "eslint-config-next": "15.1.7",
+        "patch-package": "^8.0.1",
         "typescript": "^5"
     }
 }
