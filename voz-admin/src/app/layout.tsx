@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import styles from './voz-admin.module.css';
-import '98.css';
+import './98-nobitmap.css';
 import './admin-overrides.css';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
