@@ -21,6 +21,18 @@ function corsHeaders(response: NextResponse) {
 
 export async function POST(req: NextRequest) {
     try {
+        // SECURITY CHECK: Require strict authorization secret
+        const migrationSecret = req.headers.get('x-migration-secret');
+        const expectedSecret = process.env.MIGRATION_SECRET;
+        
+        if (!expectedSecret || migrationSecret !== expectedSecret) {
+            console.warn('[Security Warning] Intento de migración no autorizado o secreto no configurado.');
+            return corsHeaders(NextResponse.json({ 
+                success: false, 
+                error: "No autorizado. Clave de migración incorrecta o no configurada." 
+            }, { status: 401 }));
+        }
+
         const body = await req.json();
         const { dbPassword, sqlQuery } = body;
 
@@ -30,7 +42,14 @@ export async function POST(req: NextRequest) {
         const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
         const projRef = match ? match[1] : 'thiftwzubmvcrdhuwcwm';
 
-        const password = dbPassword || process.env.SUPABASE_DB_PASSWORD || 'VozDatabase2026!';
+        const password = dbPassword || process.env.SUPABASE_DB_PASSWORD;
+        if (!password) {
+            return corsHeaders(NextResponse.json({ 
+                success: false, 
+                error: "Falta la contraseña de la base de datos." 
+            }, { status: 400 }));
+        }
+
 
         // We will try multiple possible pooler hosts and structures
         const regions = [

@@ -549,7 +549,7 @@ export default function ServersPage() {
                                 <div className="field-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: '#e0e0e0', padding: '8px', border: '1px solid #808080' }}>
                                     <span style={{ fontSize: '12px', color: '#555' }}>CREDENCIAL / API KEY</span>
                                     <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' }}>
-                                        <strong style={{ fontSize: '13px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                                        <strong style={{ fontSize: '13px', wordBreak: 'break-all', fontFamily: 'sans-serif' }}>
                                             {showKeys[selectedServer.id] ? selectedServer.fullKey : selectedServer.maskedKey}
                                         </strong>
                                         <button 

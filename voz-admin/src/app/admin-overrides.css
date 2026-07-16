@@ -10,7 +10,7 @@ html {
 
 body {
     font-size: 14px !important;
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
     line-height: 1.5 !important;
 }
 
@@ -18,7 +18,7 @@ body {
 *,
 *::before,
 *::after {
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
     box-sizing: border-box;
 }
 
@@ -26,7 +26,7 @@ body {
 .window,
 .window * {
     font-size: 14px !important;
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
 }
 
 .window-body {
@@ -52,7 +52,7 @@ p, span, div, li, td, th, label {
     line-height: 1.5 !important;
 }
 
-/* Textos secundarios (los que usan 0.8em inline) */
+/* Textos secundarios */
 small {
     font-size: 12px !important;
 }
@@ -62,7 +62,7 @@ button,
 input[type="button"],
 input[type="submit"] {
     font-size: 13px !important;
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
     padding: 4px 12px !important;
     min-height: 26px !important;
     line-height: 1.4 !important;
@@ -78,7 +78,7 @@ input[type="search"],
 select,
 textarea {
     font-size: 14px !important;
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif !important;
     padding: 3px 6px !important;
     min-height: 24px !important;
     line-height: 1.4 !important;
@@ -104,13 +104,12 @@ legend   { font-size: 13px !important; font-weight: bold !important; }
 ::-webkit-scrollbar-track { background: #c0c0c0; }
 ::-webkit-scrollbar-thumb { background: #808080; border: 2px solid #c0c0c0; }
 
-/* ── Forzar override en spans con estilo inline pequeño ──── */
-/* Cualquier span/div que tenga fontSize 0.7-0.9em inline
-   lo ignoramos; el !important en estas reglas prevalece   */
-span[style*="fontSize"],
-div[style*="fontSize"] {
-    font-size: 14px !important;
-}
-
 /* Excepción: badges de estado muy pequeños permitimos 12px mínimo */
 .status-badge, .badge { font-size: 12px !important; }
+
+/* Excepciones de Monospace controladas para logs o datos técnicos */
+.tech-code,
+.tech-code * {
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 12px !important;
+}

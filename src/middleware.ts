@@ -6,6 +6,13 @@ export const config = {
     matcher: '/api/voz/:path*',
 };
 
+// Rutas públicas dentro de /api/voz que NO requieren token Bearer
+const PUBLIC_ROUTES = [
+    '/api/voz/auth',
+    '/api/voz/client-error',
+    '/api/voz/waitlist',
+];
+
 export async function middleware(request: NextRequest) {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -17,8 +24,8 @@ export async function middleware(request: NextRequest) {
     requestHeaders.delete('x-user-role');
 
     // 2. EXCLUSIONES PÚBLICAS
-    // Permitir reportes de errores sin autenticar para que no falle el ErrorBoundary en login/registro
-    if (pathname === '/api/voz/client-error') {
+    const isPublic = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
+    if (isPublic) {
         return NextResponse.next({
             request: {
                 headers: requestHeaders,
@@ -46,14 +53,13 @@ export async function middleware(request: NextRequest) {
         });
     }
 
+    // 4. VALIDACIÓN DE TOKEN ESTRICTA (Sin retrocompatibilidad insegura)
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('[Middleware] Permitiendo petición sin token por retrocompatibilidad');
-        return NextResponse.next({
-            request: {
-                headers: requestHeaders,
-            },
-        });
+        return new NextResponse(
+            JSON.stringify({ success: false, error: 'Token de autenticación faltante o inválido' }),
+            { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
     }
 
     const token = authHeader.split(' ')[1];
