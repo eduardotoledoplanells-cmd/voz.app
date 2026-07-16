@@ -134,7 +134,7 @@ export default function VozAdminDashboard() {
 
                     setUsername('');
                     setEmployeeId('');
-                });
+            
             })
             .catch(err => {
                 setLoginError('Error de red al intentar iniciar sesión.');
