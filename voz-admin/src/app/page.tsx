@@ -131,10 +131,10 @@ export default function VozAdminDashboard() {
                     }
                 });
 
-
-                    setUsername('');
-                    setEmployeeId('');
-            
+                setUsername('');
+                setEmployeeId('');
+                fetchLogs();
+                alert(`Bienvenido, [${emp.worker_number || '???'}] ${emp.username}. Jornada iniciada.`);
             })
             .catch(err => {
                 setLoginError('Error de red al intentar iniciar sesión.');
