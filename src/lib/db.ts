@@ -292,7 +292,8 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
     const { data: u, error } = await supabaseAdmin
         .from('app_users')
         .select('*')
-        .or(`handle.ilike."${cleanHandle}",handle.ilike."${rawHandle}"`)
+        .in('handle', [cleanHandle, rawHandle])
+        .limit(1)
         .maybeSingle();
 
     if (error || !u) return null;
@@ -396,7 +397,7 @@ export async function getUserByIdOrHandleOrEmail(id?: string, handle?: string, e
         if (!error && users) {
             const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
             const searchNormalized = clean.toLowerCase();
-            const found = users.find(u => normalize(u.handle) === searchNormalized);
+            const found = users.find(u => u.handle && normalize(u.handle) === searchNormalized);
             if (found) {
                 return await getUserById(found.id);
             }

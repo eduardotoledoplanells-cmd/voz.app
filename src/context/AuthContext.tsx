@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshUserWithData = useCallback(async (u: User) => {
         if (!u?.id && !u?.handle) return;
         try {
-            const query = u.id ? `id=${encodeURIComponent(u.id)}` : `handle=${encodeURIComponent(u.handle)}`;
+            const query = u.id ? `id=${encodeURIComponent(u.id)}` : `handle=${encodeURIComponent(u.handle || '')}`;
             const res = await fetch(`/api/voz/users/profile?${query}`);
             const data = await res.json();
             if (data.success && data.user) {

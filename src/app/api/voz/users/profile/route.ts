@@ -82,6 +82,10 @@ export async function GET(request: NextRequest) {
 
         const enrichedProfile = {
             ...userWithoutPassword,
+            walletBalance: user.walletBalance || 0,
+            wallet_balance: user.walletBalance || 0,
+            earningsBalance: user.earningsBalance || 0,
+            earnings_balance: user.earningsBalance || 0,
             fans: fansCount.toString(),
             following: followingCount.toString(),
             likes: totalLikes.toString()

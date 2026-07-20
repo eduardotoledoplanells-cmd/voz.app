@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
@@ -16,8 +16,15 @@ const COIN_PACKS = [
 
 export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogout }: { isOpen: boolean, onClose: () => void, profile: any, onLogout: () => void }) {
     const router = useRouter();
-    const { updateUser } = useAuth();
+    const { updateUser, refreshUser } = useAuth();
     
+    // Refresh user data (including wallet balance) whenever the modal is opened
+    useEffect(() => {
+        if (isOpen) {
+            refreshUser().catch(err => console.error("Error refreshing user balance:", err));
+        }
+    }, [isOpen, refreshUser]);
+
     // Estados para edición
     const [editMode, setEditMode] = useState<'name' | 'bio' | 'live_url' | null>(null);
     const [editText, setEditText] = useState('');
