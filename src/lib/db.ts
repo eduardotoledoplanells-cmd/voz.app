@@ -385,22 +385,21 @@ export async function getUserByIdOrHandleOrEmail(id?: string, handle?: string, e
         return await getUserByEmail(email);
     }
     if (handle) {
+        // Try exact match first for performance
         let user = await getUserByHandle(handle);
         if (user) return user;
 
+        // Fallback: perform an ilike search natively in DB to ensure scalability
+        // Removes whitespace, _, . and matches the raw text case-insensitively
         const clean = handle.replace(/[@_.\s]/g, '');
         const { data: users, error } = await supabaseAdmin
             .from('app_users')
-            .select('*')
-            .limit(100);
+            .select('id')
+            .ilike('handle', `%${clean}%`)
+            .limit(1);
         
-        if (!error && users) {
-            const normalize = (h: string) => h.replace(/[@_.\s]/g, '').toLowerCase();
-            const searchNormalized = clean.toLowerCase();
-            const found = users.find(u => u.handle && normalize(u.handle) === searchNormalized);
-            if (found) {
-                return await getUserById(found.id);
-            }
+        if (!error && users && users.length > 0) {
+            return await getUserById(users[0].id);
         }
     }
     return null;

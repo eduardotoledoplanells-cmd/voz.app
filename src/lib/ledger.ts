@@ -55,7 +55,7 @@ export async function getOrCreateUserWallet(userHandleOrId: string): Promise<str
         query = query.eq('user_id', userHandleOrId);
     } else {
         const cleanHandle = userHandleOrId.replace('@', '');
-        query = query.or(`user_handle.eq.${cleanHandle},user_handle.eq.@${cleanHandle}`);
+        query = query.in('user_handle', [cleanHandle, `@${cleanHandle}`]);
     }
 
     const { data: wallets, error: wError } = await query;
@@ -74,7 +74,7 @@ export async function getOrCreateUserWallet(userHandleOrId: string): Promise<str
         userQuery = userQuery.eq('id', userHandleOrId);
     } else {
         const cleanHandle = userHandleOrId.replace('@', '');
-        userQuery = userQuery.or(`handle.ilike.${cleanHandle},handle.ilike.@${cleanHandle}`);
+        userQuery = userQuery.in('handle', [cleanHandle, `@${cleanHandle}`]);
     }
 
     const { data: users, error: uError } = await userQuery;
@@ -150,6 +150,35 @@ export async function executeLedgerTransaction(
         console.error(`[LEDGER TRANSACTION ERROR] Type: ${type}, Key: ${idempotencyKey}. Error:`, error);
         await logSystemAlert('Ledger', `Ledger transaction error (Type: ${type}, Reference ID: ${referenceId}, Key: ${idempotencyKey}): ${error.message} (${error.details || ''})`);
         throw new Error(error.message);
+    }
+
+    // Sincronizar saldos de los wallets hacia app_users
+    try {
+        const userWalletIds = cleanEntries
+            .map(e => e.wallet_id)
+            .filter(id => !Object.values(SYSTEM_WALLETS).map(sw => sw.id).includes(id));
+        
+        const uniqueUserWalletIds = [...new Set(userWalletIds)];
+
+        if (uniqueUserWalletIds.length > 0) {
+            const { data: updatedWallets } = await supabaseAdmin
+                .from('wallets')
+                .select('user_id, available_balance, pending_balance')
+                .in('id', uniqueUserWalletIds);
+
+            if (updatedWallets) {
+                for (const w of updatedWallets) {
+                    if (w.user_id) {
+                        await supabaseAdmin.from('app_users').update({
+                            wallet_balance: Number(w.available_balance) / 1000,
+                            earnings_balance: Number(w.pending_balance) / 1000
+                        }).eq('id', w.user_id);
+                    }
+                }
+            }
+        }
+    } catch (syncError) {
+        console.error('[LEDGER SYNC ERROR] Fallo sincronizando saldos a app_users:', syncError);
     }
 
     return data;
