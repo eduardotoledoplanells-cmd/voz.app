@@ -10,7 +10,7 @@ export const config = {
 const PUBLIC_ROUTES = [
     '/api/voz/auth',
     '/api/voz/client-error',
-    '/api/voz/waitlist',
+    '/api/voz/waitlist'
 ];
 
 export async function middleware(request: NextRequest) {
@@ -25,7 +25,9 @@ export async function middleware(request: NextRequest) {
 
     // 2. EXCLUSIONES PÚBLICAS
     const isPublic = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
-    if (isPublic) {
+    const isPublicGetOnly = ['/api/voz/videos', '/api/voz/users/profile', '/api/voz/stats'].some(route => pathname === route || pathname.startsWith(route + '/'));
+
+    if (isPublic || (request.method === 'GET' && isPublicGetOnly)) {
         return NextResponse.next({
             request: {
                 headers: requestHeaders,
