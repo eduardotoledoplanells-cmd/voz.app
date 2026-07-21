@@ -84,7 +84,8 @@ function ProfilePageContent() {
             setIsFetchingUser(false);
             setLoadingVideos(false);
         }
-    }, [user, targetHandle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, targetHandle]);
 
     const handleFollowToggle = async () => {
         if (!user || !targetHandle || loadingFollow) return;
@@ -207,35 +208,37 @@ function ProfilePageContent() {
                                         </div>
                                     </div>
                                 </Link>
-                                <button 
-                                    onClick={async (e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
-                                        try {
-                                            const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user.handle || '@'+user.name}`, {
-                                                method: 'DELETE'
-                                            });
-                                            const data = await res.json();
-                                            if (data.success) {
-                                                setVideos(prev => prev.filter(item => item.id !== v.id));
-                                                alert("Vídeo eliminado con éxito.");
-                                            } else {
-                                                alert(data.error || "No se pudo eliminar el vídeo.");
+                                {isOwnProfile && (
+                                    <button 
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
+                                            try {
+                                                const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
+                                                    method: 'DELETE'
+                                                });
+                                                const data = await res.json();
+                                                if (data.success) {
+                                                    setVideos(prev => prev.filter(item => item.id !== v.id));
+                                                    alert("Vídeo eliminado con éxito.");
+                                                } else {
+                                                    alert(data.error || "No se pudo eliminar el vídeo.");
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Error al conectar con el servidor.");
                                             }
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert("Error al conectar con el servidor.");
-                                        }
-                                    }} 
-                                    style={{ 
-                                        position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
-                                        background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
-                                        display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
-                                    }}
-                                >
-                                    <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
-                                </button>
+                                        }} 
+                                        style={{ 
+                                            position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
+                                            background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
+                                            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
+                                        }}
+                                    >
+                                        <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
