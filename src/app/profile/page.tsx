@@ -122,18 +122,11 @@ function ProfilePageContent() {
             return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando perfil...</div>;
         }
         if (userNotFound || !liveUser) {
-            return (
-                <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
-                    <h2>Usuario no encontrado</h2>
-                    <p style={{ color: '#888', marginBottom: '20px' }}>El perfil al que intentas acceder no existe.</p>
-                    <button onClick={() => router.push('/feed')} style={{ padding: '10px 20px', backgroundColor: '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Volver al Feed
-                    </button>
-                    <BottomNav />
-                </div>
-            );
+            // Se muestra el mensaje en la cabecera, pero permitimos que cargue la vista inferior por si existen videos
+            displayUser = { name: 'Usuario no encontrado', handle: targetHandle, fans: 0, following: 0, likes: 0 };
+        } else {
+            displayUser = liveUser;
         }
-        displayUser = liveUser;
     } else {
         // Own profile fallback when no explicit handle is requested
         displayUser = liveUser || user;
