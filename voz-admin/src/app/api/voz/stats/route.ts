@@ -56,6 +56,41 @@ export async function GET(request: Request) {
             .filter(t => t.type === 'gift' || t.type === 'pm')
             .reduce((acc, t) => acc + (t.amount || 0), 0) * 0.05; // 5% shared logic
 
+        // Calculate Top Donors
+        const donorMap: Record<string, number> = {};
+        transactions.forEach(t => {
+            if (t.type === 'gift' && t.senderId) {
+                donorMap[t.senderId] = (donorMap[t.senderId] || 0) + (t.amount || 0);
+            }
+        });
+        
+        const topDonors = Object.entries(donorMap)
+            .map(([handle, donation]) => {
+                const user = users.find(u => u.handle === handle) || { name: handle, color: '#808080' };
+                return {
+                    id: handle,
+                    handle: handle,
+                    name: user.name || handle,
+                    avatarColor: (user as any).color || '#808080',
+                    donation
+                };
+            })
+            .sort((a, b) => b.donation - a.donation)
+            .slice(0, 10);
+
+        // Calculate Categories
+        const catMap: Record<string, number> = {};
+        videos.forEach(v => {
+            const c = (v as any).category || 'General';
+            catMap[c] = (catMap[c] || 0) + 1;
+        });
+        const categories = Object.entries(catMap)
+            .map(([name, count]) => ({
+                name,
+                count: Math.round((count / Math.max(videos.length, 1)) * 100)
+            }))
+            .sort((a, b) => b.count - a.count);
+
         // 6. Summary for Dashboard
         return NextResponse.json({
             totals: {
@@ -69,6 +104,8 @@ export async function GET(request: Request) {
                 revenueToday
             },
             videos: topVideos,
+            donors: topDonors,
+            categories: categories,
             creators: users.filter(u => u.isCreator).length,
             interactions: {
                 totalTips,

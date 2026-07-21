@@ -428,20 +428,20 @@ export default function FeedPage() {
 
     const scrollNext = () => {
         if (containerRef.current) {
-            containerRef.current.scrollBy({ left: window.innerWidth, behavior: 'smooth' });
+            containerRef.current.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
         }
     };
 
     const scrollPrev = () => {
         if (containerRef.current) {
-            containerRef.current.scrollBy({ left: -window.innerWidth, behavior: 'smooth' });
+            containerRef.current.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
         }
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        // Fetch more videos when near the right end
-        if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 300) {
+        // Fetch more videos when near the bottom
+        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 300) {
             if (!fetchingRef.current && hasMore && videos.length > 0) {
                 fetchVideos(videos.length);
             }
@@ -508,24 +508,26 @@ export default function FeedPage() {
                     backdrop-filter: blur(8px);
                     font-size: 13px;
                 }
-                /* === HORIZONTAL SCROLL FEED === */
+                /* === VERTICAL SCROLL FEED === */
                 .feed-scroll-container {
                     height: calc(100dvh - 56px - 65px - env(safe-area-inset-bottom, 0px));
                     width: 100%;
                     display: flex;
-                    overflow-x: scroll;
-                    overflow-y: hidden;
-                    scroll-snap-type: x mandatory;
+                    flex-direction: column;
+                    overflow-y: scroll;
+                    overflow-x: hidden;
+                    scroll-snap-type: y mandatory;
                     scroll-behavior: smooth;
                     -webkit-overflow-scrolling: touch;
                     scrollbar-width: none;
                 }
                 .feed-scroll-container::-webkit-scrollbar { display: none; }
-                /* Each slide takes full viewport width */
+                /* Each slide takes full viewport height */
                 .feed-scroll-container > div {
-                    min-width: 100vw;
-                    height: 100%;
+                    min-height: 100%;
+                    width: 100vw;
                     flex-shrink: 0;
+                    scroll-snap-align: start;
                 }
                 @media (min-width: 768px) {
                     .action-icons {

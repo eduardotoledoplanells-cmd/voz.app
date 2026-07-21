@@ -1,0 +1,2 @@
+const { execSync } = require('child_process');
+execSync('npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production,preview,development --value "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWZ0d3p1Ym12Y3JkaHV3Y3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTIxNzIsImV4cCI6MjA5NDY4ODE3Mn0.ontxCxwCCA4TRbFCF9oZHT-eSDTrVC2b5P6z5B6Xa6s" --no-sensitive --yes', { stdio: 'inherit' });

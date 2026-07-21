@@ -31,6 +31,9 @@ export default function LoginPage() {
                 throw new Error(data.error || data.message || 'Error al iniciar sesión');
             }
 
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
             login(data.user || data, rememberMe);
         } catch (err: any) {
             setError(err.message);

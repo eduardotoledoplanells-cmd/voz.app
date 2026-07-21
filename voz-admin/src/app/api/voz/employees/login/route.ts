@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             .update({ last_login: new Date().toISOString() })
             .eq('id', employee.id);
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             success: true,
             token,  // ← JWT, expires in 8h
             employee: {
@@ -144,6 +144,17 @@ export async function POST(request: NextRequest) {
                 worker_number: employee.worker_number || '???',
             }
         });
+
+        // Set HttpOnly cookie for robust authentication
+        response.cookies.set('voz_admin_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 8 * 60 * 60, // 8 hours
+            path: '/',
+        });
+
+        return response;
     } catch (e: any) {
         console.error('Error in login API:', e);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });

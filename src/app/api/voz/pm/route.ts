@@ -338,7 +338,7 @@ export async function GET(request: Request) {
                 .from('pm_escrows')
                 .select('*')
                 .or(`sender_handle.eq.${userHandle},creator_handle.eq.${userHandle}`)
-                .order('updated_at', { ascending: false });
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
 

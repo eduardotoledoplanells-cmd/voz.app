@@ -226,7 +226,7 @@ export default function MonetizationPage() {
                             cursor: 'pointer', transition: 'opacity 0.2s'
                         }}
                     >
-                        Crear Campaña de Publicidad
+                        Ver mis Campañas
                     </Link>
                 </div>
 

@@ -28,13 +28,24 @@ export interface ValidationResult {
  * - 0: Normal employee (e.g. Moderator)
  * - 1: Director / Super Admin
  */
+import { cookies } from 'next/headers';
+
 export async function validateEmployee(
     request: Request,
     minRole: number = 0
 ): Promise<ValidationResult> {
     try {
-        // ── METHOD 1: JWT Bearer Token ─────────────────────────────────────────
-        const token = extractBearerToken(request);
+        // ── METHOD 1: JWT Bearer Token or Cookie ────────────────────────────────
+        let token = extractBearerToken(request);
+        if (!token) {
+            try {
+                const cookieStore = await cookies();
+                token = cookieStore.get('voz_admin_token')?.value || null;
+            } catch (err) {
+                // Ignore cookies() error if not in Next.js App Router context
+            }
+        }
+
         if (token) {
             try {
                 const payload = await verifyAdminToken(token);

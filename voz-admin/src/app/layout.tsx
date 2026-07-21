@@ -21,6 +21,33 @@ function VozAdminContent({
     const [windowState, setWindowState] = useState<'normal' | 'maximized' | 'minimized'>('normal');
     const [errorCount, setErrorCount] = useState(0);
 
+    // Global fetch interceptor to attach JWT token to all requests
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const originalFetch = window.fetch;
+            window.fetch = async (...args) => {
+                let [resource, config] = args;
+                if (typeof resource === 'string' && resource.startsWith('/api/voz')) {
+                    const storedEmployee = localStorage.getItem('vozEmployee');
+                    if (storedEmployee) {
+                        try {
+                            const emp = JSON.parse(storedEmployee);
+                            if (emp.token) {
+                                config = config || {};
+                                config.headers = {
+                                    ...config.headers,
+                                    'Authorization': `Bearer ${emp.token}`
+                                };
+                            }
+                        } catch (e) {}
+                    }
+                }
+                return originalFetch(resource, config);
+            };
+        }
+    }, []);
+
+
     useEffect(() => {
         const storedEmployee = localStorage.getItem('vozEmployee');
         if (storedEmployee) {

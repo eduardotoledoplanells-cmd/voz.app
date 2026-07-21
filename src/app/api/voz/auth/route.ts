@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Tu cuenta ha sido suspendida permanentemente" }, { status: 403 });
             }
 
-            return NextResponse.json({ success: true, user: userProfile });
+            return NextResponse.json({ success: true, user: userProfile, token: authData.session?.access_token });
 
         } else if (action === 'forgot_password') {
             const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);

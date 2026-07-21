@@ -148,26 +148,22 @@ function isRateLimited(key: string): boolean {
 
 export async function POST(req: NextRequest) {
     try {
-        // 1. Session Validation: Verify bearer token against Supabase Auth
+        let userId = 'anonymous';
         const authHeader = req.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json({ success: false, error: "No autorizado. Inicie sesión para enviar reportes." }, { status: 401 });
-        }
-
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        
-        if (authError || !user) {
-            console.warn("[REPORT_SPAM_PREVENTION] Invalid session token attempt:", authError);
-            return NextResponse.json({ success: false, error: "Sesión inválida o expirada. Vuelva a iniciar sesión." }, { status: 401 });
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+            if (!authError && user) {
+                userId = user.id;
+            }
         }
 
         // 2. Rate Limiting: Key on user ID + client IP
         const clientIp = req.headers.get('x-forwarded-for') || (req as any).ip || 'unknown-ip';
-        const rateLimitKey = `${user.id}:${clientIp}`;
+        const rateLimitKey = `${userId}:${clientIp}`;
 
         if (isRateLimited(rateLimitKey)) {
-            console.warn(`[REPORT_RATE_LIMIT] Rate limit exceeded for user ${user.id} (${clientIp})`);
+            console.warn(`[REPORT_RATE_LIMIT] Rate limit exceeded for user ${userId} (${clientIp})`);
             return NextResponse.json({ 
                 success: false, 
                 error: "Has enviado demasiados reportes en poco tiempo. Por favor, espera un minuto." 

@@ -251,10 +251,10 @@ function ProfilePageContent() {
                     backgroundImage: displayUser.profileImage ? `url(${displayUser.profileImage})` : 'none',
                     backgroundSize: 'cover'
                 }}>
-                    {!displayUser.profileImage && (displayUser.name ? displayUser.name.charAt(0).toUpperCase() : '?')}
+                    {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
                 </div>
                 <h2 style={{ margin: 0 }}>{displayUser.name}</h2>
-                <p style={{ color: '#aaa', margin: '5px 0' }}>{displayUser.handle || '@'+displayUser.name?.toLowerCase().replace(/\s+/g, '')}</p>
+                <p style={{ color: '#aaa', margin: '5px 0' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
                 <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px' }}>{displayUser.bio || 'Sin biografía todavía.'}</p>
                 
                 <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
@@ -321,7 +321,7 @@ function ProfilePageContent() {
 
             {/* Grid de Videos */}
             <div style={{ padding: '2px' }}>
-                {activeTab === 'grid' ? (
+                {activeTab === 'grid' && (
                     <>
                         {loadingVideos ? (
                             <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Cargando vídeos...</div>
@@ -381,6 +381,8 @@ function ProfilePageContent() {
                                     </div>
                                 ))}
                             </div>
+                        )}
+                    </>
                 )}
                 
                 {/* Intersection Observer Target */}
