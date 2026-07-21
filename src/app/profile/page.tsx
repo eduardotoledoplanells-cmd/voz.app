@@ -147,9 +147,13 @@ function ProfilePageContent() {
         if (!user || !targetHandle || loadingFollow) return;
         setLoadingFollow(true);
         try {
+            const token = localStorage.getItem('token') || '';
             const res = await fetch('/api/voz/users/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     followerHandle: user.handle || '@'+user.name,
                     followingHandle: targetHandle
@@ -188,9 +192,13 @@ function ProfilePageContent() {
 
         setIsDonating(true);
         try {
+            const token = localStorage.getItem('token') || '';
             const res = await fetch('/api/voz/donate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     creatorHandle: targetHandle,
                     senderHandle: user.handle || '@' + user.name,
@@ -342,8 +350,12 @@ function ProfilePageContent() {
                                                     e.stopPropagation();
                                                     if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
                                                     try {
+                                                        const token = localStorage.getItem('token') || '';
                                                         const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
-                                                            method: 'DELETE'
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                                'Authorization': `Bearer ${token}`
+                                                            }
                                                         });
                                                         const data = await res.json();
                                                         if (data.success) {

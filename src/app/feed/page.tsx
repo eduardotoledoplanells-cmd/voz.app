@@ -162,9 +162,13 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         setIsLiked(newIsLiked);
         setLikesCount((prev: number) => newIsLiked ? prev + 1 : prev - 1);
         try {
+            const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/like', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isLiked: newIsLiked })
             });
         } catch (e) { console.error("Error liking video", e); }
@@ -175,9 +179,13 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         const newIsBookmarked = !isBookmarked;
         setIsBookmarked(newIsBookmarked);
         try {
+            const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/bookmark', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isBookmarked: newIsBookmarked })
             });
         } catch (e) { console.error("Error bookmarking video", e); }
@@ -199,9 +207,13 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         setTimeout(() => setGiftScale(1), 300);
         
         try {
+            const token = localStorage.getItem('token') || '';
             const res = await fetch('/api/voz/gift', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ senderHandle: currentUserHandle, receiverHandle: receiver, amount: 1, videoId: v.id })
             });
             const data = await res.json();
