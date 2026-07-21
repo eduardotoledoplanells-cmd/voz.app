@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import { Grid, Bookmark, Heart, Lock } from 'lucide-react';
 
 function ProfilePageContent() {
     const { user, logout, isLoading } = useAuth();
@@ -16,6 +17,8 @@ function ProfilePageContent() {
     const [liveUser, setLiveUser] = useState<any>(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const [loadingFollow, setLoadingFollow] = useState(false);
+
+    const [activeTab, setActiveTab] = useState('grid');
 
     const [hasMoreVideos, setHasMoreVideos] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -213,7 +216,6 @@ function ProfilePageContent() {
         return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
     }
 
-    // Determine what to display based on the strict requirements
     let displayUser = null;
 
     if (isExplicitHandle) {
@@ -221,13 +223,11 @@ function ProfilePageContent() {
             return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando perfil...</div>;
         }
         if (userNotFound || !liveUser) {
-            // Se muestra el mensaje en la cabecera, pero permitimos que cargue la vista inferior por si existen videos
             displayUser = { name: 'Usuario no encontrado', handle: targetHandle, fans: 0, following: 0, likes: 0 };
         } else {
             displayUser = liveUser;
         }
     } else {
-        // Own profile fallback when no explicit handle is requested
         displayUser = liveUser || user;
     }
 
@@ -283,66 +283,92 @@ function ProfilePageContent() {
                 </div>
             </div>
 
+            {/* Tabs Selector */}
+            <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #333', marginTop: '10px' }}>
+                <div 
+                    onClick={() => setActiveTab('grid')} 
+                    style={{ flex: 1, display: 'flex', justifyContent: 'center', paddingBottom: '10px', borderBottom: activeTab === 'grid' ? '2px solid white' : '2px solid transparent', cursor: 'pointer' }}>
+                    <Grid size={24} color={activeTab === 'grid' ? 'white' : '#666'} />
+                </div>
+                {isOwnProfile && (
+                    <>
+                        <div 
+                            onClick={() => setActiveTab('bookmarks')} 
+                            style={{ flex: 1, display: 'flex', justifyContent: 'center', paddingBottom: '10px', borderBottom: activeTab === 'bookmarks' ? '2px solid white' : '2px solid transparent', cursor: 'pointer' }}>
+                            <Bookmark size={24} color={activeTab === 'bookmarks' ? 'white' : '#666'} />
+                        </div>
+                        <div 
+                            onClick={() => setActiveTab('likes')} 
+                            style={{ flex: 1, display: 'flex', justifyContent: 'center', paddingBottom: '10px', borderBottom: activeTab === 'likes' ? '2px solid white' : '2px solid transparent', cursor: 'pointer' }}>
+                            <Heart size={24} color={activeTab === 'likes' ? 'white' : '#666'} />
+                        </div>
+                        <div 
+                            onClick={() => setActiveTab('drafts')} 
+                            style={{ flex: 1, display: 'flex', justifyContent: 'center', paddingBottom: '10px', borderBottom: activeTab === 'drafts' ? '2px solid white' : '2px solid transparent', cursor: 'pointer' }}>
+                            <Lock size={24} color={activeTab === 'drafts' ? 'white' : '#666'} />
+                        </div>
+                    </>
+                )}
+            </div>
+
             {/* Grid de Videos */}
             <div style={{ padding: '2px' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', borderBottom: '1px solid #333' }}>
-                    <span style={{ borderBottom: '2px solid white', paddingBottom: '5px', fontWeight: 'bold' }}>Publicaciones</span>
-                </div>
-                
-                {loadingVideos ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Cargando vídeos...</div>
-                ) : videos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>No hay vídeos publicados aún.</div>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
-                        {videos.map(v => (
-                            <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
-                                <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
-                                    <div style={{ height: '100%' }}>
-                                        {v.videoUrl ? (
-                                            <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        ) : (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
+                {activeTab === 'grid' ? (
+                    <>
+                        {loadingVideos ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Cargando vídeos...</div>
+                        ) : videos.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>No hay vídeos publicados aún.</div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
+                                {videos.map(v => (
+                                    <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
+                                        <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                                            <div style={{ height: '100%' }}>
+                                                {v.videoUrl ? (
+                                                    <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
+                                                )}
+                                                <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
+                                                    ▶ {v.views || 0}
+                                                </div>
+                                            </div>
+                                        </Link>
+                                        {isOwnProfile && (
+                                            <button 
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
+                                                    try {
+                                                        const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
+                                                            method: 'DELETE'
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                            setVideos(prev => prev.filter(item => item.id !== v.id));
+                                                            alert("Vídeo eliminado con éxito.");
+                                                        } else {
+                                                            alert(data.error || "No se pudo eliminar el vídeo.");
+                                                        }
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        alert("Error al conectar con el servidor.");
+                                                    }
+                                                }} 
+                                                style={{ 
+                                                    position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
+                                                    background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
+                                                    display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
+                                                }}
+                                            >
+                                                <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
+                                            </button>
                                         )}
-                                        <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
-                                            ▶ {v.views || 0}
-                                        </div>
                                     </div>
-                                </Link>
-                                {isOwnProfile && (
-                                    <button 
-                                        onClick={async (e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
-                                            try {
-                                                const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
-                                                    method: 'DELETE'
-                                                });
-                                                const data = await res.json();
-                                                if (data.success) {
-                                                    setVideos(prev => prev.filter(item => item.id !== v.id));
-                                                    alert("Vídeo eliminado con éxito.");
-                                                } else {
-                                                    alert(data.error || "No se pudo eliminar el vídeo.");
-                                                }
-                                            } catch (err) {
-                                                console.error(err);
-                                                alert("Error al conectar con el servidor.");
-                                            }
-                                        }} 
-                                        style={{ 
-                                            position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
-                                            background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
-                                            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
-                                        }}
-                                    >
-                                        <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
-                                    </button>
-                                )}
+                                ))}
                             </div>
-                        ))}
-                    </div>
                 )}
                 
                 {/* Intersection Observer Target */}
