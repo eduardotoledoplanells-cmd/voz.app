@@ -84,7 +84,7 @@ export async function POST(request: Request) {
             type: 'video',
             videoUrl: campaignData.videoUrl,
             startDate: new Date().toISOString(),
-            endDate: null,
+            endDate: null as any,
             forceView: false,
             minViewTime: 0,
             target: 'all',
@@ -98,7 +98,8 @@ export async function POST(request: Request) {
             packSize: campaignData.packSize || 1000 // Default 1000 impressions pack
         };
 
-        newCampaign.status = 'pending_payment';
+        newCampaign.status = 'pending_payment' as any;
+
 
         const result = await addCampaign(newCampaign, userHandle);
         return NextResponse.json({ success: true, campaign: result });

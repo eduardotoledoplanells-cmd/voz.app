@@ -116,7 +116,7 @@ export async function POST(request: Request) {
         const finalRedirectUrl = redirectUrl || `${origin}/profile`;
         
         const session = await stripe.checkout.sessions.create({
-            ui_mode: 'embedded',
+            ui_mode: 'embedded' as any,
             payment_method_types: ['card'],
             line_items: [
                 {
