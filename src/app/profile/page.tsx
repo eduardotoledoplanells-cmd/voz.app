@@ -17,6 +17,10 @@ function ProfilePageContent() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [loadingFollow, setLoadingFollow] = useState(false);
 
+    const [showDonateModal, setShowDonateModal] = useState(false);
+    const [donateAmount, setDonateAmount] = useState('');
+    const [isDonating, setIsDonating] = useState(false);
+
     const handleParam = searchParams.get('handle');
     const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
     
@@ -109,11 +113,54 @@ function ProfilePageContent() {
             }
         } catch (error) {
             console.error("Error toggling follow:", error);
+        } finally {
+            setLoadingFollow(false);
         }
-        setLoadingFollow(false);
     };
 
-    if (isLoading || !user) {
+    const handleDonate = async () => {
+        if (!user) {
+            alert("Debes iniciar sesión para donar.");
+            router.push('/login');
+            return;
+        }
+        const amount = Number(donateAmount);
+        if (isNaN(amount) || amount <= 0) {
+            alert("Cantidad no válida.");
+            return;
+        }
+        if (amount > (user.walletBalance || 0)) {
+            alert("No tienes saldo suficiente en tu cartera.");
+            return;
+        }
+
+        setIsDonating(true);
+        try {
+            const res = await fetch('/api/voz/donate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    creatorHandle: targetHandle,
+                    senderHandle: user.handle || '@' + user.name,
+                    amount: amount
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Has donado ${amount} monedas a ${displayUser.name}`);
+                setShowDonateModal(false);
+                setDonateAmount('');
+            } else {
+                alert(data.error || "Error al procesar la donación.");
+            }
+        } catch (e) {
+            alert("Error de conexión.");
+        } finally {
+            setIsDonating(false);
+        }
+    };
+
+    if (isFetchingUser || !user) {
         return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
     }
 
@@ -175,9 +222,14 @@ function ProfilePageContent() {
                             <button onClick={logout} style={{ width: '100%', maxWidth: '290px', padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
                         </>
                     ) : (
-                        <button onClick={handleFollowToggle} disabled={loadingFollow} style={{ width: '100%', maxWidth: '290px', padding: '10px 20px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
-                            {isFollowing ? 'Siguiendo' : 'Seguir'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}>
+                            <button onClick={handleFollowToggle} disabled={loadingFollow} style={{ flex: 1, maxWidth: '140px', padding: '10px 15px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                {isFollowing ? 'Siguiendo' : 'Seguir'}
+                            </button>
+                            <button onClick={() => setShowDonateModal(true)} style={{ flex: 1, maxWidth: '140px', padding: '10px 15px', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: 'black', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                Donar
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -250,6 +302,33 @@ function ProfilePageContent() {
                 profile={user} 
                 onLogout={logout} 
             />
+
+            {showDonateModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+                    <div style={{ backgroundColor: '#222', padding: '25px', borderRadius: '15px', width: '90%', maxWidth: '350px', position: 'relative' }}>
+                        <button onClick={() => setShowDonateModal(false)} style={{ position: 'absolute', top: '10px', right: '15px', background: 'transparent', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
+                        <h3 style={{ marginTop: 0, textAlign: 'center' }}>Donar a {displayUser.name}</h3>
+                        <p style={{ color: 'gray', textAlign: 'center', marginBottom: '15px' }}>
+                            Tu saldo actual: {Number(user?.walletBalance || 0).toFixed(2).replace('.', ',')} 🪙
+                        </p>
+                        <input 
+                            type="number" 
+                            value={donateAmount}
+                            onChange={(e) => setDonateAmount(e.target.value)}
+                            placeholder="0"
+                            style={{ width: '100%', boxSizing: 'border-box', backgroundColor: '#2a2a2a', color: 'white', border: '2px solid #FFD700', borderRadius: '10px', padding: '15px', fontSize: '24px', textAlign: 'center', fontWeight: 'bold' }}
+                        />
+                        <button 
+                            onClick={handleDonate}
+                            disabled={isDonating}
+                            style={{ width: '100%', marginTop: '20px', padding: '15px', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: 'black', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
+                        >
+                            {isDonating ? 'Procesando...' : 'Confirmar Donación'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <BottomNav />
             </div>
         </div>
