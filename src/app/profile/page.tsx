@@ -46,28 +46,24 @@ function ProfilePageContent() {
             setIsFetchingUser(true);
             setUserNotFound(false);
             
-            // Fetch live user stats
+            // Fetch live user stats first, then use exact handle for videos
             fetch(`/api/voz/users/profile?handle=${encodeURIComponent(targetHandle)}`)
                 .then(res => res.json())
                 .then(data => {
+                    let handleForVideos = targetHandle;
                     if (data.success && data.user) {
                         setLiveUser(data.user);
                         const myHandle = user.handle || '@'+user.name;
                         setIsFollowing(data.fans && data.fans.includes(myHandle));
+                        // Use exact handle from DB to avoid @ mismatch
+                        handleForVideos = data.user.handle || targetHandle;
                     } else {
                         setUserNotFound(true);
                     }
+                    
+                    // Fetch user videos with the best handle
+                    return fetch(`/api/voz/videos?userHandle=${encodeURIComponent(handleForVideos)}`);
                 })
-                .catch(err => {
-                    console.error("Error fetching live user:", err);
-                    setUserNotFound(true);
-                })
-                .finally(() => {
-                    setIsFetchingUser(false);
-                });
-
-            // Fetch user videos
-            fetch(`/api/voz/videos?userHandle=${encodeURIComponent(targetHandle)}`)
                 .then(res => res.json())
                 .then(data => {
                     const videoList = Array.isArray(data) ? data : (data.videos || []);
@@ -75,8 +71,14 @@ function ProfilePageContent() {
                     setLoadingVideos(false);
                 })
                 .catch(err => {
-                    console.error(err);
+                    console.error("Error fetching profile or videos:", err);
+                    if (!liveUser) {
+                        setUserNotFound(true);
+                    }
                     setLoadingVideos(false);
+                })
+                .finally(() => {
+                    setIsFetchingUser(false);
                 });
         } else if (user && !targetHandle) {
             setIsFetchingUser(false);
