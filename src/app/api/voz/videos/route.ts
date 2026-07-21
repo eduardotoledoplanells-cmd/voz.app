@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
             }
         } else {
             videos = userHandle 
-                ? await getVideosByUser(userHandle) 
+                ? await getVideosByUser(userHandle, undefined, limit, offset) 
                 : await getVideos(undefined, limit, offset);
         }
         return corsHeaders(NextResponse.json(videos));

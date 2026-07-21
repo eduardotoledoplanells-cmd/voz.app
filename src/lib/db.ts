@@ -1983,12 +1983,14 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
     return result;
 }
 
-export async function getVideosByUser(handle: string, currentUserHandle?: string): Promise<VideoPost[]> {
+export async function getVideosByUser(handle: string, currentUserHandle?: string, limit: number = 10, offset: number = 0): Promise<VideoPost[]> {
     // 1. Fetch raw videos
     const { data: videos, error: videosError } = await supabaseAdmin
         .from('videos')
         .select('*')
-        .eq('user_handle', handle);
+        .eq('user_handle', handle)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
     if (videosError) {
         console.error("[db] getVideosByUser error:", videosError);

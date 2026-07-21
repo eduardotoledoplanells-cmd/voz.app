@@ -17,6 +17,10 @@ function ProfilePageContent() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [loadingFollow, setLoadingFollow] = useState(false);
 
+    const [hasMoreVideos, setHasMoreVideos] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const observerTarget = useRef<HTMLDivElement>(null);
+
     const [showDonateModal, setShowDonateModal] = useState(false);
     const [donateAmount, setDonateAmount] = useState('');
     const [isDonating, setIsDonating] = useState(false);
@@ -66,11 +70,13 @@ function ProfilePageContent() {
                     }
                     
                     // Fetch user videos with the best handle
-                    return fetch(`/api/voz/videos?userHandle=${encodeURIComponent(handleForVideos)}`);
+                    return fetch(`/api/voz/videos?userHandle=${encodeURIComponent(handleForVideos)}&limit=12&offset=0`);
                 })
                 .then(res => res.json())
                 .then(data => {
                     const videoList = Array.isArray(data) ? data : (data.videos || []);
+                    if (videoList.length < 12) setHasMoreVideos(false);
+                    else setHasMoreVideos(true);
                     setVideos(videoList);
                     setLoadingVideos(false);
                 })
@@ -90,6 +96,49 @@ function ProfilePageContent() {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id, targetHandle]);
+
+    const fetchMoreVideos = async () => {
+        setLoadingMore(true);
+        try {
+            const currentHandle = liveUser?.handle || targetHandle || '';
+            const res = await fetch(`/api/voz/videos?userHandle=${encodeURIComponent(currentHandle)}&limit=12&offset=${videos.length}`);
+            const data = await res.json();
+            const fetchedVideos = Array.isArray(data) ? data : (data.videos || []);
+            if (fetchedVideos.length < 12) {
+                setHasMoreVideos(false);
+            }
+            if (fetchedVideos.length > 0) {
+                setVideos(prev => {
+                    const existingIds = new Set(prev.map(v => v.id));
+                    const newVideos = fetchedVideos.filter((v: any) => !existingIds.has(v.id));
+                    return [...prev, ...newVideos];
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching more videos:", error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMoreVideos && !loadingMore && videos.length > 0) {
+                    fetchMoreVideos();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => {
+            if (observerTarget.current) observer.unobserve(observerTarget.current);
+        };
+    }, [hasMoreVideos, loadingMore, videos.length, liveUser, targetHandle]);
 
     const handleFollowToggle = async () => {
         if (!user || !targetHandle || loadingFollow) return;
@@ -295,7 +344,20 @@ function ProfilePageContent() {
                         ))}
                     </div>
                 )}
+                
+                {/* Intersection Observer Target */}
+                {videos.length > 0 && hasMoreVideos && (
+                    <div ref={observerTarget} style={{ height: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        {loadingMore && <span style={{ color: '#888' }}>Cargando más...</span>}
+                    </div>
+                )}
+                {!hasMoreVideos && videos.length > 0 && (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#888', fontSize: '14px' }}>
+                        No hay más vídeos
+                    </div>
+                )}
             </div>
+
             <ProfileSettingsModal 
                 isOpen={isSettingsOpen} 
                 onClose={() => setIsSettingsOpen(false)} 

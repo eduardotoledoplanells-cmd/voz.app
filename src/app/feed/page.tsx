@@ -13,6 +13,28 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     const [isManualPause, setIsManualPause] = useState(false);
     const [isLiveOpen, setIsLiveOpen] = useState(false);
     const [hasLiveSignal, setHasLiveSignal] = useState(false);
+    const [isNear, setIsNear] = useState(true);
+
+    const itemRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    setIsNear(entry.isIntersecting);
+                });
+            },
+            { rootMargin: "0px 100% 0px 100%", threshold: 0 }
+        );
+
+        if (itemRef.current) {
+            observer.observe(itemRef.current);
+        }
+
+        return () => {
+            if (itemRef.current) observer.unobserve(itemRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -199,20 +221,26 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     };
 
     return (
-        <div style={{ width: '100vw', height: '100%', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
+        <div ref={itemRef} style={{ width: '100vw', height: '100%', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
             <div style={{ width: '100%', maxWidth: '450px', height: '100%', position: 'relative', backgroundColor: '#000' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
-                        <video 
-                            ref={videoRef}
-                            src={v.videoUrl} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            controls={false}
-                            loop={!autoScroll}
-                            muted={false}
-                            playsInline
-                            onEnded={handleVideoEnded}
-                        />
+                        {isNear ? (
+                            <video 
+                                ref={videoRef}
+                                src={v.videoUrl} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                controls={false}
+                                loop={!autoScroll}
+                                muted={false}
+                                playsInline
+                                onEnded={handleVideoEnded}
+                            />
+                        ) : (
+                            <div style={{ width: '100%', height: '100%', backgroundColor: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                {v.thumbnailUrl && <img src={v.thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />}
+                            </div>
+                        )}
                         {/* Play/Pause Icon overlay */}
                         {!isPlaying && (
                             <div style={{ 
@@ -241,8 +269,8 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
 
                 {/* UI Superpuesta (Usuario, Título) */}
                 <div style={{ position: 'absolute', bottom: '95px', left: '15px', color: 'white', maxWidth: '70%', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', pointerEvents: 'auto', zIndex: 20 }}>
-                    <Link href={`/profile?handle=${encodeURIComponent(v.userHandle || v.user)}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none', color: 'white', cursor: 'pointer' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{v.userHandle || '@usuario'}</h3>
+                    <Link href={`/profile?handle=${encodeURIComponent(v.userHandle || v.userName || v.user || '')}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none', color: 'white', cursor: 'pointer' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{v.userHandle || v.userName || '@usuario'}</h3>
                     </Link>
                     <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', fontWeight: '500', opacity: 0.95 }}>{v.description || 'Sin descripción'}</p>
                 </div>
@@ -351,22 +379,39 @@ export default function FeedPage() {
 
     const containerRef = useRef<HTMLDivElement>(null);
     const fetchingRef = useRef(false);
+    const [hasMore, setHasMore] = useState(true);
 
-    useEffect(() => {
-        const fetchVideos = async () => {
-            try {
-                const res = await fetch('/api/voz/videos?limit=10&offset=0');
-                const data = await res.json();
-                const fetchedVideos = Array.isArray(data) ? data : data.videos || [];
+    const fetchVideos = async (offset = 0) => {
+        try {
+            fetchingRef.current = true;
+            const res = await fetch(`/api/voz/videos?limit=10&offset=${offset}`);
+            const data = await res.json();
+            const fetchedVideos = Array.isArray(data) ? data : data.videos || [];
+            
+            if (fetchedVideos.length < 10) {
+                setHasMore(false);
+            }
+            
+            if (offset === 0) {
                 setVideos(fetchedVideos);
                 setInitialVideos(fetchedVideos);
-            } catch (error) {
-                console.error('Error fetching videos:', error);
-            } finally {
-                setLoading(false);
+            } else if (fetchedVideos.length > 0) {
+                setVideos(prev => {
+                    const existingIds = new Set(prev.map(v => v.id));
+                    const newVideos = fetchedVideos.filter((v: any) => !existingIds.has(v.id));
+                    return [...prev, ...newVideos];
+                });
             }
-        };
-        fetchVideos();
+        } catch (error) {
+            console.error('Error fetching videos:', error);
+        } finally {
+            setLoading(false);
+            fetchingRef.current = false;
+        }
+    };
+
+    useEffect(() => {
+        fetchVideos(0);
     }, []);
 
     const scrollNext = () => {
@@ -383,12 +428,10 @@ export default function FeedPage() {
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        // Infinite loop: when near the right end, append more
-        if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 100) {
-            if (initialVideos.length > 0 && !fetchingRef.current) {
-                fetchingRef.current = true;
-                setVideos(prev => [...prev, ...initialVideos]);
-                setTimeout(() => { fetchingRef.current = false; }, 500);
+        // Fetch more videos when near the right end
+        if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 300) {
+            if (!fetchingRef.current && hasMore && videos.length > 0) {
+                fetchVideos(videos.length);
             }
         }
     };
