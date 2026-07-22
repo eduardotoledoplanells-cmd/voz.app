@@ -131,7 +131,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
             }
 
-            const shouldCharge = creator.privacySettings?.charge_pms !== false;
+            const shouldCharge = creator.privacySettings?.charge_pms === true;
 
             if (shouldCharge) {
                 // 1. Process premium message via Ledger Contabilidad
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
             }
 
-            const shouldCharge = creator ? (creator.privacySettings?.charge_pms !== false) : true;
+            const shouldCharge = creator ? (creator.privacySettings?.charge_pms === true) : false;
 
             if (shouldCharge) {
                 // Contar mensajes para verificar límite de 50 mensajes por bloque pagado

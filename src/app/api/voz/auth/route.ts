@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
 
             // 2. Crear el registro en la tabla pública app_users (para el perfil y wallet)
             // Nota: El ID de app_users coincidirá con el ID de Supabase Auth
+            const defaultPrivacySettings = { receive_pms: true, charge_pms: false, receive_gifts: true, receive_donations: true };
+
             const newUser: AppUser = {
                 id: authData.user?.id || uuidv4(),
                 handle: `@${username}`,
@@ -95,7 +97,8 @@ export async function POST(request: NextRequest) {
                 phone: phone || '',
                 country: countryText || undefined,
                 region: regionText || undefined,
-                interests: []
+                interests: [],
+                privacySettings: defaultPrivacySettings
             };
 
             const dbResult = await addAppUser(newUser);
@@ -113,7 +116,8 @@ export async function POST(request: NextRequest) {
                     interests: newUser.interests || [],
                     country_id: newUser.country_id,
                     region_id: newUser.region_id,
-                    municipality_id: newUser.municipality_id
+                    municipality_id: newUser.municipality_id,
+                    privacy_settings: defaultPrivacySettings
                 }]);
                 if (dbError) {
                     console.error("Error inserting app_user:", dbError);

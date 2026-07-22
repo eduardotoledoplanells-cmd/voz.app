@@ -641,7 +641,9 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             ].map((item, idx, arr) => {
                                 const isStripeRegistered = !!profile?.stripeAccountId;
                                 let isEnabled = (profile.privacySettings || {})[item.key];
-                                if (isEnabled === undefined) isEnabled = true;
+                                if (isEnabled === undefined) {
+                                    isEnabled = item.key === 'charge_pms' ? false : true;
+                                }
                                 if (item.requiresStripe && !isStripeRegistered) isEnabled = false;
 
                                 return (
