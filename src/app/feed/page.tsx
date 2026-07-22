@@ -67,6 +67,44 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     const [isMuted, setIsMuted] = useState(false);
 
     const hasViewed = useRef(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Extract background music url
+    const musicUrl = React.useMemo(() => {
+        if (!v.music) return null;
+        if (typeof v.music === 'string') {
+            if (v.music.includes('previewUrl')) {
+                try { return JSON.parse(v.music).previewUrl; } catch (e) {}
+            } else if (v.music.startsWith('http')) {
+                return v.music;
+            }
+        } else if (v.music && v.music.previewUrl) {
+            return v.music.previewUrl;
+        }
+        return null;
+    }, [v.music]);
+
+    // Manage background audio track sync for videos with music
+    useEffect(() => {
+        if (!musicUrl) return;
+        if (!audioRef.current) {
+            audioRef.current = new Audio(musicUrl);
+            audioRef.current.loop = true;
+        }
+        audioRef.current.muted = isMuted;
+
+        if (isPlaying) {
+            audioRef.current.play().catch(e => console.log('Background music play prevented', e));
+        } else {
+            audioRef.current.pause();
+        }
+
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+        };
+    }, [isPlaying, isMuted, musicUrl]);
 
     // Helper to log video view
     const logView = () => {
@@ -491,38 +529,51 @@ export default function FeedPage() {
         fetchVideos(0);
     }, []);
 
+    const lastWheelTime = useRef(0);
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        // Prevent default vertical mouse wheel scrolling
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastWheelTime.current < 350) return;
+
+        if (Math.abs(e.deltaY) > 10 || Math.abs(e.deltaX) > 10) {
+            lastWheelTime.current = now;
+            if (e.deltaY > 0 || e.deltaX > 0) {
+                scrollNext();
+            } else if (e.deltaY < 0 || e.deltaX < 0) {
+                scrollPrev();
+            }
+        }
+    };
+
     const scrollNext = () => {
         if (containerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-            if (scrollTop + clientHeight >= scrollHeight - 50) {
-                if (initialVideos.length > 0) {
-                    if (!hasMore) {
-                        // Loop back to start smoothly if at end of list
-                        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                        return;
-                    }
+            const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+            if (scrollLeft + clientWidth >= scrollWidth - 50) {
+                if (initialVideos.length > 0 && !hasMore) {
+                    containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                    return;
                 }
             }
-            containerRef.current.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+            containerRef.current.scrollBy({ left: window.innerWidth, behavior: 'smooth' });
         }
     };
 
     const scrollPrev = () => {
         if (containerRef.current) {
-            const { scrollTop } = containerRef.current;
-            if (scrollTop <= 10 && videos.length > 0) {
-                // Loop to bottom if at very top and user scrolls up
-                containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
+            const { scrollLeft } = containerRef.current;
+            if (scrollLeft <= 10 && videos.length > 0) {
+                containerRef.current.scrollTo({ left: containerRef.current.scrollWidth, behavior: 'smooth' });
                 return;
             }
-            containerRef.current.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+            containerRef.current.scrollBy({ left: -window.innerWidth, behavior: 'smooth' });
         }
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        // Fetch more videos or trigger infinite loop append when near the bottom
-        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 300) {
+        // Fetch more videos or trigger infinite loop append when near the end of horizontal scroll
+        if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 500) {
             if (!fetchingRef.current && videos.length > 0) {
                 if (hasMore) {
                     fetchVideos(videos.length);
@@ -604,24 +655,25 @@ export default function FeedPage() {
                     backdrop-filter: blur(8px);
                     font-size: 13px;
                 }
-                /* === VERTICAL SCROLL FEED === */
+                /* === HORIZONTAL SCROLL FEED === */
                 .feed-scroll-container {
-                    height: calc(100dvh - 56px - 65px - env(safe-area-inset-bottom, 0px));
-                    width: 100%;
+                    height: 100dvh;
+                    width: 100vw;
                     display: flex;
-                    flex-direction: column;
-                    overflow-y: scroll;
-                    overflow-x: hidden;
-                    scroll-snap-type: y mandatory;
+                    flex-direction: row;
+                    overflow-x: scroll;
+                    overflow-y: hidden;
+                    scroll-snap-type: x mandatory;
                     scroll-behavior: smooth;
                     -webkit-overflow-scrolling: touch;
                     scrollbar-width: none;
+                    touch-action: pan-x;
                 }
                 .feed-scroll-container::-webkit-scrollbar { display: none; }
-                /* Each slide takes full viewport height */
+                /* Each slide takes full viewport width */
                 .feed-scroll-container > div {
-                    min-height: 100%;
-                    width: 100vw;
+                    min-width: 100vw;
+                    height: 100dvh;
                     flex-shrink: 0;
                     scroll-snap-align: start;
                 }
@@ -656,10 +708,11 @@ export default function FeedPage() {
             <button className="nav-arrow left" onClick={scrollPrev}>{"<"}</button>
             <button className="nav-arrow right" onClick={scrollNext}>{">"}</button>
 
-            {/* Contenedor con Scroll Snap Vertical */}
+            {/* Contenedor con Scroll Snap Horizontal */}
             <div 
                 ref={containerRef}
                 onScroll={handleScroll}
+                onWheel={handleWheel}
                 className="feed-scroll-container"
             >
                 {loading ? (
