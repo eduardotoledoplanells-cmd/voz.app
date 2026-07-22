@@ -73,6 +73,7 @@ export async function POST(request: Request) {
                 Key: key,
                 Body: buffer,
                 ContentType: file.type,
+                CacheControl: 'public, max-age=31536000, immutable', // Edge CDN 1-year immutable caching
             })
         );
 

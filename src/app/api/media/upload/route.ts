@@ -78,6 +78,7 @@ export async function POST(request: Request) {
                         Key: fileName,
                         Body: buffer,
                         ContentType: file.type,
+                        CacheControl: 'public, max-age=31536000, immutable' // Edge CDN 1-year immutable caching
                     })
                 );
 
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
                 .from(targetBucket)
                 .upload(fileName, buffer, {
                     contentType: file.type,
-                    cacheControl: '3600',
+                    cacheControl: '31536000', // 1-year browser & CDN caching
                     upsert: false
                 });
 
@@ -121,12 +122,16 @@ export async function POST(request: Request) {
                 }, { status: 500 });
             }
 
-            // Get public URL from Supabase
-            const { data: { publicUrl: supabaseUrl } } = supabaseAdmin.storage
-                .from(targetBucket)
-                .getPublicUrl(fileName);
-                
-            publicUrl = supabaseUrl;
+            // Secure KYC Isolation: NEVER generate public URLs for sensitive KYC documents
+            if (targetBucket === 'kyc_documents') {
+                publicUrl = 'private://' + fileName;
+            } else {
+                const { data: { publicUrl: supabaseUrl } } = supabaseAdmin.storage
+                    .from(targetBucket)
+                    .getPublicUrl(fileName);
+                    
+                publicUrl = supabaseUrl;
+            }
         }
 
         return NextResponse.json({
