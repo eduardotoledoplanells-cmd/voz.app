@@ -342,8 +342,8 @@ const FeedItem = ({
 
                 {/* User info overlay */}
                 <div style={{ 
-                    position: 'absolute', bottom: '85px', left: '15px', right: '80px', color: 'white', 
-                    textShadow: '0px 2px 4px rgba(0,0,0,0.9)', zIndex: 35, pointerEvents: 'none' 
+                    position: 'absolute', bottom: '115px', left: '16px', right: '85px', color: 'white', 
+                    textShadow: '0px 2px 6px rgba(0,0,0,0.95)', zIndex: 35, pointerEvents: 'none' 
                 }}>
                     <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white', display: 'inline-block' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
