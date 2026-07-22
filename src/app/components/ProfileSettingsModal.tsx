@@ -112,10 +112,15 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
 
     if (!isOpen || !profile) return null;
 
-    const handleEdit = (mode: 'name' | 'bio' | 'live_url') => {
+    const handleEdit = (mode: 'name' | 'bio' | 'live_url' | 'country') => {
         setEditMode(mode);
         if (mode === 'name') setEditText(profile.handle || '');
         if (mode === 'bio') setEditText(profile.bio || '');
+        if (mode === 'country') {
+            const currentC = typeof profile.country === 'string' ? profile.country : (profile.country?.name || 'España');
+            setEditCountry(currentC);
+            setEditRegion(profile.region || '');
+        }
         if (mode === 'live_url') {
             setEditKick(profile.live_url_kick || '');
             setEditTwitch(profile.live_url_twitch || '');
@@ -131,6 +136,20 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
             
             if (editMode === 'name') body.handle = editText;
             if (editMode === 'bio') body.bio = editText;
+            if (editMode === 'country') {
+                const countryCodeMap: Record<string, string> = {
+                    'España': 'es', 'México': 'mx', 'Argentina': 'ar', 'Colombia': 'co',
+                    'Chile': 'cl', 'Perú': 'pe', 'Estados Unidos': 'us', 'Venezuela': 've',
+                    'Ecuador': 'ec', 'Guatemala': 'gt', 'Cuba': 'cu', 'República Dominicana': 'do',
+                    'Bolivia': 'bo', 'Honduras': 'hn', 'Paraguay': 'py', 'El Salvador': 'sv',
+                    'Nicaragua': 'ni', 'Costa Rica': 'cr', 'Puerto Rico': 'pr', 'Uruguay': 'uy',
+                    'Panamá': 'pa', 'Andorra': 'ad', 'Brasil': 'br', 'Francia': 'fr',
+                    'Italia': 'it', 'Alemania': 'de', 'Reino Unido': 'gb', 'Portugal': 'pt'
+                };
+                const code = countryCodeMap[editCountry] || 'es';
+                body.country = { name: editCountry, code: code };
+                body.region = editRegion.trim();
+            }
             if (editMode === 'live_url') {
                 const kickVal = editKick.trim() || null;
                 const twitchVal = editTwitch.trim() || null;
@@ -317,6 +336,15 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                     <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.live_url || 'No configurado'}</div>
                                 </div>
                                 <button onClick={() => handleEdit('live_url')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #333' }}>
+                                <div style={{ flex: 1, marginRight: '10px' }}>
+                                    <div style={{ color: 'white', fontWeight: 'bold' }}>País / Ubicación</div>
+                                    <div style={{ color: '#aaa', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {profile.region || (typeof profile.country === 'string' ? profile.country : profile.country?.name) || 'España'}
+                                    </div>
+                                </div>
+                                <button onClick={() => handleEdit('country')} style={{ backgroundColor: 'rgba(142, 45, 226, 0.15)', color: '#8E2DE2', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Editar</button>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ color: 'white', fontWeight: 'bold' }}>Monetización</div>
@@ -513,6 +541,28 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                         />
                                     </div>
                                 </div>
+                            </div>
+                        )}
+                        {editMode === 'country' && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>Selecciona tu País</div>
+                                <select 
+                                    value={editCountry} 
+                                    onChange={(e) => setEditCountry(e.target.value)}
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
+                                >
+                                    {['España', 'México', 'Argentina', 'Colombia', 'Chile', 'Perú', 'Estados Unidos', 'Venezuela', 'Ecuador', 'Guatemala', 'Cuba', 'República Dominicana', 'Bolivia', 'Honduras', 'Paraguay', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Puerto Rico', 'Uruguay', 'Panamá', 'Andorra', 'Brasil', 'Francia', 'Italia', 'Alemania', 'Reino Unido', 'Portugal'].map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Región / Ciudad (Opcional)</div>
+                                <input 
+                                    type="text"
+                                    value={editRegion}
+                                    onChange={(e) => setEditRegion(e.target.value)}
+                                    placeholder="Ej: Comunidad de Madrid - Madrid"
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem' }}
+                                />
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: '10px' }}>

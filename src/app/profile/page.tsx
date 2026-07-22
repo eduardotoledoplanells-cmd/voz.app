@@ -295,20 +295,25 @@ function ProfilePageContent() {
                         {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
                     </div>
                     {/* Circular Flag Badge overlay on bottom-right of avatar */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '-5px',
-                        right: '-5px',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        backgroundColor: '#1a1a1a',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        border: '2px solid #8E2DE2',
-                        overflow: 'hidden'
-                    }}>
+                    <div 
+                        title={isOwnProfile ? "Cambiar país" : undefined}
+                        onClick={() => isOwnProfile && setIsSettingsOpen(true)}
+                        style={{
+                            position: 'absolute',
+                            bottom: '-5px',
+                            right: '-5px',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            backgroundColor: '#1a1a1a',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            border: '2px solid #8E2DE2',
+                            overflow: 'hidden',
+                            cursor: isOwnProfile ? 'pointer' : 'default'
+                        }}
+                    >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={getFlagUri(displayUser.country || displayUser.nationality)} alt="Bandera" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
@@ -318,7 +323,16 @@ function ProfilePageContent() {
                 <p style={{ color: '#aaa', margin: '4px 0 2px' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
                 
                 {/* Location Badge matching mobile app */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(142, 45, 226, 0.15)', border: '1px solid rgba(142, 45, 226, 0.3)', padding: '4px 12px', borderRadius: '14px', fontSize: '12px', color: '#e0b0ff', fontWeight: 'bold', margin: '6px 0 10px' }}>
+                <div 
+                    title={isOwnProfile ? "Cambiar ubicación" : undefined}
+                    onClick={() => isOwnProfile && setIsSettingsOpen(true)}
+                    style={{ 
+                        display: 'flex', alignItems: 'center', gap: '5px', 
+                        backgroundColor: 'rgba(142, 45, 226, 0.15)', border: '1px solid rgba(142, 45, 226, 0.3)', 
+                        padding: '4px 12px', borderRadius: '14px', fontSize: '12px', color: '#e0b0ff', fontWeight: 'bold', 
+                        margin: '6px 0 10px', cursor: isOwnProfile ? 'pointer' : 'default' 
+                    }}
+                >
                     <span>📍</span>
                     <span>{getLocationText(displayUser)}</span>
                 </div>
