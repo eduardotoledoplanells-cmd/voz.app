@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
-import { Grid, Bookmark, Heart, Lock } from 'lucide-react';
+import { Grid, Bookmark, Heart, Lock, Play } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
@@ -435,8 +435,30 @@ function ProfilePageContent() {
                                         ) : (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
                                         )}
-                                        <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
-                                            ▶ {v.views || 0}
+                                        {/* Likes Badge top-left matching mobile app */}
+                                        <div style={{ 
+                                            position: 'absolute', top: '6px', left: '6px', 
+                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                            padding: '3px 7px', borderRadius: '10px', 
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                        }}>
+                                            <Heart size={11} color="#FF3B30" fill="#FF3B30" />
+                                            <span>{v.likes || 0}</span>
+                                        </div>
+
+                                        {/* Views Badge bottom-left */}
+                                        <div style={{ 
+                                            position: 'absolute', bottom: '6px', left: '6px', 
+                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                            padding: '3px 7px', borderRadius: '10px', 
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                        }}>
+                                            <Play size={10} color="white" fill="white" />
+                                            <span>{v.views || 0}</span>
                                         </div>
                                     </div>
                                 </Link>
