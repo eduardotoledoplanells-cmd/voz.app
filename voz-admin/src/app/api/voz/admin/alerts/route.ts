@@ -9,6 +9,7 @@ export async function GET(request: Request) {
         const grouped = searchParams.get('grouped') === 'true';
         const nivel = searchParams.get('nivel');       // filtrar por nivel
         const servicio = searchParams.get('servicio'); // filtrar por servicio
+        const showSolved = searchParams.get('showSolved') === 'true';
 
         if (grouped) {
             // Vista agrupada: un registro por firma, ordenado por ocurrencias DESC
@@ -18,6 +19,10 @@ export async function GET(request: Request) {
                 .select('id, servicio, nivel, mensaje_error, stack, usuario, plataforma, version_app, pantalla, metadata_json, firma, ocurrencias, usuarios_unicos, primera_vez, ultima_vez, creado_en')
                 .order('ocurrencias', { ascending: false })
                 .order('ultima_vez', { ascending: false });
+
+            if (!showSolved) {
+                query = query.filter('metadata_json->solucionado', 'is', 'null');
+            }
 
             // Filtrar por firma única: tomar el registro más reciente de cada firma
             // Supabase no soporta DISTINCT ON directamente — devolvemos todos y
@@ -50,6 +55,10 @@ export async function GET(request: Request) {
             .select('*')
             .order('creado_en', { ascending: false })
             .limit(500);
+            
+        if (!showSolved) {
+            query = query.filter('metadata_json->solucionado', 'is', 'null');
+        }
 
         if (nivel) query = query.eq('nivel', nivel);
         if (servicio) query = query.eq('servicio', servicio);

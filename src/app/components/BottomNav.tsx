@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Plus, Bell, User } from 'lucide-react';
+import { Home, Search, Plus, Bell, User, MessageSquare } from 'lucide-react';
 import ActivityModal from './ActivityModal';
 
 export default function BottomNav() {
@@ -81,52 +81,34 @@ export default function BottomNav() {
                 {/* Home */}
                 <Link href="/feed" style={navItemStyle(isActive('/feed'))}>
                     {isActive('/feed') && <span style={activeDot} />}
-                    <Home size={24} strokeWidth={isActive('/feed') ? 2.5 : 1.8} />
+                    <Home size={22} strokeWidth={isActive('/feed') ? 2.5 : 1.8} />
                     <span style={labelStyle(isActive('/feed'))}>Inicio</span>
                 </Link>
 
                 {/* Discover */}
                 <Link href="/discover" style={navItemStyle(isActive('/discover'))}>
                     {isActive('/discover') && <span style={activeDot} />}
-                    <Search size={24} strokeWidth={isActive('/discover') ? 2.5 : 1.8} />
-                    <span style={labelStyle(isActive('/discover'))}>Descubrir</span>
+                    <Search size={22} strokeWidth={isActive('/discover') ? 2.5 : 1.8} />
+                    <span style={labelStyle(isActive('/discover'))}>Buscar</span>
                 </Link>
 
-
-                {/* Upload — center button */}
-                <Link href="/upload" style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0',
-                    textDecoration: 'none',
-                    marginTop: '-10px',
-                }}>
-                    <div style={{
-                        width: '52px',
-                        height: '36px',
-                        background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 14px rgba(142, 45, 226, 0.5)',
-                    }}>
-                        <Plus size={22} color="white" strokeWidth={2.5} />
-                    </div>
+                {/* Messages */}
+                <Link href="/messages" style={navItemStyle(isActive('/messages'))}>
+                    {isActive('/messages') && <span style={activeDot} />}
+                    <MessageSquare size={22} strokeWidth={isActive('/messages') ? 2.5 : 1.8} />
+                    <span style={labelStyle(isActive('/messages'))}>Mensajes</span>
                 </Link>
 
-                {/* Activity */}
+                {/* Activity / Bell */}
                 <button onClick={() => setShowActivity(true)} style={navItemStyle(false) as any}>
-                    <Bell size={24} strokeWidth={1.8} />
+                    <Bell size={22} strokeWidth={1.8} />
                     <span style={labelStyle(false)}>Actividad</span>
                 </button>
 
                 {/* Profile */}
                 <Link href="/profile" style={navItemStyle(isActive('/profile'))}>
                     {isActive('/profile') && <span style={activeDot} />}
-                    <User size={24} strokeWidth={isActive('/profile') ? 2.5 : 1.8} />
+                    <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 1.8} />
                     <span style={labelStyle(isActive('/profile'))}>Perfil</span>
                 </Link>
             </div>

@@ -131,23 +131,27 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
             }
 
-            // 1. Process premium message via Ledger Contabilidad
-            const idempotencyKey = body.idempotencyKey;
-            if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
-                return NextResponse.json({ error: 'Se requiere un idempotencyKey UUID único del cliente para procesar la transacción.' }, { status: 400 });
-            }
-            try {
-                await processPremiumMessage(sender.id, creator.id, idempotencyKey);
-            } catch (ledgerError: any) {
-                console.error("Ledger PM transaction failed:", ledgerError);
-                await logSystemAlert({
-                    servicio: 'PM Ledger (Start)',
-                    nivel: 'warning',
-                    error: ledgerError,
-                    usuario: sender.handle,
-                    metadata: { creator: creator.handle }
-                });
-                return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente' }, { status: 400 });
+            const shouldCharge = creator.privacySettings?.charge_pms !== false;
+
+            if (shouldCharge) {
+                // 1. Process premium message via Ledger Contabilidad
+                const idempotencyKey = body.idempotencyKey;
+                if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
+                    return NextResponse.json({ error: 'Se requiere un idempotencyKey UUID único del cliente para procesar la transacción.' }, { status: 400 });
+                }
+                try {
+                    await processPremiumMessage(sender.id, creator.id, idempotencyKey);
+                } catch (ledgerError: any) {
+                    console.error("Ledger PM transaction failed:", ledgerError);
+                    await logSystemAlert({
+                        servicio: 'PM Ledger (Start)',
+                        nivel: 'warning',
+                        error: ledgerError,
+                        usuario: sender.handle,
+                        metadata: { creator: creator.handle }
+                    });
+                    return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente' }, { status: 400 });
+                }
             }
             
             const { data: existingEscrow } = await supabaseAdmin
@@ -167,7 +171,7 @@ export async function POST(request: Request) {
                     .insert([{
                         sender_handle: sender.handle,
                         creator_handle: creatorHandle,
-                        locked_amount: PM_COST,
+                        locked_amount: shouldCharge ? PM_COST : 0,
                         creator_responses: 0,
                         status: 'completed' // Ya se pagó la comisión
                     }])
@@ -195,15 +199,17 @@ export async function POST(request: Request) {
                 readStatus: false
             });
 
-            // Registrar transacción
-            await addTransaction({
-                senderHandle: sender.handle,
-                receiverHandle: creatorHandle,
-                amount: PM_COST,
-                type: 'pm_locked'
-            });
+            // Registrar transacción si fue de pago
+            if (shouldCharge) {
+                await addTransaction({
+                    senderHandle: sender.handle,
+                    receiverHandle: creatorHandle,
+                    amount: PM_COST,
+                    type: 'pm_locked_start'
+                });
+            }
 
-            return NextResponse.json({ success: true, escrowId });
+            return NextResponse.json({ success: true, message: 'Chat iniciado correctamente', escrowId });
 
         } else if (action === 'reply') {
             const { escrowId, content, renew } = body;
@@ -223,56 +229,72 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'No autorizado para acceder a este chat' }, { status: 403 });
             }
 
-            // Contar mensajes para verificar límite de 50 mensajes por bloque pagado
-            const { count: messageCount } = await supabaseAdmin
-                .from('pm_messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('escrow_id', escrowId);
+            const creator = await getUserByHandle(escrow.creator_handle);
+            if (creator && creator.privacySettings?.receive_pms === false) {
+                return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
+            }
 
-            const paidBlocks = Math.max(1, Math.floor((escrow.locked_amount || PM_COST) / PM_COST));
-            const maxAllowedMessages = paidBlocks * 50;
+            const shouldCharge = creator ? (creator.privacySettings?.charge_pms !== false) : true;
 
-            if (messageCount !== null && messageCount >= maxAllowedMessages) {
-                if (renew === true) {
-                    const idempotencyKey = body.idempotencyKey;
-                    if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
-                        return NextResponse.json({ error: 'Se requiere un idempotencyKey para renovar el chat.' }, { status: 400 });
+            if (shouldCharge) {
+                // Contar mensajes para verificar límite de 50 mensajes por bloque pagado
+                const { count: messageCount } = await supabaseAdmin
+                    .from('pm_messages')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('escrow_id', escrowId);
+
+                const paidBlocks = Math.max(1, Math.floor((escrow.locked_amount || PM_COST) / PM_COST));
+                const maxAllowedMessages = paidBlocks * 50;
+
+                if (messageCount !== null && messageCount >= maxAllowedMessages) {
+                    if (renew === true) {
+                        const idempotencyKey = body.idempotencyKey;
+                        if (!idempotencyKey || typeof idempotencyKey !== 'string' || idempotencyKey.length < 10) {
+                            return NextResponse.json({ error: 'Se requiere un idempotencyKey para renovar el chat.' }, { status: 400 });
+                        }
+                        try {
+                            if (!creator) throw new Error("Creador no encontrado");
+
+                            await processPremiumMessage(sender.id, creator.id, idempotencyKey);
+                            
+                            // Incrementar el monto bloqueado/pagado
+                            await supabaseAdmin.from('pm_escrows').update({
+                                locked_amount: (escrow.locked_amount || PM_COST) + PM_COST
+                            }).eq('id', escrowId);
+                            
+                            // Registrar transacción de renovación
+                            await addTransaction({
+                                senderHandle: sender.handle,
+                                receiverHandle: escrow.creator_handle,
+                                amount: PM_COST,
+                                type: 'pm_locked_renewal'
+                            });
+
+                        } catch (ledgerError: any) {
+                            await logSystemAlert({
+                                servicio: 'PM Ledger (Renew)',
+                                nivel: 'warning',
+                                error: ledgerError,
+                                usuario: sender.handle,
+                                metadata: { creator: escrow.creator_handle }
+                            });
+                            return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente para renovar.' }, { status: 402 });
+                        }
+                    } else {
+                        return NextResponse.json({ error: 'Límite de 50 mensajes alcanzado. Requiere renovación.', requireRenewal: true }, { status: 403 });
                     }
-                    try {
-                        // El receptor del pago siempre es el creador (creator_handle)
-                        const creatorHandleForPayment = escrow.creator_handle;
-                        const creator = await getUserByHandle(creatorHandleForPayment);
-                        if (!creator) throw new Error("Creador no encontrado");
-
-                        await processPremiumMessage(sender.id, creator.id, idempotencyKey);
-                        
-                        // Incrementar el monto bloqueado/pagado
-                        await supabaseAdmin.from('pm_escrows').update({
-                            locked_amount: (escrow.locked_amount || PM_COST) + PM_COST
-                        }).eq('id', escrowId);
-                        
-                        // Registrar transacción de renovación
-                        await addTransaction({
-                            senderHandle: sender.handle,
-                            receiverHandle: creatorHandleForPayment,
-                            amount: PM_COST,
-                            type: 'pm_locked_renewal'
-                        });
-
-                    } catch (ledgerError: any) {
-                        await logSystemAlert({
-                            servicio: 'PM Ledger (Renew)',
-                            nivel: 'warning',
-                            error: ledgerError,
-                            usuario: sender.handle,
-                            metadata: { creator: escrow.creator_handle }
-                        });
-                        return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente para renovar.' }, { status: 402 });
-                    }
-                } else {
-                    return NextResponse.json({ error: 'Límite de 50 mensajes alcanzado. Requiere renovación.', requireRenewal: true }, { status: 403 });
                 }
             }
+
+            // Obtener el emisor del último mensaje del hilo ANTES de insertar el nuevo (Regla Anti-Fraude de Turnos)
+            const { data: lastMessages } = await supabaseAdmin
+                .from('pm_messages')
+                .select('sender_handle')
+                .eq('escrow_id', escrowId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            const lastSenderHandle = (lastMessages && lastMessages.length > 0) ? lastMessages[0].sender_handle : null;
 
             // Guardar el nuevo mensaje
             await supabaseAdmin.from('pm_messages').insert([{
@@ -280,6 +302,65 @@ export async function POST(request: Request) {
                 sender_handle: sender.handle,
                 content: content
             }]);
+
+            // Regla Anti-Fraude: Solo se incrementa el contador de respuestas del creador si el mensaje anterior lo envió el USUARIO
+            // Evita que un creador envíe 50 mensajes seguidos sin respuesta del usuario para forzar el cobro.
+            const isCreatorTurnValid = sender.handle === escrow.creator_handle && lastSenderHandle !== escrow.creator_handle;
+
+            if (isCreatorTurnValid && shouldCharge) {
+                const currentResponses = (escrow.creator_responses || 0) + 1;
+                const paidBlocks = Math.max(1, Math.floor((escrow.locked_amount || PM_COST) / PM_COST));
+                const requiredResponses = paidBlocks * 50;
+
+                const updates: any = {
+                    creator_responses: currentResponses
+                };
+
+                if (currentResponses >= requiredResponses && escrow.status !== 'released') {
+                    updates.status = 'released';
+
+                    // 60% para el creador (3.00 monedas por cada bloque de 5 monedas)
+                    const creatorShare = paidBlocks * 3.0;
+
+                    if (creatorShare > 0) {
+                        const creatorUser = await getUserByHandle(escrow.creator_handle);
+                        if (creatorUser) {
+                            const newEarnings = (creatorUser.earningsBalance || 0) + creatorShare;
+                            const newWallet = (creatorUser.walletBalance || 0) + creatorShare;
+
+                            await supabaseAdmin
+                                .from('app_users')
+                                .update({
+                                    earnings_balance: newEarnings,
+                                    wallet_balance: newWallet
+                                })
+                                .eq('id', creatorUser.id);
+
+                            await addTransaction({
+                                senderHandle: 'SYSTEM_ESCROW',
+                                receiverHandle: escrow.creator_handle,
+                                amount: creatorShare,
+                                type: 'pm_escrow_released'
+                            });
+
+                            await addNotification({
+                                id: Date.now().toString(),
+                                recipientId: escrow.creator_handle,
+                                type: 'gift',
+                                title: '¡Cobro de PM liberado! 💰',
+                                message: `Has completado ${requiredResponses} respuestas en tu chat con ${escrow.sender_handle}. Se han abonado ${creatorShare} monedas a tu saldo.`,
+                                timestamp: new Date().toISOString(),
+                                readStatus: false
+                            });
+                        }
+                    }
+                }
+
+                await supabaseAdmin
+                    .from('pm_escrows')
+                    .update(updates)
+                    .eq('id', escrowId);
+            }
 
             // Enviar notificación al receptor
             const recipientHandle = sender.handle === escrow.sender_handle ? escrow.creator_handle : escrow.sender_handle;

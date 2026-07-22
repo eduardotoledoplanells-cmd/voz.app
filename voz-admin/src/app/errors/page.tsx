@@ -96,11 +96,15 @@ export default function ErrorsPage() {
     const [filterService, setFilterService] = useState('All');
     const [filterNivel, setFilterNivel] = useState('All');
     const [groupedMode, setGroupedMode] = useState(true);
+    const [showSolved, setShowSolved] = useState(false);
 
     const fetchAlerts = () => {
         setLoading(true);
-        const url = groupedMode ? '/api/voz/admin/alerts?grouped=true' : '/api/voz/admin/alerts';
-        fetch(url)
+        const url = new URL('/api/voz/admin/alerts', window.location.origin);
+        if (groupedMode) url.searchParams.set('grouped', 'true');
+        if (showSolved) url.searchParams.set('showSolved', 'true');
+
+        fetch(url.toString())
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) setAlerts(data);
@@ -112,7 +116,33 @@ export default function ErrorsPage() {
             });
     };
 
-    useEffect(() => { fetchAlerts(); }, [groupedMode]);
+    useEffect(() => { fetchAlerts(); }, [groupedMode, showSolved]);
+
+    const handleMarkAsSolved = async (alertItem: AlertItem, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('¿Estás seguro de que quieres marcar este error como solucionado?')) return;
+        
+        try {
+            const res = await fetch('/api/voz/admin/alerts/solve', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firma: alertItem.firma, id: alertItem.id })
+            });
+            if (res.ok) {
+                // If we are not showing solved items, remove it from list immediately
+                if (!showSolved) {
+                    setAlerts(prev => prev.filter(a => a.id !== alertItem.id && a.firma !== alertItem.firma));
+                } else {
+                    fetchAlerts(); // Refresh to get updated metadata
+                }
+            } else {
+                alert('Error al marcar como solucionado');
+            }
+        } catch (err) {
+            console.error('Error:', err);
+            alert('Fallo de conexión');
+        }
+    };
 
     const handleCopyForAI = (alertItem: AlertItem) => {
         const { title } = parseError(alertItem.mensaje_error);
@@ -162,6 +192,10 @@ Analiza este error y dime cómo solucionarlo.`;
                     <label style={{ fontSize: 12 }}>
                         <input type="checkbox" checked={groupedMode} onChange={e => setGroupedMode(e.target.checked)} />
                         {' '}Vista agrupada
+                    </label>
+                    <label style={{ fontSize: 12 }}>
+                        <input type="checkbox" checked={showSolved} onChange={e => setShowSolved(e.target.checked)} />
+                        {' '}Mostrar Solucionados
                     </label>
                     <button onClick={fetchAlerts}>🔄 Actualizar</button>
                 </div>
@@ -229,11 +263,12 @@ Analiza este error y dime cómo solucionarlo.`;
                             const nivel = alertItem.nivel || 'error';
                             const ocurrencias = alertItem.ocurrencias || 1;
                             const isHot = ocurrencias >= 10;
+                            const isSolved = !!alertItem.metadata_json?.solucionado;
 
                             return (
                                 <tr
                                     key={alertItem.id}
-                                    style={{ borderBottom: '1px solid #1a3a1a', cursor: 'pointer', backgroundColor: isHot ? '#1a0000' : 'transparent' }}
+                                    style={{ borderBottom: '1px solid #1a3a1a', cursor: 'pointer', backgroundColor: isSolved ? '#0d3b0d' : (isHot ? '#1a0000' : 'transparent') }}
                                     onClick={() => setSelectedAlert(alertItem)}
                                 >
                                     <td style={{ padding: '5px 8px' }}>
@@ -278,8 +313,12 @@ Analiza este error y dime cómo solucionarlo.`;
                                         {title}
                                     </td>
                                     <td style={{ padding: '5px 8px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                                        <button style={{ marginRight: 4 }} onClick={() => setSelectedAlert(alertItem)}>🔍 Ver</button>
-                                        <button onClick={() => handleCopyForAI(alertItem)}>🤖 IA</button>
+                                        <button style={{ marginRight: 4, padding: '2px 4px', fontSize: 10 }} onClick={() => setSelectedAlert(alertItem)}>🔍 Ver</button>
+                                        <button style={{ marginRight: 4, padding: '2px 4px', fontSize: 10 }} onClick={() => handleCopyForAI(alertItem)}>🤖 IA</button>
+                                        {!isSolved && (
+                                            <button style={{ padding: '2px 4px', fontSize: 10, backgroundColor: '#2e7d32', color: 'white' }} onClick={(e) => handleMarkAsSolved(alertItem, e)}>✅ Ok</button>
+                                        )}
+                                        {isSolved && <span style={{ fontSize: 12 }} title="Solucionado">✅</span>}
                                     </td>
                                 </tr>
                             );

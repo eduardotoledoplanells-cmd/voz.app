@@ -55,73 +55,44 @@ export async function middleware(request: NextRequest) {
         });
     }
 
-    // 4. VALIDACIÓN DE TOKEN ESTRICTA (Sin retrocompatibilidad insegura)
+    // 4. VALIDACIÓN DE TOKEN (Retrocompatible)
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new NextResponse(
-            JSON.stringify({ success: false, error: 'Token de autenticación faltante o inválido' }),
-            { status: 401, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thiftwzubmvcrdhuwcwm.supabase.co';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    const token = authHeader.split(' ')[1];
-    
-    // Configuración de Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thiftwzubmvcrdhuwcwm.supabase.co';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (supabaseAnonKey && token && token.trim() !== '') {
+            try {
+                // Llamada ligera HTTP al endpoint Edge de Supabase Auth para validar el token
+                const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseAnonKey,
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-    if (!supabaseAnonKey) {
-        console.error('CRITICAL [Middleware]: NEXT_PUBLIC_SUPABASE_ANON_KEY missing!');
-        return new NextResponse(
-            JSON.stringify({ success: false, error: 'Error interno de configuración del servidor de autenticación' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
-
-    try {
-        // Llamada ligera HTTP al endpoint Edge de Supabase Auth para validar el token
-        const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-            method: 'GET',
-            headers: {
-                'apikey': supabaseAnonKey,
-                'Authorization': `Bearer ${token}`
+                if (verifyRes.ok) {
+                    const user = await verifyRes.json();
+                    if (user && user.id) {
+                        // INYECTAR CABECERAS VERIFICADAS
+                        requestHeaders.set('x-user-id', user.id);
+                        requestHeaders.set('x-user-email', user.email || '');
+                        requestHeaders.set('x-user-role', user.user_metadata?.role || 'user');
+                    }
+                } else {
+                    console.warn(`[Middleware] Token JWT no válido o expirado (HTTP ${verifyRes.status}). Continuando sin cabecera x-user-id.`);
+                }
+            } catch (err: any) {
+                console.error('[Middleware Error] Excepción al validar JWT:', err.message);
             }
-        });
-
-        if (!verifyRes.ok) {
-            const errText = await verifyRes.text();
-            console.warn(`[Security Alert] Validación de token JWT fallida. HTTP ${verifyRes.status}: ${errText}`);
-            return new NextResponse(
-                JSON.stringify({ success: false, error: 'Sesión expirada o inválida. Inicie sesión nuevamente.' }),
-                { status: 401, headers: { 'Content-Type': 'application/json' } }
-            );
         }
-
-        const user = await verifyRes.json();
-
-        if (!user || !user.id) {
-            return new NextResponse(
-                JSON.stringify({ success: false, error: 'Formato de usuario inválido en respuesta de autenticación' }),
-                { status: 401, headers: { 'Content-Type': 'application/json' } }
-            );
-        }
-
-        // 5. INYECTAR LAS CABECERAS VERIFICADAS Y DEJAR PASAR
-        requestHeaders.set('x-user-id', user.id);
-        requestHeaders.set('x-user-email', user.email || '');
-        requestHeaders.set('x-user-role', user.user_metadata?.role || 'user');
-
-        return NextResponse.next({
-            request: {
-                headers: requestHeaders,
-            },
-        });
-
-    } catch (err: any) {
-        console.error('[Middleware Error] Excepción al validar JWT de Supabase:', err.message);
-        return new NextResponse(
-            JSON.stringify({ success: false, error: 'Error de red conectando con el servidor de autenticación' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
     }
+
+    return NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
 }

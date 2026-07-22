@@ -34,8 +34,8 @@ function ProfilePageContent() {
     // Solo si handleParam es estrictamente null o vacío, se debe cargar el perfil del usuario logueado por defecto.
     const targetHandle = isExplicitHandle ? handleParam : (user ? (user.handle || '@'+user.name) : null);
     
-    // Only consider it their own profile if the targetHandle matches the user's handle.
-    const isOwnProfile = user && targetHandle && targetHandle === (user.handle || '@'+user.name);
+    const cleanHandle = (h?: string | null) => (h || '').replace(/^@/, '').trim().toLowerCase();
+    const isOwnProfile = Boolean(user && targetHandle && (cleanHandle(targetHandle) === cleanHandle(user.handle || user.name)));
 
     const [isFetchingUser, setIsFetchingUser] = useState(true);
     const [userNotFound, setUserNotFound] = useState(false);
@@ -193,12 +193,14 @@ function ProfilePageContent() {
         setIsDonating(true);
         try {
             const token = localStorage.getItem('token') || '';
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token && token.trim() !== '') {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const res = await fetch('/api/voz/donate', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers,
                 body: JSON.stringify({
                     creatorHandle: targetHandle,
                     senderHandle: user.handle || '@' + user.name,
@@ -207,9 +209,14 @@ function ProfilePageContent() {
             });
             const data = await res.json();
             if (data.success) {
-                alert(`Has donado ${amount} monedas a ${displayUser.name}`);
+                alert(`Has donado ${amount} monedas a ${displayUser?.name || 'este creador'}`);
                 setShowDonateModal(false);
                 setDonateAmount('');
+                // Refetch user profile or update balance if available
+                if (typeof window !== 'undefined') {
+                    const updatedUser = { ...user, walletBalance: (user.walletBalance || 0) - amount };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
             } else {
                 alert(data.error || "Error al procesar la donación.");
             }
@@ -271,19 +278,31 @@ function ProfilePageContent() {
                 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
                     {isOwnProfile ? (
-                        <>
-                            <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}>
-                                <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Editar perfil</button>
-                                <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '140px', padding: '8px 15px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Anuncios</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                                <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '120px', padding: '10px 10px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                                    Editar perfil
+                                </button>
+                                <button onClick={() => router.push('/messages')} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                    💬 Mensajes
+                                </button>
+                                <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                                    Anuncios
+                                </button>
                             </div>
-                            <button onClick={logout} style={{ width: '100%', maxWidth: '290px', padding: '8px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar sesión</button>
-                        </>
+                            <button onClick={logout} style={{ width: '100%', maxWidth: '360px', padding: '10px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                                Cerrar sesión
+                            </button>
+                        </div>
                     ) : (
-                        <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}>
-                            <button onClick={handleFollowToggle} disabled={loadingFollow} style={{ flex: 1, maxWidth: '140px', padding: '10px 15px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                            <button onClick={handleFollowToggle} disabled={loadingFollow} style={{ flex: 1, maxWidth: '110px', padding: '10px 10px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                                 {isFollowing ? 'Siguiendo' : 'Seguir'}
                             </button>
-                            <button onClick={() => setShowDonateModal(true)} style={{ flex: 1, maxWidth: '140px', padding: '10px 15px', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: 'black', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+                            <button onClick={() => router.push(`/messages?handle=${encodeURIComponent(displayUser?.handle || targetHandle || '')}`)} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                💬 Mensaje
+                            </button>
+                            <button onClick={() => setShowDonateModal(true)} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: 'black', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                                 Donar
                             </button>
                         </div>

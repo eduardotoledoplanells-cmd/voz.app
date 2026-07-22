@@ -27,7 +27,7 @@ export async function GET(req: Request) {
             .from('pm_escrows')
             .select('*')
             .or(`sender_handle.eq.${userHandle},creator_handle.eq.${userHandle}`)
-            .order('updated_at', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (error) {
             return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -132,8 +132,7 @@ export async function POST(req: Request) {
                     creator_name: creatorHandle,
                     status: 'active',
                     hasnew: true,
-                    unread_count: 1,
-                    updated_at: new Date().toISOString()
+                    unread_count: 1
                 }], { onConflict: 'sender_handle,creator_handle' })
                 .select()
                 .single();

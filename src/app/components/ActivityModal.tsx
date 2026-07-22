@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+    const router = useRouter();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -111,10 +113,21 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
                 {/* Header */}
                 <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '20px', borderBottom: '1px solid #333'
+                    padding: '18px 20px', borderBottom: '1px solid #333'
                 }}>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Actividad</h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button 
+                            onClick={() => { onClose(); router.push('/messages'); }}
+                            style={{ 
+                                backgroundColor: 'rgba(142, 45, 226, 0.2)', color: '#8E2DE2', border: '1px solid #8E2DE2',
+                                borderRadius: '15px', padding: '5px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' 
+                            }}
+                        >
+                            💬 Mensajes
+                        </button>
+                        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+                    </div>
                 </div>
 
                 {/* Pull down indicator */}
