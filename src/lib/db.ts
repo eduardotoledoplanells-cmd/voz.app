@@ -1742,7 +1742,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             return { ...v, _score: score, _seq: seq };
         });
 
-        scoredVideos.sort((a, b) => a._seq - b._seq || b._score - a._score);
+        scoredVideos.sort((a, b) => a._seq - b._seq || (b._score + (Math.random() * 0.1)) - (a._score + (Math.random() * 0.1)));
         scoredVideos = scoredVideos.slice(offset, offset + limit);
     }
     

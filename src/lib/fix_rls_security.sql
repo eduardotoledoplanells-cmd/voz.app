@@ -392,7 +392,8 @@ BEGIN
             ELSE (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5))
         END::FLOAT AS _score
     FROM Calculated c
-    ORDER BY c.user_video_seq ASC, _score DESC, c.created_at DESC
+    -- MEJORA: Forzamos la secuencia del creador pero metemos score y jitter aleatorio (random() * 0.1) para romper bloques estáticos
+    ORDER BY c.user_video_seq ASC, (_score + (random() * 0.1)) DESC
     LIMIT req_limit
     OFFSET req_offset;
 END;
