@@ -1726,18 +1726,23 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
         if (!videos || videos.length === 0) return [];
 
         const now = new Date().getTime();
-        
+        const creatorSeqMap: Record<string, number> = {};
+
         scoredVideos = videos.map(v => {
+            const handle = v.user_handle || 'anon';
+            creatorSeqMap[handle] = (creatorSeqMap[handle] || 0) + 1;
+            const seq = creatorSeqMap[handle];
+
             const createdAtTime = new Date(v.created_at).getTime();
             const ageInHours = (now - createdAtTime) / (1000 * 60 * 60);
             const views = v.views || 0;
             const likes = v.likes || 0;
             let score = ((views * 1) + (likes * 5)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.5);
             if (ageInHours < 2 && score < 1) score = 1 + Math.random();
-            return { ...v, _score: score };
+            return { ...v, _score: score, _seq: seq };
         });
 
-        scoredVideos.sort((a, b) => b._score - a._score);
+        scoredVideos.sort((a, b) => a._seq - b._seq || b._score - a._score);
         scoredVideos = scoredVideos.slice(offset, offset + limit);
     }
     

@@ -366,7 +366,9 @@ BEGIN
             v.filter_config,
             v.created_at,
             v.is_muted,
-            (EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 3600.0) AS age_hours
+            v.is_muted,
+            (EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 3600.0) AS age_hours,
+            ROW_NUMBER() OVER (PARTITION BY v.user_handle ORDER BY v.created_at DESC) AS user_video_seq
         FROM public.videos v
     )
     SELECT 
@@ -390,7 +392,7 @@ BEGIN
             ELSE (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5))
         END::FLOAT AS _score
     FROM Calculated c
-    ORDER BY _score DESC, c.created_at DESC
+    ORDER BY c.user_video_seq ASC, _score DESC, c.created_at DESC
     LIMIT req_limit
     OFFSET req_offset;
 END;
