@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Coins } from 'lucide-react';
+import WalletWidget from './WalletWidget';
 
 const COIN_PACKS = [
     { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, image: null },
@@ -357,65 +358,41 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                     <div style={{ marginBottom: '30px' }}>
                         <h3 style={{ fontSize: '0.9rem', color: '#888', textTransform: 'uppercase', marginBottom: '10px' }}>Sistema Económico</h3>
                         
-                        {/* Saldo */}
-                        <div style={{ backgroundColor: '#222', borderRadius: '15px', padding: '20px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <div style={{ color: 'white' }}>Saldo (Para gastar)</div>
-                                <div style={{ color: '#FFD700', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    {Number(profile.walletBalance || profile.wallet_balance || 0).toFixed(2).replace('.', ',')} 
-                                    <Coins size={20} color="#FFD700" style={{ display: 'inline-block' }} />
-                                </div>
-                            </div>
-                            <button onClick={() => setShowCoinPacks(true)} style={{ backgroundColor: '#8E2DE2', color: 'white', padding: '10px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                🎁 Recargar
-                            </button>
-                        </div>
+                        <WalletWidget 
+                            handle={profile?.handle || profile?.name}
+                            initialWalletBalance={Number(profile.walletBalance || profile.wallet_balance || 0)}
+                            initialEarningsBalance={Number(profile.earningsBalance || profile.earnings_balance || 0)}
+                            onRecargarClick={() => setShowCoinPacks(true)}
+                            onTransferClick={() => setTransferMode(true)}
+                            showTransferButton={!transferMode}
+                        />
 
-                        {/* Cartera */}
-                        <div style={{ backgroundColor: '#1a1a1a', borderRadius: '15px', padding: '20px', border: '1px dashed #4CD964' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                <div>
-                                    <div style={{ color: '#4CD964' }}>Cartera (Dinero ganado)</div>
-                                    <div style={{ color: '#4CD964', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        {Number(profile.earningsBalance || profile.earnings_balance || 0).toFixed(2).replace('.', ',')} 
-                                        <Coins size={20} color="#4CD964" style={{ display: 'inline-block' }} />
-                                    </div>
+                        {transferMode && (
+                            <div style={{ marginTop: '10px', backgroundColor: '#1a1a1a', padding: '15px', borderRadius: '12px', border: '1px solid #4CD964' }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Cantidad (ej. 5,00)" 
+                                        value={transferAmount}
+                                        onChange={(e) => setTransferAmount(e.target.value)}
+                                        style={{ flex: 1, backgroundColor: '#000', border: '1px solid #333', color: 'white', padding: '10px', borderRadius: '10px', outline: 'none', fontSize: '0.9rem' }}
+                                    />
+                                    <button 
+                                        onClick={handleTransferSubmit}
+                                        disabled={isTransferring}
+                                        style={{ backgroundColor: '#4CD964', color: 'black', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                                    >
+                                        {isTransferring ? '...' : 'Pasar'}
+                                    </button>
+                                    <button 
+                                        onClick={() => { setTransferMode(false); setTransferAmount(''); }}
+                                        style={{ backgroundColor: '#333', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                                    >
+                                        X
+                                    </button>
                                 </div>
-                                <div>🎁</div>
                             </div>
-                            {transferMode ? (
-                                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Cantidad (ej. 5,00)" 
-                                            value={transferAmount}
-                                            onChange={(e) => setTransferAmount(e.target.value)}
-                                            style={{ flex: 1, backgroundColor: '#000', border: '1px solid #333', color: 'white', padding: '10px', borderRadius: '10px', outline: 'none', fontSize: '0.9rem' }}
-                                        />
-                                        <button 
-                                            onClick={handleTransferSubmit}
-                                            disabled={isTransferring}
-                                            style={{ backgroundColor: '#4CD964', color: 'black', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
-                                        >
-                                            {isTransferring ? '...' : 'Pasar'}
-                                        </button>
-                                        <button 
-                                            onClick={() => { setTransferMode(false); setTransferAmount(''); }}
-                                            style={{ backgroundColor: '#333', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
-                                        >
-                                            X
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={() => setTransferMode(true)} style={{ flex: 1, backgroundColor: 'rgba(76, 217, 100, 0.15)', color: '#4CD964', border: '1px solid #4CD964', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Pasar a Saldo</button>
-                                    <button onClick={() => { onClose(); router.push('/profile/monetization'); }} style={{ flex: 1, backgroundColor: '#4CD964', color: 'white', border: 'none', padding: '10px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Retirar cobro</button>
-                                </div>
-                            )}
-                            <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '10px', fontStyle: 'italic' }}>* El saldo de Cartera se genera mediante donaciones recibidas y regalos.</div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Preferencias */}
