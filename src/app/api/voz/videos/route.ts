@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
             const { data: bookmarks, error: bookmarkError } = await supabaseAdmin
                 .from('video_bookmarks')
                 .select('video_id')
-                .eq('user_handle', bookmarkedBy);
+                .eq('user_handle', bookmarkedBy)
+                .range(offset, offset + limit - 1);
             
             if (bookmarkError) throw bookmarkError;
             
@@ -90,7 +91,8 @@ export async function GET(request: NextRequest) {
             const { data: likes, error: likeError } = await supabaseAdmin
                 .from('video_likes')
                 .select('video_id')
-                .eq('user_handle', likedBy);
+                .eq('user_handle', likedBy)
+                .range(offset, offset + limit - 1);
             
             if (likeError) throw likeError;
             

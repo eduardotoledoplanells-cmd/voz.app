@@ -288,6 +288,74 @@ CREATE POLICY "user_read_own_messages" ON public.private_messages
     );
 
 -- ====================================================================
+-- PASO 14: FUNCIÓN ALMACENADA GET_ANTIGRAVITY_FEED (Motor de Gravedad SQL)
+-- ====================================================================
+
+CREATE OR REPLACE FUNCTION public.get_antigravity_feed(req_limit INT, req_offset INT)
+RETURNS TABLE (
+    id UUID,
+    video_url TEXT,
+    user_handle TEXT,
+    description TEXT,
+    likes INTEGER,
+    shares INTEGER,
+    comments_count INTEGER,
+    views INTEGER,
+    music TEXT,
+    thumbnail_url TEXT,
+    filter_config JSONB,
+    created_at TIMESTAMP WITH TIME ZONE,
+    is_muted BOOLEAN,
+    _score FLOAT
+) LANGUAGE plpgsql STABLE AS $$
+BEGIN
+    RETURN QUERY
+    WITH Calculated AS (
+        SELECT 
+            v.id,
+            v.video_url,
+            v.user_handle,
+            v.description,
+            COALESCE(v.likes, 0) AS likes,
+            COALESCE(v.shares, 0) AS shares,
+            COALESCE(v.comments_count, 0) AS comments_count,
+            COALESCE(v.views, 0) AS views,
+            v.music,
+            v.thumbnail_url,
+            v.filter_config,
+            v.created_at,
+            v.is_muted,
+            (EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 3600.0) AS age_hours
+        FROM public.videos v
+    )
+    SELECT 
+        c.id,
+        c.video_url,
+        c.user_handle,
+        c.description,
+        c.likes,
+        c.shares,
+        c.comments_count,
+        c.views,
+        c.music,
+        c.thumbnail_url,
+        c.filter_config,
+        c.created_at,
+        c.is_muted,
+        CASE 
+            WHEN c.age_hours < 2 
+                 AND (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5)) < 1.0
+            THEN 1.0 + random()
+            ELSE (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5))
+        END::FLOAT AS _score
+    FROM Calculated c
+    ORDER BY _score DESC, c.created_at DESC
+    LIMIT req_limit
+    OFFSET req_offset;
+END;
+$$;
+
+-- ====================================================================
 -- VERIFICACIÓN FINAL
 -- ====================================================================
 
