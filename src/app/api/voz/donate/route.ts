@@ -9,7 +9,7 @@ export async function POST(request: Request) {
         const { creatorHandle } = body;
         let amount = body.amount;
 
-        // Autenticación estricta: verificar token Bearer de Supabase Auth
+        // Autenticación estricta y ÚNICA: verificar token Bearer de Supabase Auth
         let authenticatedUserId: string | null = null;
         const authHeader = request.headers.get('authorization');
         if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -20,18 +20,17 @@ export async function POST(request: Request) {
                     authenticatedUserId = authUser.user.id;
                 }
             } catch (e) {
-                console.warn("Auth token validation failed:", e);
+                console.warn("Auth token validation failed in donate:", e);
             }
         }
 
-        // Fallback para clientes que envían la cabecera x-user-id
-        const headerUserId = request.headers.get('x-user-id');
-        if (!authenticatedUserId && headerUserId) {
-            authenticatedUserId = headerUserId;
+        // Si no hay token válido, bloqueamos la petición inmediatamente
+        if (!authenticatedUserId) {
+            return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
         }
 
-        if (!authenticatedUserId || !creatorHandle || !amount) {
-            return NextResponse.json({ error: 'No autorizado o faltan campos requeridos' }, { status: 401 });
+        if (!creatorHandle || !amount) {
+            return NextResponse.json({ error: 'Faltan campos requeridos (creatorHandle, amount)' }, { status: 400 });
         }
 
         const sender = await getUserById(authenticatedUserId);
