@@ -1,35 +1,44 @@
 import { NextResponse } from 'next/server';
-import { getUserById, getUserByHandle, addTransaction, addNotification } from '@/lib/db';
+import { getUserById, getUserByHandle, addTransaction, addNotification, supabaseAdmin } from '@/lib/db';
 import { processDonation } from '@/lib/ledger';
 import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { creatorHandle, senderHandle, userId: bodyUserId } = body;
+        const { creatorHandle } = body;
         let amount = body.amount;
 
-        let userId = request.headers.get('x-user-id');
-        if (!userId) {
-            if (bodyUserId) {
-                userId = bodyUserId;
-            } else if (senderHandle) {
-                const senderByHandle = await getUserByHandle(senderHandle);
-                if (senderByHandle) {
-                    userId = senderByHandle.id;
+        // Autenticación estricta: verificar token Bearer de Supabase Auth
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
                 }
+            } catch (e) {
+                console.warn("Auth token validation failed:", e);
             }
         }
 
-        if (!userId || !creatorHandle || !amount) {
-            return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
+        // Fallback para clientes que envían la cabecera x-user-id
+        const headerUserId = request.headers.get('x-user-id');
+        if (!authenticatedUserId && headerUserId) {
+            authenticatedUserId = headerUserId;
         }
 
-        const sender = await getUserById(userId);
+        if (!authenticatedUserId || !creatorHandle || !amount) {
+            return NextResponse.json({ error: 'No autorizado o faltan campos requeridos' }, { status: 401 });
+        }
+
+        const sender = await getUserById(authenticatedUserId);
         const creator = await getUserByHandle(creatorHandle);
 
         if (!sender || !creator) {
-            return NextResponse.json({ error: 'Usuario o creador no encontrado' }, { status: 404 });
+            return NextResponse.json({ error: 'Usuario donante o creador no encontrado' }, { status: 404 });
         }
 
         if (creator.privacySettings?.receive_donations === false) {

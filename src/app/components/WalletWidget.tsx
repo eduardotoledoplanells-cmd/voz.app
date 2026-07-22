@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coins, Gift } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/db';
 
 interface WalletWidgetProps {
     handle?: string;
@@ -38,7 +39,7 @@ export default function WalletWidget({
         if (initialEarningsBalance !== undefined) setEarningsBalance(Number(initialEarningsBalance));
     }, [initialWalletBalance, initialEarningsBalance]);
 
-    // Live auto-polling (vida propia) every 6 seconds for instant reactivity
+    // Realtime WebSocket Subscription (Zero Polling / Zero Server Stress)
     useEffect(() => {
         let userHandle = handle;
         if (!userHandle && typeof window !== 'undefined') {
@@ -53,13 +54,39 @@ export default function WalletWidget({
 
         if (!userHandle) return;
 
-        const interval = setInterval(() => {
-            fetch(`/api/voz/users/profile?handle=${encodeURIComponent(userHandle!)}&t=${Date.now()}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.user) {
-                        const newW = Number(data.user.walletBalance || data.user.wallet_balance || 0);
-                        const newE = Number(data.user.earningsBalance || data.user.earnings_balance || 0);
+        const cleanHandle = userHandle.replace('@', '').toLowerCase();
+
+        // 1. Initial fetch once on load
+        fetch(`/api/voz/users/profile?handle=${encodeURIComponent(userHandle)}&t=${Date.now()}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.user) {
+                    const newW = Number(data.user.walletBalance || data.user.wallet_balance || 0);
+                    const newE = Number(data.user.earningsBalance || data.user.earnings_balance || 0);
+                    prevWallet.current = newW;
+                    prevEarnings.current = newE;
+                    setWalletBalance(newW);
+                    setEarningsBalance(newE);
+                }
+            })
+            .catch(e => console.warn("Initial wallet fetch error:", e));
+
+        // 2. Realtime WebSocket listener
+        const channel = supabase
+            .channel(`wallet-${cleanHandle}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'app_users',
+                    filter: `handle=eq.${cleanHandle}`
+                },
+                (payload: any) => {
+                    const updatedUser = payload.new;
+                    if (updatedUser) {
+                        const newW = Number(updatedUser.wallet_balance || 0);
+                        const newE = Number(updatedUser.earnings_balance || 0);
 
                         if (newW !== prevWallet.current) {
                             prevWallet.current = newW;
@@ -75,11 +102,13 @@ export default function WalletWidget({
                             setTimeout(() => setIsEarningsUpdated(false), 2000);
                         }
                     }
-                })
-                .catch(() => {});
-        }, 6000);
+                }
+            )
+            .subscribe();
 
-        return () => clearInterval(interval);
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [handle]);
 
     const formattedWallet = walletBalance.toFixed(2).replace('.', ',');

@@ -9,21 +9,28 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const rawRecipientId = searchParams.get('recipientId');
 
+    if (!rawRecipientId || !rawRecipientId.trim()) {
+        return NextResponse.json({ error: 'El parámetro recipientId es obligatorio' }, { status: 400 });
+    }
+
     try {
-        let query = supabaseAdmin.from('notifications').select('*');
-        if (rawRecipientId) {
-            const cleanId = rawRecipientId.replace('@', '');
-            query = query.in('recipient_id', [
-                cleanId, 
-                `@${cleanId}`, 
-                cleanId.toLowerCase(), 
-                `@${cleanId.toLowerCase()}`,
-                cleanId.toUpperCase(),
-                `@${cleanId.toUpperCase()}`
-            ]);
-        }
-        
-        const { data, error } = await query.order('timestamp', { ascending: false });
+        const cleanId = rawRecipientId.replace('@', '');
+        const recipientVariants = [
+            cleanId, 
+            `@${cleanId}`, 
+            cleanId.toLowerCase(), 
+            `@${cleanId.toLowerCase()}`,
+            cleanId.toUpperCase(),
+            `@${cleanId.toUpperCase()}`
+        ];
+
+        const { data, error } = await supabaseAdmin
+            .from('notifications')
+            .select('id, recipient_id, type, title, message, timestamp, read_status')
+            .in('recipient_id', recipientVariants)
+            .order('timestamp', { ascending: false })
+            .limit(50);
+
         if (error) throw error;
 
         // Map database snake_case to API camelCase for mobile app consistency
