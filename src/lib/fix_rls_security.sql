@@ -356,6 +356,48 @@ END;
 $$;
 
 -- ====================================================================
+-- PASO 15: FUNCIÓN ALMACENADA ATÓMICA DE MODERACIÓN (APPLY_USER_PENALTY)
+-- ====================================================================
+
+CREATE OR REPLACE FUNCTION public.apply_user_penalty(
+    p_handle TEXT,
+    p_reason TEXT,
+    p_url TEXT DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    v_user_id UUID;
+    v_new_strikes INT;
+    v_new_reputation INT;
+BEGIN
+    -- 1. Insertar el registro de auditoría de la penalización
+    INSERT INTO public.user_penalties (user_handle, content_url, reason)
+    VALUES (p_handle, p_url, p_reason);
+
+    -- 2. Actualización atómica del usuario: +1 strike, -1 reputación
+    UPDATE public.app_users
+    SET strikes = COALESCE(strikes, 0) + 1,
+        reputation = GREATEST(COALESCE(reputation, 10) - 1, 0)
+    WHERE handle = p_handle
+    RETURNING id, strikes, reputation INTO v_user_id, v_new_strikes, v_new_reputation;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Usuario % no encontrado', p_handle;
+    END IF;
+
+    -- 3. Devolver los nuevos valores calculados al backend
+    RETURN jsonb_build_object(
+        'id', v_user_id,
+        'strikes', v_new_strikes,
+        'reputation', v_new_reputation
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Revocar acceso público a la función de moderación
+REVOKE EXECUTE ON FUNCTION public.apply_user_penalty(TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.apply_user_penalty(TEXT, TEXT, TEXT) TO service_role;
+
+-- ====================================================================
 -- VERIFICACIÓN FINAL
 -- ====================================================================
 

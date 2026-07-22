@@ -1116,36 +1116,37 @@ export async function removeVoiceCommentLike(commentId: string, userHandle: stri
     return !unlikeError;
 }
 
-// --- User Penalties ---
+// --- Control de Penalizaciones y Sistema de Strikes ---
 export async function addPenaltyToUser(handle: string, penalty: { url?: string, reason: string }) {
-    await supabaseAdmin.from('user_penalties').insert([{
-        user_handle: handle,
-        content_url: penalty.url,
-        reason: penalty.reason
-    }]);
+    // 1. Ejecución atómica en la base de datos (RPC)
+    const { data, error } = await supabaseAdmin.rpc('apply_user_penalty', {
+        p_handle: handle,
+        p_reason: penalty.reason,
+        p_url: penalty.url
+    });
 
-    // Increase strikes and check auto-ban
-    const users = await getAppUsers();
-    const user = users.find(u => u.handle === handle);
-    if (user) {
-        const newStrikes = (user.strikes || 0) + 1;
-        
-        if (newStrikes >= 3) {
-            console.log(`[PENALTY] User ${handle} reached 3 strikes. Banning...`);
-            await banAppUserByHandle(handle);
-        } else {
-            await updateAppUser(user.id, { strikes: newStrikes } as any);
-            // Notify user about the strike
-            await addNotification({
-                id: Date.now().toString(),
-                recipientId: handle,
-                type: 'strike',
-                title: 'Aviso de Moderación (Strike) ⚠️',
-                message: `Has recibido un strike por: ${penalty.reason}. Al llegar a 3 strikes tu cuenta será baneada permanentemente.`,
-                timestamp: new Date().toISOString(),
-                readStatus: false
-            });
-        }
+    if (error || !data) {
+        console.error(`[PENALTY ERROR] Error al procesar penalización para ${handle}:`, error);
+        return;
+    }
+
+    const { id, strikes, reputation } = data;
+
+    // 2. Evaluamos el estado devuelto por el motor SQL
+    if (strikes >= 3) {
+        console.log(`[PENALTY] User ${handle} reached 3 strikes. Banning...`);
+        await banAppUserByHandle(handle);
+    } else {
+        // Enviar notificación PUSH con los valores actualizados
+        await addNotification({
+            id: Date.now().toString(),
+            recipientId: handle,
+            type: 'strike',
+            title: 'Aviso de Moderación (Strike) ⚠️',
+            message: `Has recibido un strike por: ${penalty.reason}. Tu reputación ha bajado a ${reputation}. Al llegar a 3 strikes tu cuenta será baneada.`,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
     }
 }
 
