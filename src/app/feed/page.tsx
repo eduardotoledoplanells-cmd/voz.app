@@ -493,22 +493,53 @@ export default function FeedPage() {
 
     const scrollNext = () => {
         if (containerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                if (initialVideos.length > 0) {
+                    if (!hasMore) {
+                        // Loop back to start smoothly if at end of list
+                        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                        return;
+                    }
+                }
+            }
             containerRef.current.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
         }
     };
 
     const scrollPrev = () => {
         if (containerRef.current) {
+            const { scrollTop } = containerRef.current;
+            if (scrollTop <= 10 && videos.length > 0) {
+                // Loop to bottom if at very top and user scrolls up
+                containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
+                return;
+            }
             containerRef.current.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
         }
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        // Fetch more videos when near the bottom
+        // Fetch more videos or trigger infinite loop append when near the bottom
         if (target.scrollHeight - target.scrollTop <= target.clientHeight + 300) {
-            if (!fetchingRef.current && hasMore && videos.length > 0) {
-                fetchVideos(videos.length);
+            if (!fetchingRef.current && videos.length > 0) {
+                if (hasMore) {
+                    fetchVideos(videos.length);
+                } else if (initialVideos.length > 0) {
+                    fetchingRef.current = true;
+                    setTimeout(() => {
+                        const loopId = Math.random().toString(36).substring(2, 7);
+                        setVideos(prev => [
+                            ...prev,
+                            ...initialVideos.map(v => ({
+                                ...v,
+                                loopKey: `${v.id}_loop_${loopId}`
+                            }))
+                        ]);
+                        fetchingRef.current = false;
+                    }, 200);
+                }
             }
         }
     };
