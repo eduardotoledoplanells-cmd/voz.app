@@ -342,27 +342,30 @@ const FeedItem = ({
 
                 {/* User info overlay */}
                 <div style={{ 
-                    position: 'absolute', bottom: '20px', left: '15px', right: '80px', color: 'white', 
-                    textShadow: '1px 1px 2px rgba(0,0,0,0.8)', zIndex: 20, pointerEvents: 'none' 
+                    position: 'absolute', bottom: '85px', left: '15px', right: '80px', color: 'white', 
+                    textShadow: '0px 2px 4px rgba(0,0,0,0.9)', zIndex: 35, pointerEvents: 'none' 
                 }}>
-                    <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white' }}>
+                    <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white', display: 'inline-block' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', backgroundColor: '#333' }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', backgroundColor: '#333', flexShrink: 0 }}>
                                 {v.userImage ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
                                     <img src={v.userImage} alt={v.userName || v.user} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}>
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '18px' }}>
                                         {(v.userName || v.user || '?').charAt(0).toUpperCase()}
                                     </div>
                                 )}
                             </div>
                             <div>
-                                <span style={{ fontWeight: 'bold', fontSize: '15px', display: 'block' }}>{v.userName || v.user}</span>
-                                <span style={{ fontSize: '12px', opacity: 0.8 }}>{v.userHandle || v.user}</span>
+                                <span style={{ fontWeight: 'bold', fontSize: '16px', display: 'block', color: 'white' }}>{v.userName || v.user}</span>
+                                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)' }}>{v.userHandle ? (v.userHandle.startsWith('@') ? v.userHandle : '@' + v.userHandle) : (v.user ? (v.user.startsWith('@') ? v.user : '@' + v.user) : '')}</span>
                             </div>
                         </div>
                     </Link>
-                    <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden' }}>{v.description}</p>
+                    {v.description && (
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.9)', pointerEvents: 'auto' }}>{v.description}</p>
+                    )}
                 </div>
 
                 {/* Right Action Icons */}
@@ -492,20 +495,10 @@ export default function FeedPage() {
         fetchVideos(0);
     }, []);
 
-    const lastWheelTime = useRef(0);
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        // Completely disable mouse wheel scrolling on feed page as requested
         e.preventDefault();
-        const now = Date.now();
-        if (now - lastWheelTime.current < 350) return;
-
-        if (Math.abs(e.deltaY) > 10 || Math.abs(e.deltaX) > 10) {
-            lastWheelTime.current = now;
-            if (e.deltaY > 0 || e.deltaX > 0) {
-                scrollNext();
-            } else if (e.deltaY < 0 || e.deltaX < 0) {
-                scrollPrev();
-            }
-        }
+        e.stopPropagation();
     };
 
     const scrollNext = () => {
