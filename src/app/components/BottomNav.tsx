@@ -92,11 +92,28 @@ export default function BottomNav() {
                     <span style={labelStyle(isActive('/discover'))}>Buscar</span>
                 </Link>
 
-                {/* Messages */}
-                <Link href="/messages" style={navItemStyle(isActive('/messages'))}>
-                    {isActive('/messages') && <span style={activeDot} />}
-                    <MessageSquare size={22} strokeWidth={isActive('/messages') ? 2.5 : 1.8} />
-                    <span style={labelStyle(isActive('/messages'))}>Mensajes</span>
+                {/* Upload — center button */}
+                <Link href="/upload" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0',
+                    textDecoration: 'none',
+                    marginTop: '-10px',
+                }}>
+                    <div style={{
+                        width: '52px',
+                        height: '36px',
+                        background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 14px rgba(142, 45, 226, 0.5)',
+                    }}>
+                        <Plus size={22} color="white" strokeWidth={2.5} />
+                    </div>
                 </Link>
 
                 {/* Activity / Bell */}
