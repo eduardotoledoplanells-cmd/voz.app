@@ -287,6 +287,41 @@ CREATE POLICY "user_read_own_messages" ON public.private_messages
         creator_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
     );
 
+-- Habilitar y aplicar RLS estricto en pm_messages y pm_escrows para blindar Supabase Realtime (Eavesdropping)
+ALTER TABLE IF EXISTS public.pm_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.pm_escrows ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_pm_messages" ON public.pm_messages;
+CREATE POLICY "service_role_all_pm_messages" ON public.pm_messages
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "user_read_own_pm_messages" ON public.pm_messages;
+CREATE POLICY "user_read_own_pm_messages" ON public.pm_messages
+    FOR SELECT TO authenticated
+    USING (
+        escrow_id IN (
+            SELECT id FROM public.pm_escrows 
+            WHERE sender_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid())
+               OR sender_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
+               OR creator_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid())
+               OR creator_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
+        )
+    );
+
+DROP POLICY IF EXISTS "service_role_all_pm_escrows" ON public.pm_escrows;
+CREATE POLICY "service_role_all_pm_escrows" ON public.pm_escrows
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "user_read_own_pm_escrows" ON public.pm_escrows;
+CREATE POLICY "user_read_own_pm_escrows" ON public.pm_escrows
+    FOR SELECT TO authenticated
+    USING (
+        sender_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid()) OR
+        sender_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid()) OR
+        creator_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid()) OR
+        creator_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
+    );
+
 -- ====================================================================
 -- PASO 14: FUNCIÓN ALMACENADA GET_ANTIGRAVITY_FEED (Motor de Gravedad SQL)
 -- ====================================================================

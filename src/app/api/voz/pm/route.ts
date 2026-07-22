@@ -127,11 +127,13 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Creador no encontrado' }, { status: 404 });
             }
 
-            if (creator.privacySettings?.receive_pms === false) {
-                return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
-            }
+            const privacySettings = creator.privacySettings || {};
+            const arePmsDisabled = privacySettings.receive_pms === false || privacySettings.allow_pms === false;
+            const shouldCharge = privacySettings.charge_pms !== false; // Charge by default unless explicitly false
 
-            const shouldCharge = creator.privacySettings?.charge_pms === true;
+            if (arePmsDisabled) {
+                return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 403 });
+            }
 
             if (shouldCharge) {
                 // 1. Process premium message via Ledger Contabilidad
