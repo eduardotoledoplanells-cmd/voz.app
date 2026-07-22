@@ -37,7 +37,19 @@ export async function GET(request: Request) {
             readStatus: n.read_status
         }));
 
-        return NextResponse.json(mappedData);
+        // Deduplicate notifications based on recipient, type and message preview
+        const seenKeys = new Set<string>();
+        const uniqueData = mappedData.filter((n: any) => {
+            const cleanRec = (n.recipientId || '').replace(/^@/, '').toLowerCase();
+            const key = `${cleanRec}-${n.type}-${(n.message || '').trim()}`;
+            if (seenKeys.has(key)) {
+                return false;
+            }
+            seenKeys.add(key);
+            return true;
+        });
+
+        return NextResponse.json(uniqueData);
     } catch (error) {
         console.error('Error fetching notifications:', error);
         await logSystemAlert('Notificaciones', error);
