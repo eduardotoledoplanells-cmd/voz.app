@@ -64,8 +64,26 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     const [likesCount, setLikesCount] = useState(v.likes || 0);
     const [isBookmarked, setIsBookmarked] = useState(v.isBookmarkedByMe || false);
     const [giftScale, setGiftScale] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
 
     const hasViewed = useRef(false);
+
+    // Helper to log video view
+    const logView = () => {
+        if (!hasViewed.current) {
+            hasViewed.current = true;
+            let anonId = typeof window !== 'undefined' ? sessionStorage.getItem('voz_anon_id') : null;
+            if (!anonId) {
+                anonId = 'anon_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+                if (typeof window !== 'undefined') sessionStorage.setItem('voz_anon_id', anonId);
+            }
+            fetch('/api/voz/videos/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle || anonId })
+            }).catch(e => console.log('Error logging view', e));
+        }
+    };
 
     // Pause video when tab is hidden (prevents double audio when app and web are open simultaneously)
     useEffect(() => {
@@ -86,23 +104,23 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                     if (entry.isIntersecting) {
                         // Only autoplay if tab is visible
                         if (!isManualPause && videoRef.current && !document.hidden) {
-                            videoRef.current.play().then(() => {
-                                setIsPlaying(true);
-                                if (!hasViewed.current) {
-                                    hasViewed.current = true;
-                                    // Generate a unique anonymous ID per session to avoid collisions
-                                    let anonId = typeof window !== 'undefined' ? sessionStorage.getItem('voz_anon_id') : null;
-                                    if (!anonId) {
-                                        anonId = 'anon_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-                                        if (typeof window !== 'undefined') sessionStorage.setItem('voz_anon_id', anonId);
+                            const p = videoRef.current.play();
+                            if (p !== undefined) {
+                                p.then(() => {
+                                    setIsPlaying(true);
+                                    logView();
+                                }).catch((err) => {
+                                    console.log('Autoplay un-muted prevented by browser, retrying muted', err);
+                                    if (videoRef.current) {
+                                        videoRef.current.muted = true;
+                                        setIsMuted(true);
+                                        videoRef.current.play().then(() => {
+                                            setIsPlaying(true);
+                                            logView();
+                                        }).catch(e2 => console.log('Muted play also prevented', e2));
                                     }
-                                    fetch('/api/voz/videos/view', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle || anonId })
-                                    }).catch(e => console.log('Error logging view', e));
-                                }
-                            }).catch(e => console.log('Autoplay prevented', e));
+                                });
+                            }
                         }
                     } else {
                         if (videoRef.current) {
@@ -134,10 +152,25 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                 setIsPlaying(false);
                 setIsManualPause(true);
             } else {
+                // User interacted explicitly -> Unmute and play audio
+                if (videoRef.current.muted || isMuted) {
+                    videoRef.current.muted = false;
+                    setIsMuted(false);
+                }
                 videoRef.current.play().then(() => {
                     setIsPlaying(true);
                     setIsManualPause(false);
-                }).catch(e => console.log('Play prevented', e));
+                }).catch(e => {
+                    console.log('Play prevented', e);
+                    if (videoRef.current) {
+                        videoRef.current.muted = true;
+                        setIsMuted(true);
+                        videoRef.current.play().then(() => {
+                            setIsPlaying(true);
+                            setIsManualPause(false);
+                        });
+                    }
+                });
             }
         }
     };
@@ -244,13 +277,45 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 controls={false}
                                 loop={!autoScroll}
-                                muted={false}
+                                muted={isMuted}
                                 playsInline
+                                preload="auto"
                                 onEnded={handleVideoEnded}
                             />
                         ) : (
                             <div style={{ width: '100%', height: '100%', backgroundColor: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                 {v.thumbnailUrl && <img src={v.thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />}
+                            </div>
+                        )}
+                        {/* Sound Badge if Browser forced muted play */}
+                        {isMuted && isPlaying && (
+                            <div 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (videoRef.current) {
+                                        videoRef.current.muted = false;
+                                        setIsMuted(false);
+                                    }
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    top: '20px',
+                                    right: '20px',
+                                    backgroundColor: 'rgba(0,0,0,0.7)',
+                                    color: 'white',
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    zIndex: 25,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    border: '1px solid rgba(255,255,255,0.2)'
+                                }}
+                            >
+                                🔇 Toca para activar sonido
                             </div>
                         )}
                         {/* Play/Pause Icon overlay */}

@@ -126,8 +126,8 @@ export default async function SharedVideoPage({ params }: Props) {
                             src={video.video_url}
                             poster={video.thumbnail_url || undefined}
                             controls
-                            autoPlay
                             playsInline
+                            preload="auto"
                             style={{
                                 width: '100%',
                                 maxHeight: '80dvh',
