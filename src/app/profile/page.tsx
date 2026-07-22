@@ -280,29 +280,47 @@ function ProfilePageContent() {
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100%', maxWidth: '450px', borderLeft: '1px solid #111', borderRight: '1px solid #111', minHeight: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
+                {/* Avatar container with circular flag badge matching mobile app */}
+                <div style={{ position: 'relative', width: '100px', height: '100px', marginBottom: '15px' }}>
                     <div style={{ 
                         width: '100px', height: '100px', borderRadius: '50%', 
                         backgroundColor: displayUser.profileColor || '#8E2DE2', 
                         display: 'flex', justifyContent: 'center', alignItems: 'center',
-                    fontSize: '40px', fontWeight: 'bold', marginBottom: '15px',
-                    backgroundImage: displayUser.profileImage ? `url(${displayUser.profileImage})` : 'none',
-                    backgroundSize: 'cover'
-                }}>
-                    {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
-                </div>
-                <h2 style={{ margin: 0 }}>{displayUser.name}</h2>
-                <p style={{ color: '#aaa', margin: '5px 0 2px' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
-                
-                {/* Flag and Location Badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 10px' }}>
-                    <div style={{ width: '22px', height: '15px', borderRadius: '3px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        fontSize: '40px', fontWeight: 'bold',
+                        backgroundImage: displayUser.profileImage ? `url(${displayUser.profileImage})` : 'none',
+                        backgroundSize: 'cover',
+                        border: '3px solid #fff',
+                        boxSizing: 'border-box'
+                    }}>
+                        {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
+                    </div>
+                    {/* Circular Flag Badge overlay on bottom-right of avatar */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-5px',
+                        right: '-5px',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: '#1a1a1a',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        border: '2px solid #8E2DE2',
+                        overflow: 'hidden'
+                    }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={getFlagUri(displayUser.country || displayUser.nationality)} alt="Bandera" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(142, 45, 226, 0.15)', border: '1px solid rgba(142, 45, 226, 0.3)', padding: '3px 10px', borderRadius: '12px', fontSize: '12px', color: '#e0b0ff', fontWeight: 'bold' }}>
-                        <span>📍</span>
-                        <span>{getLocationText(displayUser)}</span>
-                    </div>
+                </div>
+
+                <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{displayUser.name}</h2>
+                <p style={{ color: '#aaa', margin: '4px 0 2px' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
+                
+                {/* Location Badge matching mobile app */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(142, 45, 226, 0.15)', border: '1px solid rgba(142, 45, 226, 0.3)', padding: '4px 12px', borderRadius: '14px', fontSize: '12px', color: '#e0b0ff', fontWeight: 'bold', margin: '6px 0 10px' }}>
+                    <span>📍</span>
+                    <span>{getLocationText(displayUser)}</span>
                 </div>
 
                 <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px', margin: '5px 0 0' }}>{displayUser.bio || 'Sin biografía todavía.'}</p>
