@@ -5,6 +5,25 @@ import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: NextRequest) {
     try {
+        // Autenticación estricta con Token Bearer de Supabase Auth
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
+                }
+            } catch (e) {
+                console.warn("Auth token validation failed in voice upload:", e);
+            }
+        }
+
+        if (!authenticatedUserId) {
+            return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get("audio") as File;
 
@@ -13,14 +32,14 @@ export async function POST(request: NextRequest) {
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = `${uuidv4()}.m4a`; // Asumimos m4a desde Expo, ajustar si es necesario
+        const filename = `${uuidv4()}.m4a`;
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage con Caché Inmutable Edge
         const { data, error: uploadError } = await supabaseAdmin.storage
             .from('media')
             .upload(`voice/${filename}`, buffer, {
                 contentType: file.type,
-                cacheControl: '3600',
+                cacheControl: '31536000',
                 upsert: false
             });
 

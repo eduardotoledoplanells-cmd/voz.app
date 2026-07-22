@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike, removeVoiceCommentLike, addNotification, supabaseAdmin } from "@/lib/db";
+import { getVoiceComments, addVoiceComment, incrementVoiceCommentLike, removeVoiceCommentLike, addNotification, getUserById, supabaseAdmin } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
     try {
@@ -33,11 +33,39 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        // Autenticación estricta con Token Bearer de Supabase Auth
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
+                }
+            } catch (e) {
+                console.warn("Auth token validation failed in voice comments:", e);
+            }
+        }
+
+        if (!authenticatedUserId) {
+            return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { videoId, userHandle, avatarUrl, audioUrl, duration, parentId } = body;
 
         if (!videoId || !userHandle || !audioUrl) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // Verificar que el usuario autenticado corresponde al handle publicado
+        const sender = await getUserById(authenticatedUserId);
+        const cleanSenderHandle = sender?.handle?.replace('@', '');
+        const cleanPayloadHandle = userHandle.replace('@', '');
+        
+        if (!sender || (cleanSenderHandle !== cleanPayloadHandle)) {
+            return NextResponse.json({ error: "Acceso denegado: No puedes publicar comentarios en nombre de otro usuario" }, { status: 403 });
         }
 
         // Verificar si los comentarios están habilitados para este vídeo
