@@ -370,7 +370,7 @@ const FeedItem = ({
 
                 {/* Right Action Icons */}
                 <div className="action-icons">
-                    {(v.is_live || v.isLive) && v.live_url && (
+                    {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
                         <>
                             <div 
                                 style={{ textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
@@ -379,7 +379,7 @@ const FeedItem = ({
                                 <div style={{ 
                                     width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#FF3B30', 
                                     display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                    animation: hasLiveSignal ? 'sonar-pulse 1.2s infinite' : 'none',
+                                    animation: 'sonar-pulse 1.2s infinite',
                                     border: '2px solid white',
                                     boxShadow: '0 0 10px #FF3B30'
                                 }}>
@@ -422,7 +422,7 @@ const FeedItem = ({
                 )}
 
                 {/* Live stream modal */}
-                {(v.is_live || v.isLive) && v.live_url && (
+                {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
                     <LiveStreamModal 
                         isOpen={isLiveOpen} 
                         onClose={() => setIsLiveOpen(false)} 
