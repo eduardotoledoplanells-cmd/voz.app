@@ -6,7 +6,7 @@ import { logSystemAlert } from '@/lib/alerts';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { creatorHandle } = body;
+        const { creatorHandle, idempotencyKey: clientKey } = body;
         let amount = body.amount;
 
         // Autenticación estricta y ÚNICA: verificar token Bearer de Supabase Auth
@@ -49,8 +49,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
         }
 
-        // 1. Process donation via Ledger
-        const idempotencyKey = `donation-${sender.id}-${creator.id}-${Date.now()}`;
+        // 1. Process donation via Ledger (idempotencia cliente o fallback estable)
+        const idempotencyKey = clientKey || `donation-${sender.id}-${creator.id}-${donationAmount}`;
         try {
             await processDonation(sender.id, creator.id, donationAmount, idempotencyKey);
         } catch (ledgerError: any) {

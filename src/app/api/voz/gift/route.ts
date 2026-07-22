@@ -5,7 +5,7 @@ import { processGift } from '@/lib/ledger';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { senderHandle, receiverHandle, amount, videoId } = body;
+        const { senderHandle, receiverHandle, amount, videoId, idempotencyKey: clientKey } = body;
 
         // Autenticación estricta y ÚNICA: verificar token Bearer de Supabase Auth
         let authenticatedUserId: string | null = null;
@@ -61,8 +61,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Este creador ha desactivado la opción de recibir regalos.' }, { status: 400 });
         }
 
-        // 1. Process via Ledger
-        const idempotencyKey = `gift-${sender.id}-${receiver.id}-${Date.now()}`;
+        // 1. Process via Ledger (idempotencia cliente o fallback estable)
+        const idempotencyKey = clientKey || `gift-${sender.id}-${receiver.id}-${giftAmount}-${videoId || ''}`;
         try {
             await processGift(sender.id, receiver.id, giftAmount, idempotencyKey);
         } catch (ledgerError: any) {

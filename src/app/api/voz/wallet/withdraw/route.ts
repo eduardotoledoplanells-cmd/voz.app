@@ -1,11 +1,31 @@
 import { NextResponse } from 'next/server';
-import { getUserById, getUserByHandle, addWithdrawalRequest } from '@/lib/db';
+import { getUserById, getUserByHandle, addWithdrawalRequest, supabaseAdmin } from '@/lib/db';
 import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from '@/lib/ledger';
 import { logSystemAlert } from '@/lib/alerts';
 
 export async function POST(request: Request) {
     try {
-        const { handle, amount, method, details } = await request.json();
+        const body = await request.json();
+        const { handle, amount, method, details, idempotencyKey: clientKey } = body;
+
+        // Autenticación estricta y comprobación de propiedad del token Bearer
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
+                }
+            } catch (e) {
+                console.warn("Auth token validation failed in withdraw:", e);
+            }
+        }
+
+        if (!authenticatedUserId) {
+            return NextResponse.json({ success: false, error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
+        }
 
         if (!handle || !amount || amount < 50 || !method || !details) {
             return NextResponse.json({ success: false, error: 'La cantidad mínima de retiro es 50 🪙' }, { status: 400 });
@@ -17,14 +37,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
         }
 
+        // Verificar que el usuario autenticado es el propietario de la cuenta de retiro
+        if (user.id !== authenticatedUserId) {
+            return NextResponse.json({ success: false, error: 'Acceso denegado: No puedes solicitar retiros para otra cuenta' }, { status: 403 });
+        }
+
         const currentEarnings = user.earningsBalance || 0;
         if (currentEarnings < amount) {
             return NextResponse.json({ success: false, error: 'Saldo insuficiente en Cartera' }, { status: 400 });
         }
 
-        // 1. Process via Ledger: deduct from user AVAILABLE balance and place in EXTERNAL_WORLD hold
+        // 1. Process via Ledger: deduct from user PENDING balance and place in EXTERNAL_WORLD hold
         const userWalletId = await getOrCreateUserWallet(user.id);
-        const idempotencyKey = `withdraw-${user.id}-${Date.now()}`;
+        const idempotencyKey = clientKey || `withdraw-${user.id}-${amount}-${handle}`;
         const amountMicro = Math.round(amount * 1000);
         try {
             await executeLedgerTransaction(
