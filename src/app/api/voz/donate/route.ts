@@ -60,13 +60,24 @@ export async function POST(request: Request) {
             type: 'donation'
         });
 
-        // 4. Enviar notificación (El creador solo ve su parte en Euros)
+        // 4. Enviar notificación al creador (ve su parte en Euros)
         await addNotification({
             id: Date.now().toString(),
             recipientId: creatorHandle,
             type: 'donation',
             title: '¡Has recibido un apoyo! 💰',
             message: `Has recibido un apoyo de ${payoutAmount.toFixed(2)} € de ${sender.handle}.`,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
+
+        // 5. Enviar notificación al donante (para que quede registrado en su sección de Actividad)
+        await addNotification({
+            id: (Date.now() + 1).toString(),
+            recipientId: sender.handle,
+            type: 'donation',
+            title: '¡Apoyo enviado! 💰',
+            message: `Has enviado un apoyo de ${donationAmount} moneda(s) a ${creatorHandle}.`,
             timestamp: new Date().toISOString(),
             readStatus: false
         });

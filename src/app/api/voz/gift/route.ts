@@ -64,13 +64,24 @@ export async function POST(request: Request) {
         const updatedSender = await getUserById(sender.id);
         const newSenderBalance = updatedSender ? updatedSender.walletBalance : 0;
 
-        // 5. Enviar notificación (El creador solo ve su parte)
+        // 5. Enviar notificación al creador (recibe su parte)
         await addNotification({
             id: Date.now().toString(),
             recipientId: receiverHandle,
             type: 'gift',
             title: '¡Te han enviado un regalo! 🎁',
             message: `${senderHandle} te ha apoyado con ${payoutAmount.toFixed(2)} €.`,
+            timestamp: new Date().toISOString(),
+            readStatus: false
+        });
+
+        // 6. Enviar notificación al emisor (para que quede en su pestaña de Actividad)
+        await addNotification({
+            id: (Date.now() + 1).toString(),
+            recipientId: senderHandle,
+            type: 'gift',
+            title: '¡Regalo enviado! 🎁',
+            message: `Has enviado un regalo de ${giftAmount} moneda(s) a ${receiverHandle}.`,
             timestamp: new Date().toISOString(),
             readStatus: false
         });
