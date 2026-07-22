@@ -7,6 +7,29 @@ import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import { Grid, Bookmark, Heart, Lock } from 'lucide-react';
 
+const getFlagUri = (country: any) => {
+    if (!country) return 'https://flagcdn.com/w80/es.png';
+    let countryName = '';
+    let countryCode = '';
+    if (typeof country === 'string') {
+        countryName = country;
+    } else if (typeof country === 'object') {
+        countryName = country.name || country.label || '';
+        countryCode = country.code || '';
+    }
+    const code = (countryCode || (countryName.toLowerCase().includes('españa') || countryName.toLowerCase().includes('spain') ? 'es' : 'es')).toLowerCase();
+    return `https://flagcdn.com/w80/${code}.png`;
+};
+
+const getLocationText = (userObj: any) => {
+    if (!userObj) return 'España';
+    if (userObj.region) return userObj.region;
+    if (typeof userObj.country === 'string' && userObj.country) return userObj.country;
+    if (userObj.country && (userObj.country.name || userObj.country.label)) return userObj.country.name || userObj.country.label;
+    if (userObj.nationality) return userObj.nationality;
+    return 'España';
+};
+
 function ProfilePageContent() {
     const { user, logout, isLoading } = useAuth();
     const router = useRouter();
@@ -261,8 +284,21 @@ function ProfilePageContent() {
                     {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
                 </div>
                 <h2 style={{ margin: 0 }}>{displayUser.name}</h2>
-                <p style={{ color: '#aaa', margin: '5px 0' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
-                <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px' }}>{displayUser.bio || 'Sin biografía todavía.'}</p>
+                <p style={{ color: '#aaa', margin: '5px 0 2px' }}>{displayUser.handle || (displayUser.name ? '@'+String(displayUser.name).toLowerCase().replace(/\s+/g, '') : '')}</p>
+                
+                {/* Flag and Location Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 10px' }}>
+                    <div style={{ width: '22px', height: '15px', borderRadius: '3px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={getFlagUri(displayUser.country || displayUser.nationality)} alt="Bandera" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(142, 45, 226, 0.15)', border: '1px solid rgba(142, 45, 226, 0.3)', padding: '3px 10px', borderRadius: '12px', fontSize: '12px', color: '#e0b0ff', fontWeight: 'bold' }}>
+                        <span>📍</span>
+                        <span>{getLocationText(displayUser)}</span>
+                    </div>
+                </div>
+
+                <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px', margin: '5px 0 0' }}>{displayUser.bio || 'Sin biografía todavía.'}</p>
                 
                 <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
                     <div style={{ textAlign: 'center' }}>
