@@ -73,7 +73,7 @@ export default function WalletWidget({
 
         // 2. Realtime WebSocket listener
         const channel = supabase
-            .channel(`wallet-${cleanHandle}`)
+            .channel(`wallet-updates-${cleanHandle}`)
             .on(
                 'postgres_changes',
                 {

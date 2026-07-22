@@ -4,7 +4,28 @@ import { processGift } from '@/lib/ledger';
 
 export async function POST(request: Request) {
     try {
-        const { senderHandle, receiverHandle, amount, videoId } = await request.json();
+        const body = await request.json();
+        const { senderHandle, receiverHandle, amount, videoId } = body;
+
+        // Autenticación estricta: verificar token Bearer de Supabase Auth
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
+                }
+            } catch (e) {
+                console.warn("Auth token validation failed in gift:", e);
+            }
+        }
+
+        const headerUserId = request.headers.get('x-user-id');
+        if (!authenticatedUserId && headerUserId) {
+            authenticatedUserId = headerUserId;
+        }
 
         if (!senderHandle || !receiverHandle || !amount) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -15,7 +36,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        const sender = await getUserByHandle(senderHandle);
+        let sender = authenticatedUserId ? await getUserById(authenticatedUserId) : await getUserByHandle(senderHandle);
         let receiver: any = await getUserByHandle(receiverHandle);
 
         if (!sender) {
