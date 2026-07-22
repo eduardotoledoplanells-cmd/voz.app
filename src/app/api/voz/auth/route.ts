@@ -60,8 +60,10 @@ export async function POST(request: NextRequest) {
             }
 
             // Resolve geographic text values
-            let countryText = '';
-            let regionText = '';
+            const countryInput = body.country || body.nationality || '';
+            const regionInput = body.region || body.pueblo || body.ciudad || '';
+            let countryText = typeof countryInput === 'object' ? (countryInput.name || 'España') : (countryInput || '');
+            let regionText = typeof regionInput === 'string' ? regionInput : '';
 
             if (countryId && parseInt(countryId.toString()) === 1) {
                 countryText = 'España';
@@ -80,6 +82,8 @@ export async function POST(request: NextRequest) {
                     }
                 }
             }
+
+            if (!countryText) countryText = 'España';
 
             // 2. Crear el registro en la tabla pública app_users (para el perfil y wallet)
             // Nota: El ID de app_users coincidirá con el ID de Supabase Auth
