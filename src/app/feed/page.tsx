@@ -24,7 +24,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                     setIsNear(entry.isIntersecting);
                 });
             },
-            { rootMargin: "0px 100% 0px 100%", threshold: 0 }
+            { rootMargin: "0px 800px 0px 800px", threshold: 0 }
         );
 
         if (itemRef.current) {
@@ -86,7 +86,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
 
     // Manage background audio track sync for videos with music
     useEffect(() => {
-        if (!musicUrl) return;
+        if (typeof window === 'undefined' || !musicUrl) return;
         if (!audioRef.current) {
             audioRef.current = new Audio(musicUrl);
             audioRef.current.loop = true;
