@@ -62,8 +62,7 @@ export async function sendNativePush(
                 }
             },
             data: {
-                ...dataPayload,
-                click_action: "FLUTTER_NOTIFICATION_CLICK"
+                ...dataPayload
             }
         };
 
