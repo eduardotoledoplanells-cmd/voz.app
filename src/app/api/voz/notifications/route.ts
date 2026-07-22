@@ -5,12 +5,56 @@ import { logSystemAlert } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
+async function authenticateAndAuthorizeUser(request: Request, rawRecipientId: string) {
+    let authenticatedUserId: string | null = null;
+    const authHeader = request.headers.get('authorization');
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+            const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+            if (authUser?.user) {
+                authenticatedUserId = authUser.user.id;
+            }
+        } catch (e) {
+            console.warn("Auth token validation failed in notifications:", e);
+        }
+    }
+
+    if (!authenticatedUserId) {
+        return { authorized: false, status: 401, error: 'Acceso denegado: Token de sesión inválido o inexistente' };
+    }
+
+    const cleanId = rawRecipientId.replace('@', '').toLowerCase();
+    
+    // Check if requesting user matches recipient ID or Handle
+    const { data: requestingUser } = await supabaseAdmin
+        .from('app_users')
+        .select('id, handle')
+        .or(`id.eq.${authenticatedUserId},handle.ilike.${cleanId},handle.ilike.@${cleanId}`)
+        .maybeSingle();
+
+    if (requestingUser) {
+        const cleanUserHandle = (requestingUser.handle || '').replace('@', '').toLowerCase();
+        if (requestingUser.id !== authenticatedUserId && cleanUserHandle !== cleanId) {
+            return { authorized: false, status: 403, error: 'Acceso denegado: No tienes permiso para ver notificaciones de otro usuario' };
+        }
+    }
+
+    return { authorized: true, userId: authenticatedUserId };
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const rawRecipientId = searchParams.get('recipientId');
 
     if (!rawRecipientId || !rawRecipientId.trim()) {
         return NextResponse.json({ error: 'El parámetro recipientId es obligatorio' }, { status: 400 });
+    }
+
+    const authCheck = await authenticateAndAuthorizeUser(request, rawRecipientId);
+    if (!authCheck.authorized) {
+        return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
 
     try {
@@ -180,6 +224,11 @@ export async function PUT(request: Request) {
 
         if (!recipientId) {
             return NextResponse.json({ error: 'Missing recipientId' }, { status: 400 });
+        }
+
+        const authCheck = await authenticateAndAuthorizeUser(request, recipientId);
+        if (!authCheck.authorized) {
+            return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
         }
 
         // Sanitize recipientId: remove '@' and lowercase to match normalized DB format

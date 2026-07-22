@@ -19,10 +19,13 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
 
         const user = JSON.parse(storedUser);
         const recipientId = user.handle || `@${user.name}`;
+        const token = localStorage.getItem('token') || user.id || '';
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
         if (showLoading) setLoading(true);
         try {
-            const res = await fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`);
+            const res = await fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, { headers });
             const data = await res.json();
             const notifs = Array.isArray(data) ? data : [];
             setNotifications(notifs);
@@ -33,7 +36,8 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
             // Mark as read after 2 seconds
             setTimeout(() => {
                 fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, {
-                    method: 'PUT'
+                    method: 'PUT',
+                    headers
                 }).catch(console.error);
             }, 2000);
         } catch (err) {

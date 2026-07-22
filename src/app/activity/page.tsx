@@ -15,8 +15,11 @@ export default function ActivityPage() {
 
         const user = JSON.parse(storedUser);
         const recipientId = user.handle || `@${user.name}`;
+        const token = localStorage.getItem('token') || user.id || '';
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`)
+        fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, { headers })
             .then(res => res.json())
             .then(data => {
                 const notifs = Array.isArray(data) ? data : [];
@@ -26,7 +29,8 @@ export default function ActivityPage() {
                 // Mark as read after 2 seconds
                 setTimeout(() => {
                     fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, {
-                        method: 'PUT'
+                        method: 'PUT',
+                        headers
                     }).catch(console.error);
                 }, 2000);
             })
