@@ -75,12 +75,44 @@ function ProfilePageContent() {
         }
     }, [searchParams]);
 
+    const fetchVideosForTab = useCallback(async (tabName: string, handleToUse: string, offset = 0) => {
+        setLoadingVideos(offset === 0);
+        try {
+            let url = `/api/voz/videos?limit=12&offset=${offset}`;
+            if (tabName === 'likes') {
+                url += `&likedBy=${encodeURIComponent(handleToUse)}`;
+            } else if (tabName === 'bookmarks') {
+                url += `&bookmarkedBy=${encodeURIComponent(handleToUse)}`;
+            } else {
+                url += `&userHandle=${encodeURIComponent(handleToUse)}`;
+            }
+            const res = await fetch(url);
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.videos || []);
+            
+            if (offset === 0) {
+                setVideos(list);
+            } else {
+                setVideos(prev => {
+                    const existingIds = new Set(prev.map(v => v.id));
+                    const newVideos = list.filter((v: any) => !existingIds.has(v.id));
+                    return [...prev, ...newVideos];
+                });
+            }
+            setHasMoreVideos(list.length >= 12);
+        } catch (err) {
+            console.error("Error fetching tab videos:", err);
+            if (offset === 0) setVideos([]);
+        } finally {
+            setLoadingVideos(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (user && targetHandle) {
             setIsFetchingUser(true);
             setUserNotFound(false);
             
-            // Fetch live user stats first, then use exact handle for videos
             fetch(`/api/voz/users/profile?handle=${encodeURIComponent(targetHandle)}`)
                 .then(res => res.json())
                 .then(data => {
@@ -89,28 +121,15 @@ function ProfilePageContent() {
                         setLiveUser(data.user);
                         const myHandle = user.handle || '@'+user.name;
                         setIsFollowing(data.fans && data.fans.includes(myHandle));
-                        // Use exact handle from DB to avoid @ mismatch
                         handleForVideos = data.user.handle || targetHandle;
                     } else {
                         setUserNotFound(true);
                     }
-                    
-                    // Fetch user videos with the best handle
-                    return fetch(`/api/voz/videos?userHandle=${encodeURIComponent(handleForVideos)}&limit=12&offset=0`);
-                })
-                .then(res => res.json())
-                .then(data => {
-                    const videoList = Array.isArray(data) ? data : (data.videos || []);
-                    if (videoList.length < 12) setHasMoreVideos(false);
-                    else setHasMoreVideos(true);
-                    setVideos(videoList);
-                    setLoadingVideos(false);
+                    return fetchVideosForTab(activeTab, handleForVideos, 0);
                 })
                 .catch(err => {
-                    console.error("Error fetching profile or videos:", err);
-                    if (!liveUser) {
-                        setUserNotFound(true);
-                    }
+                    console.error("Error fetching profile:", err);
+                    if (!liveUser) setUserNotFound(true);
                     setLoadingVideos(false);
                 })
                 .finally(() => {
@@ -121,25 +140,13 @@ function ProfilePageContent() {
             setLoadingVideos(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, targetHandle]);
+    }, [user?.id, targetHandle, activeTab]);
 
     const fetchMoreVideos = async () => {
         setLoadingMore(true);
         try {
             const currentHandle = liveUser?.handle || targetHandle || '';
-            const res = await fetch(`/api/voz/videos?userHandle=${encodeURIComponent(currentHandle)}&limit=12&offset=${videos.length}`);
-            const data = await res.json();
-            const fetchedVideos = Array.isArray(data) ? data : (data.videos || []);
-            if (fetchedVideos.length < 12) {
-                setHasMoreVideos(false);
-            }
-            if (fetchedVideos.length > 0) {
-                setVideos(prev => {
-                    const existingIds = new Set(prev.map(v => v.id));
-                    const newVideos = fetchedVideos.filter((v: any) => !existingIds.has(v.id));
-                    return [...prev, ...newVideos];
-                });
-            }
+            await fetchVideosForTab(activeTab, currentHandle, videos.length);
         } catch (error) {
             console.error("Error fetching more videos:", error);
         } finally {
@@ -376,68 +383,69 @@ function ProfilePageContent() {
 
             {/* Grid de Videos */}
             <div style={{ padding: '2px' }}>
-                {activeTab === 'grid' && (
-                    <>
-                        {loadingVideos ? (
-                            <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Cargando vídeos...</div>
-                        ) : videos.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>No hay vídeos publicados aún.</div>
-                        ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
-                                {videos.map(v => (
-                                    <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
-                                        <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
-                                            <div style={{ height: '100%' }}>
-                                                {v.videoUrl ? (
-                                                    <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
-                                                )}
-                                                <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
-                                                    ▶ {v.views || 0}
-                                                </div>
-                                            </div>
-                                        </Link>
-                                        {isOwnProfile && (
-                                            <button 
-                                                onClick={async (e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
-                                                    try {
-                                                        const token = localStorage.getItem('token') || '';
-                                                        const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
-                                                            method: 'DELETE',
-                                                            headers: {
-                                                                'Authorization': `Bearer ${token}`
-                                                            }
-                                                        });
-                                                        const data = await res.json();
-                                                        if (data.success) {
-                                                            setVideos(prev => prev.filter(item => item.id !== v.id));
-                                                            alert("Vídeo eliminado con éxito.");
-                                                        } else {
-                                                            alert(data.error || "No se pudo eliminar el vídeo.");
-                                                        }
-                                                    } catch (err) {
-                                                        console.error(err);
-                                                        alert("Error al conectar con el servidor.");
-                                                    }
-                                                }} 
-                                                style={{ 
-                                                    position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
-                                                    background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
-                                                    display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
-                                                }}
-                                            >
-                                                <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
-                                            </button>
+                {loadingVideos ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Cargando vídeos...</div>
+                ) : videos.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
+                        {activeTab === 'likes' ? "No has dado Me gusta a ningún vídeo aún." :
+                         activeTab === 'bookmarks' ? "No tienes vídeos guardados en favoritos." :
+                         activeTab === 'drafts' ? "No tienes vídeos privados." :
+                         "No hay vídeos publicados aún."}
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
+                        {videos.map(v => (
+                            <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
+                                <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                                    <div style={{ height: '100%' }}>
+                                        {v.videoUrl ? (
+                                            <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
                                         )}
+                                        <div style={{ position: 'absolute', bottom: '5px', left: '5px', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', textShadow: '1px 1px 2px #000' }}>
+                                            ▶ {v.views || 0}
+                                        </div>
                                     </div>
-                                ))}
+                                </Link>
+                                {isOwnProfile && activeTab === 'grid' && (
+                                    <button 
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!confirm("¿Estás seguro de que quieres eliminar este vídeo?")) return;
+                                            try {
+                                                const token = localStorage.getItem('token') || '';
+                                                const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
+                                                    method: 'DELETE',
+                                                    headers: {
+                                                        'Authorization': `Bearer ${token}`
+                                                    }
+                                                });
+                                                const data = await res.json();
+                                                if (data.success) {
+                                                    setVideos(prev => prev.filter(item => item.id !== v.id));
+                                                    alert("Vídeo eliminado con éxito.");
+                                                } else {
+                                                    alert(data.error || "No se pudo eliminar el vídeo.");
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Error al conectar con el servidor.");
+                                            }
+                                        }} 
+                                        style={{ 
+                                            position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
+                                            background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
+                                            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
+                                        }}
+                                    >
+                                        <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
+                                    </button>
+                                )}
                             </div>
-                        )}
-                    </>
+                        ))}
+                    </div>
                 )}
                 
                 {/* Intersection Observer Target */}
