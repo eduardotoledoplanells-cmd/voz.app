@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Heart, Mic, Gift, Bookmark, Play } from 'lucide-react';
 import Link from 'next/link';
@@ -7,34 +7,26 @@ import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import LiveStreamModal from '../components/LiveStreamModal';
 
-const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick }: { v: any, autoScroll: boolean, scrollNext: () => void, currentUserHandle?: string, onCommentClick: (videoId: string) => void }) => {
+const FeedItem = ({ 
+    v, 
+    autoScroll, 
+    scrollNext, 
+    currentUserHandle, 
+    onCommentClick,
+    isActive
+}: { 
+    v: any, 
+    autoScroll: boolean, 
+    scrollNext: () => void, 
+    currentUserHandle?: string, 
+    onCommentClick: (videoId: string) => void,
+    isActive: boolean
+}) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isManualPause, setIsManualPause] = useState(false);
     const [isLiveOpen, setIsLiveOpen] = useState(false);
     const [hasLiveSignal, setHasLiveSignal] = useState(false);
-    const [isNear, setIsNear] = useState(true);
-
-    const itemRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    setIsNear(entry.isIntersecting);
-                });
-            },
-            { rootMargin: "0px 800px 0px 800px", threshold: 0 }
-        );
-
-        if (itemRef.current) {
-            observer.observe(itemRef.current);
-        }
-
-        return () => {
-            if (itemRef.current) observer.unobserve(itemRef.current);
-        };
-    }, []);
 
     useEffect(() => {
         let active = true;
@@ -46,7 +38,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                         setHasLiveSignal(!!data.streamUrl);
                     }
                 })
-                .catch(err => {
+                .catch(() => {
                     if (active) {
                         setHasLiveSignal(false);
                     }
@@ -70,7 +62,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Extract background music url
-    const musicUrl = React.useMemo(() => {
+    const musicUrl = useMemo(() => {
         if (!v.music) return null;
         if (typeof v.music === 'string') {
             if (v.music.includes('previewUrl')) {
@@ -123,7 +115,7 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         }
     };
 
-    // Pause video when tab is hidden (prevents double audio when app and web are open simultaneously)
+    // Pause video when tab is hidden
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden && videoRef.current) {
@@ -135,53 +127,36 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
+    // Active playback control
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        // Only autoplay if tab is visible
-                        if (!isManualPause && videoRef.current && !document.hidden) {
-                            const p = videoRef.current.play();
-                            if (p !== undefined) {
-                                p.then(() => {
-                                    setIsPlaying(true);
-                                    logView();
-                                }).catch((err) => {
-                                    console.log('Autoplay un-muted prevented by browser, retrying muted', err);
-                                    if (videoRef.current) {
-                                        videoRef.current.muted = true;
-                                        setIsMuted(true);
-                                        videoRef.current.play().then(() => {
-                                            setIsPlaying(true);
-                                            logView();
-                                        }).catch(e2 => console.log('Muted play also prevented', e2));
-                                    }
-                                });
-                            }
-                        }
-                    } else {
+        if (isActive) {
+            if (!isManualPause && videoRef.current && !document.hidden) {
+                const p = videoRef.current.play();
+                if (p !== undefined) {
+                    p.then(() => {
+                        setIsPlaying(true);
+                        logView();
+                    }).catch((err) => {
+                        console.log('Autoplay un-muted prevented by browser, retrying muted', err);
                         if (videoRef.current) {
-                            videoRef.current.pause();
-                            setIsPlaying(false);
-                            setIsManualPause(false); // reset on scroll away
+                            videoRef.current.muted = true;
+                            setIsMuted(true);
+                            videoRef.current.play().then(() => {
+                                setIsPlaying(true);
+                                logView();
+                            }).catch(e2 => console.log('Muted play also prevented', e2));
                         }
-                    }
-                });
-            },
-            { threshold: 0.6 }
-        );
-
-        if (videoRef.current) {
-            observer.observe(videoRef.current);
-        }
-
-        return () => {
-            if (videoRef.current) {
-                observer.unobserve(videoRef.current);
+                    });
+                }
             }
-        };
-    }, [isManualPause]);
+        } else {
+            if (videoRef.current) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+                setIsManualPause(false); // reset manual pause on slide change
+            }
+        }
+    }, [isActive, isManualPause]);
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -190,7 +165,6 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                 setIsPlaying(false);
                 setIsManualPause(true);
             } else {
-                // User interacted explicitly -> Unmute and play audio
                 if (videoRef.current.muted || isMuted) {
                     videoRef.current.muted = false;
                     setIsMuted(false);
@@ -213,66 +187,65 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
         }
     };
 
-    const pauseVideo = () => {
-        if (videoRef.current && isPlaying) {
-            videoRef.current.pause();
-            setIsPlaying(false);
-            setIsManualPause(true);
-        }
-    };
-
     const handleVideoEnded = () => {
         if (autoScroll) {
             scrollNext();
+        } else if (videoRef.current) {
+            videoRef.current.play().catch(e => console.log('Loop play prevented', e));
         }
     };
 
     const handleLike = async () => {
-        if (!currentUserHandle) { alert("Inicia sesión para dar me gusta"); return; }
-        const newIsLiked = !isLiked;
-        setIsLiked(newIsLiked);
-        setLikesCount((prev: number) => newIsLiked ? prev + 1 : prev - 1);
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
+        setLikesCount(prev => newLiked ? prev + 1 : prev - 1);
+
         try {
             const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/like', {
-                method: 'PUT',
+                method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isLiked: newIsLiked })
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle })
             });
         } catch (e) { console.error("Error liking video", e); }
     };
 
     const handleBookmark = async () => {
-        if (!currentUserHandle) { alert("Inicia sesión para favoritos"); return; }
-        const newIsBookmarked = !isBookmarked;
-        setIsBookmarked(newIsBookmarked);
+        const newBookmarked = !isBookmarked;
+        setIsBookmarked(newBookmarked);
+
         try {
             const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/bookmark', {
-                method: 'PUT',
+                method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isBookmarked: newIsBookmarked })
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle })
             });
         } catch (e) { console.error("Error bookmarking video", e); }
     };
 
     const handleGift = async () => {
-        if (!currentUserHandle) { alert("Inicia sesión para enviar regalos"); return; }
-        
+        if (!currentUserHandle) {
+            alert("Inicia sesión para enviar un regalo");
+            return;
+        }
+
         const receiver = v.user || v.userHandle;
         if (currentUserHandle === receiver) {
             alert("No puedes enviarte un regalo a ti mismo.");
             return;
         }
 
-        const audio = new Audio('/sounds/SonidoRegalo.mp3');
-        audio.play().catch(e => console.log("Audio play prevented", e));
+        if (typeof window !== 'undefined') {
+            const audio = new Audio('/sounds/SonidoRegalo.mp3');
+            audio.play().catch(e => console.log("Audio play prevented", e));
+        }
         
         setGiftScale(1.5);
         setTimeout(() => setGiftScale(1), 300);
@@ -304,27 +277,21 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
     };
 
     return (
-        <div ref={itemRef} style={{ width: '100vw', height: '100%', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
+        <div style={{ width: '100vw', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
             <div style={{ width: '100%', maxWidth: '450px', height: '100%', position: 'relative', backgroundColor: '#000' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
-                        {isNear ? (
-                            <video 
-                                ref={videoRef}
-                                src={v.videoUrl} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                controls={false}
-                                loop={!autoScroll}
-                                muted={isMuted}
-                                playsInline
-                                preload="auto"
-                                onEnded={handleVideoEnded}
-                            />
-                        ) : (
-                            <div style={{ width: '100%', height: '100%', backgroundColor: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                {v.thumbnailUrl && <img src={v.thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />}
-                            </div>
-                        )}
+                        <video 
+                            ref={videoRef}
+                            src={v.videoUrl} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            controls={false}
+                            loop={!autoScroll}
+                            muted={isMuted}
+                            playsInline
+                            preload="auto"
+                            onEnded={handleVideoEnded}
+                        />
                         {/* Sound Badge if Browser forced muted play */}
                         {isMuted && isPlaying && (
                             <div 
@@ -359,62 +326,57 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                         {/* Play/Pause Icon overlay */}
                         {!isPlaying && (
                             <div style={{ 
-                                position: 'absolute', 
-                                top: '50%', left: '50%', 
-                                transform: 'translate(-50%, -50%)', 
-                                backgroundColor: 'rgba(0,0,0,0.4)', 
-                                borderRadius: '50%', 
-                                width: '80px', height: '80px', 
-                                display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                pointerEvents: 'none',
-                                zIndex: 10
+                                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', 
+                                backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: '50%', padding: '20px', 
+                                display: 'flex', justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' 
                             }}>
-                                <Play size={40} color="white" fill="white" style={{ opacity: 0.8 }} />
+                                <Play size={40} color="white" fill="white" />
                             </div>
                         )}
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center', color: 'white', backgroundColor: v.profileColor || '#8E2DE2' }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '48px', marginBottom: '10px' }}>🎙️</div>
-                            <h2>Audio de Voz</h2>
-                        </div>
+                    <div style={{ width: '100%', height: '100%', backgroundColor: '#111', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <p style={{ color: '#888' }}>Vídeo no disponible</p>
                     </div>
                 )}
 
-                {/* UI Superpuesta (Usuario, Título) */}
-                <div style={{ position: 'absolute', bottom: '95px', left: '15px', color: 'white', maxWidth: '70%', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', pointerEvents: 'auto', zIndex: 20 }}>
-                    <Link href={`/profile?handle=${encodeURIComponent(v.userHandle || v.userName || v.user || '')}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none', color: 'white', cursor: 'pointer' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>{v.userHandle || v.userName || '@usuario'}</h3>
+                {/* User info overlay */}
+                <div style={{ 
+                    position: 'absolute', bottom: '20px', left: '15px', right: '80px', color: 'white', 
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.8)', zIndex: 20, pointerEvents: 'none' 
+                }}>
+                    <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', backgroundColor: '#333' }}>
+                                {v.userImage ? (
+                                    <img src={v.userImage} alt={v.userName || v.user} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}>
+                                        {(v.userName || v.user || '?').charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <span style={{ fontWeight: 'bold', fontSize: '15px', display: 'block' }}>{v.userName || v.user}</span>
+                                <span style={{ fontSize: '12px', opacity: 0.8 }}>{v.userHandle || v.user}</span>
+                            </div>
+                        </div>
                     </Link>
-                    <p style={{ margin: '5px 0 0 0', fontSize: '0.95rem', fontWeight: '500', opacity: 0.95 }}>{v.description || 'Sin descripción'}</p>
+                    <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden' }}>{v.description}</p>
                 </div>
 
-                {/* Iconos laterales */}
+                {/* Right Action Icons */}
                 <div className="action-icons">
-                    {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
+                    {(v.is_live || v.isLive) && v.live_url && (
                         <>
                             <div 
-                                style={{ 
-                                    textAlign: 'center', 
-                                    cursor: 'pointer', 
-                                    display: 'flex', 
-                                    flexDirection: 'column', 
-                                    alignItems: 'center',
-                                    gap: '2px',
-                                    animation: 'sonar-pulse 2s infinite',
-                                    marginBottom: '15px'
-                                }} 
-                                onClick={(e) => { e.stopPropagation(); pauseVideo(); setIsLiveOpen(true); }}
+                                style={{ textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                                onClick={() => setIsLiveOpen(true)}
                             >
-                                <div style={{
-                                    width: '38px',
-                                    height: '38px',
-                                    borderRadius: '50%',
-                                    backgroundColor: '#FF3B30',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
+                                <div style={{ 
+                                    width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#FF3B30', 
+                                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                    animation: hasLiveSignal ? 'sonar-pulse 1.2s infinite' : 'none',
                                     border: '2px solid white',
                                     boxShadow: '0 0 10px #FF3B30'
                                 }}>
@@ -449,14 +411,14 @@ const FeedItem = ({ v, autoScroll, scrollNext, currentUserHandle, onCommentClick
                     </div>
                 </div>
 
-                {/* Etiqueta de Publicidad */}
+                {/* Promotional tag */}
                 {v.isAd && (
                     <div style={{ position: 'absolute', top: '20px', left: '15px', backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
                         Promocionado
                     </div>
                 )}
 
-                {/* Modal de Directo */}
+                {/* Live stream modal */}
                 {(v.is_live || v.isLive) && v.live_url && (
                     <LiveStreamModal 
                         isOpen={isLiveOpen} 
@@ -477,6 +439,7 @@ export default function FeedPage() {
     const [initialVideos, setInitialVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [autoScroll, setAutoScroll] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(0);
     
     // Voice Comments Modal state
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
@@ -531,7 +494,6 @@ export default function FeedPage() {
 
     const lastWheelTime = useRef(0);
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-        // Prevent default vertical mouse wheel scrolling
         e.preventDefault();
         const now = Date.now();
         if (now - lastWheelTime.current < 350) return;
@@ -552,10 +514,13 @@ export default function FeedPage() {
             if (scrollLeft + clientWidth >= scrollWidth - 50) {
                 if (initialVideos.length > 0 && !hasMore) {
                     containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                    setActiveIndex(0);
                     return;
                 }
             }
-            containerRef.current.scrollBy({ left: window.innerWidth, behavior: 'smooth' });
+            const nextIdx = Math.min(activeIndex + 1, videos.length - 1);
+            setActiveIndex(nextIdx);
+            containerRef.current.scrollTo({ left: nextIdx * window.innerWidth, behavior: 'smooth' });
         }
     };
 
@@ -563,16 +528,26 @@ export default function FeedPage() {
         if (containerRef.current) {
             const { scrollLeft } = containerRef.current;
             if (scrollLeft <= 10 && videos.length > 0) {
+                const lastIdx = videos.length - 1;
+                setActiveIndex(lastIdx);
                 containerRef.current.scrollTo({ left: containerRef.current.scrollWidth, behavior: 'smooth' });
                 return;
             }
-            containerRef.current.scrollBy({ left: -window.innerWidth, behavior: 'smooth' });
+            const prevIdx = Math.max(activeIndex - 1, 0);
+            setActiveIndex(prevIdx);
+            containerRef.current.scrollTo({ left: prevIdx * window.innerWidth, behavior: 'smooth' });
         }
     };
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
-        // Fetch more videos or trigger infinite loop append when near the end of horizontal scroll
+        const width = target.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1);
+        if (width > 0) {
+            const idx = Math.round(target.scrollLeft / width);
+            if (idx !== activeIndex && idx >= 0 && idx < videos.length) {
+                setActiveIndex(idx);
+            }
+        }
         if (target.scrollWidth - target.scrollLeft <= target.clientWidth + 500) {
             if (!fetchingRef.current && videos.length > 0) {
                 if (hasMore) {
@@ -598,7 +573,7 @@ export default function FeedPage() {
     return (
         <div style={{ backgroundColor: '#000', width: '100%', height: '100dvh', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }}>
             
-            {/* Mobile top bar — shown only on mobile via CSS */}
+            {/* Mobile top bar */}
             <div className="mobile-top-bar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '32px', objectFit: 'contain' }} />
@@ -670,7 +645,6 @@ export default function FeedPage() {
                     touch-action: pan-x;
                 }
                 .feed-scroll-container::-webkit-scrollbar { display: none; }
-                /* Each slide takes full viewport width */
                 .feed-scroll-container > div {
                     min-width: 100vw;
                     height: 100dvh;
@@ -708,7 +682,7 @@ export default function FeedPage() {
             <button className="nav-arrow left" onClick={scrollPrev}>{"<"}</button>
             <button className="nav-arrow right" onClick={scrollNext}>{">"}</button>
 
-            {/* Contenedor con Scroll Snap Horizontal */}
+            {/* Horizontal Scroll Snap Container */}
             <div 
                 ref={containerRef}
                 onScroll={handleScroll}
@@ -722,8 +696,9 @@ export default function FeedPage() {
                 ) : (
                     videos.map((v, index) => (
                         <FeedItem 
-                            key={`${v.id || 'vid'}-${index}`} 
+                            key={v.loopKey || `${v.id || 'vid'}-${index}`} 
                             v={v} 
+                            isActive={index === activeIndex}
                             autoScroll={autoScroll} 
                             scrollNext={scrollNext} 
                             currentUserHandle={user?.handle}
@@ -750,7 +725,8 @@ export default function FeedPage() {
                         handleCommentAdded(currentVideoId);
                     }
                 }}
-            /><BottomNav />
+            />
+            <BottomNav />
         </div>
     );
 }
