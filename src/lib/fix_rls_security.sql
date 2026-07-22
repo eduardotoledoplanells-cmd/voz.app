@@ -218,8 +218,46 @@ CREATE POLICY "service_role_all_ledger_entries" ON public.ledger_entries
     FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ====================================================================
+-- PASO 10: TABLA DE MENSAJES PRIVADOS (ESCROW) Y RLS
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.private_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_handle TEXT NOT NULL,
+    creator_handle TEXT NOT NULL,
+    escrow_id UUID,
+    content TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE IF EXISTS public.private_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_private_messages" ON public.private_messages;
+CREATE POLICY "service_role_all_private_messages" ON public.private_messages
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- ====================================================================
+-- PASO 11: PARCHE DE SEGURIDAD RPC (Bloquear Ejecución Pública del Ledger)
+-- ====================================================================
+
+REVOKE EXECUTE ON FUNCTION public.execute_ledger_transaction(TEXT, JSONB, UUID, TEXT, JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.execute_ledger_transaction(TEXT, JSONB, UUID, TEXT, JSONB) TO service_role;
+
+-- ====================================================================
+-- PASO 12: ÍNDICES DE ALTO RENDIMIENTO (Eliminar Escaneos Secuenciales)
+-- ====================================================================
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON public.notifications(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON public.support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_creator_verifications_user ON public.creator_verifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_user ON public.wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_transaction ON public.ledger_entries(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet ON public.ledger_entries(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_private_messages_participants ON public.private_messages(sender_handle, creator_handle);
+
+-- ====================================================================
 -- VERIFICACIÓN FINAL
--- Ejecuta esto para ver el estado de RLS en todas las tablas
 -- ====================================================================
 
 SELECT 
