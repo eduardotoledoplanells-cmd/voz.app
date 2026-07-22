@@ -256,6 +256,12 @@ CREATE INDEX IF NOT EXISTS idx_ledger_entries_transaction ON public.ledger_entri
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet ON public.ledger_entries(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_private_messages_participants ON public.private_messages(sender_handle, creator_handle);
 
+-- Extensión e Índices GIN Trigram para Acelerar Búsquedas ilike en Usuarios y Vídeos
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_app_users_handle_trgm ON public.app_users USING gin (handle gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_app_users_name_trgm ON public.app_users USING gin (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_videos_description_trgm ON public.videos USING gin (description gin_trgm_ops);
+
 -- ====================================================================
 -- PASO 13: POLÍTICAS DE LECTURA DE PROPIEDAD PARA USUARIOS AUTENTICADOS
 -- ====================================================================
