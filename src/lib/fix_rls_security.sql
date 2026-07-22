@@ -257,6 +257,37 @@ CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet ON public.ledger_entries(wa
 CREATE INDEX IF NOT EXISTS idx_private_messages_participants ON public.private_messages(sender_handle, creator_handle);
 
 -- ====================================================================
+-- PASO 13: POLÍTICAS DE LECTURA DE PROPIEDAD PARA USUARIOS AUTENTICADOS
+-- ====================================================================
+
+-- Permitir a los usuarios autenticados leer su propio perfil
+DROP POLICY IF EXISTS "user_read_own_profile" ON public.app_users;
+CREATE POLICY "user_read_own_profile" ON public.app_users
+    FOR SELECT TO authenticated 
+    USING (id = auth.uid());
+
+-- Permitir a los usuarios autenticados leer sus propias notificaciones
+DROP POLICY IF EXISTS "user_read_own_notifications" ON public.notifications;
+CREATE POLICY "user_read_own_notifications" ON public.notifications
+    FOR SELECT TO authenticated 
+    USING (
+        recipient_id = auth.uid()::text OR 
+        recipient_id = (SELECT handle FROM public.app_users WHERE id = auth.uid()) OR
+        recipient_id = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
+    );
+
+-- Permitir a los usuarios leer mensajes privados donde sean emisores o receptores
+DROP POLICY IF EXISTS "user_read_own_messages" ON public.private_messages;
+CREATE POLICY "user_read_own_messages" ON public.private_messages
+    FOR SELECT TO authenticated
+    USING (
+        sender_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid()) OR
+        sender_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid()) OR
+        creator_handle = (SELECT handle FROM public.app_users WHERE id = auth.uid()) OR
+        creator_handle = (SELECT '@' || handle FROM public.app_users WHERE id = auth.uid())
+    );
+
+-- ====================================================================
 -- VERIFICACIÓN FINAL
 -- ====================================================================
 
