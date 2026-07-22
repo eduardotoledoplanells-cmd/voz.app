@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coins, Gift } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/db';
+import { supabaseBrowser as supabase } from '@/lib/supabaseBrowser';
 
 interface WalletWidgetProps {
     handle?: string;
