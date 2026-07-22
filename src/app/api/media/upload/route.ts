@@ -17,6 +17,25 @@ const ALLOWED_DOC_TYPES = ['application/pdf'];
 
 export async function POST(request: Request) {
     try {
+        // Autenticación estricta con Token Bearer de Supabase Auth
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+                if (authUser?.user) {
+                    authenticatedUserId = authUser.user.id;
+                }
+            } catch (e) {
+                console.warn("Auth token validation failed in media upload:", e);
+            }
+        }
+
+        if (!authenticatedUserId) {
+            return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
