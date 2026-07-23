@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
-import { Grid, Bookmark, Heart, Lock, Play, Camera } from 'lucide-react';
+import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
@@ -30,6 +30,37 @@ const getLocationText = (userObj: any) => {
     return 'España';
 };
 
+const ALL_COUNTRIES = [
+    { name: 'España', code: 'es' },
+    { name: 'Estados Unidos', code: 'us' },
+    { name: 'México', code: 'mx' },
+    { name: 'Argentina', code: 'ar' },
+    { name: 'Colombia', code: 'co' },
+    { name: 'Chile', code: 'cl' },
+    { name: 'Perú', code: 'pe' },
+    { name: 'Venezuela', code: 've' },
+    { name: 'Ecuador', code: 'ec' },
+    { name: 'Guatemala', code: 'gt' },
+    { name: 'Cuba', code: 'cu' },
+    { name: 'República Dominicana', code: 'do' },
+    { name: 'Bolivia', code: 'bo' },
+    { name: 'Honduras', code: 'hn' },
+    { name: 'Paraguay', code: 'py' },
+    { name: 'El Salvador', code: 'sv' },
+    { name: 'Nicaragua', code: 'ni' },
+    { name: 'Costa Rica', code: 'cr' },
+    { name: 'Puerto Rico', code: 'pr' },
+    { name: 'Uruguay', code: 'uy' },
+    { name: 'Panamá', code: 'pa' },
+    { name: 'Andorra', code: 'ad' },
+    { name: 'Brasil', code: 'br' },
+    { name: 'Francia', code: 'fr' },
+    { name: 'Italia', code: 'it' },
+    { name: 'Alemania', code: 'de' },
+    { name: 'Reino Unido', code: 'gb' },
+    { name: 'Portugal', code: 'pt' }
+];
+
 function ProfilePageContent() {
     const { user, logout, isLoading } = useAuth();
     const router = useRouter();
@@ -53,6 +84,40 @@ function ProfilePageContent() {
 
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+    const [showEnlargedAvatar, setShowEnlargedAvatar] = useState(false);
+    const [showCountryModal, setShowCountryModal] = useState(false);
+    const [countrySearch, setCountrySearch] = useState('');
+    const [savingCountry, setSavingCountry] = useState(false);
+
+    const handleSelectCountry = async (c: { name: string; code: string }) => {
+        if (!user || savingCountry) return;
+        setSavingCountry(true);
+        try {
+            const res = await fetch('/api/voz/users/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: user.id,
+                    country: { name: c.name, code: c.code }
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setLiveUser((prev: any) => ({ ...prev, country: { name: c.name, code: c.code } }));
+                const updatedUser = { ...user, country: { name: c.name, code: c.code } };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setShowCountryModal(false);
+            } else {
+                alert("Error al actualizar país: " + (data.error || "Fallo"));
+            }
+        } catch (e) {
+            console.error("Error updating country:", e);
+            alert("Error de conexión");
+        } finally {
+            setSavingCountry(false);
+        }
+    };
 
     const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -330,16 +395,21 @@ function ProfilePageContent() {
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
                 {/* Avatar container with circular flag badge & camera upload overlay matching mobile app */}
                 <div style={{ position: 'relative', width: '100px', height: '100px', marginBottom: '15px' }}>
-                    <div style={{ 
-                        width: '100px', height: '100px', borderRadius: '50%', 
-                        backgroundColor: displayUser.profileColor || '#8E2DE2', 
-                        display: 'flex', justifyContent: 'center', alignItems: 'center',
-                        fontSize: '40px', fontWeight: 'bold',
-                        backgroundImage: displayUser.profileImage ? `url(${displayUser.profileImage})` : 'none',
-                        backgroundSize: 'cover',
-                        border: '3px solid #fff',
-                        boxSizing: 'border-box'
-                    }}>
+                    <div 
+                        onClick={() => setShowEnlargedAvatar(true)}
+                        title="Ver foto de perfil ampliada"
+                        style={{ 
+                            width: '100px', height: '100px', borderRadius: '50%', 
+                            backgroundColor: displayUser.profileColor || '#8E2DE2', 
+                            display: 'flex', justifyContent: 'center', alignItems: 'center',
+                            fontSize: '40px', fontWeight: 'bold',
+                            backgroundImage: displayUser.profileImage ? `url(${displayUser.profileImage})` : 'none',
+                            backgroundSize: 'cover',
+                            border: '3px solid #fff',
+                            boxSizing: 'border-box',
+                            cursor: 'pointer'
+                        }}
+                    >
                         {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
                     </div>
 
@@ -382,10 +452,10 @@ function ProfilePageContent() {
                         </>
                     )}
 
-                    {/* Circular Flag Badge overlay on bottom-right of avatar */}
+                    {/* Circular Flag Badge overlay on bottom-right of avatar - Opens Flag/Country Selector directly */}
                     <div 
-                        title={isOwnProfile ? "Cambiar país" : undefined}
-                        onClick={() => isOwnProfile && setIsSettingsOpen(true)}
+                        title={isOwnProfile ? "Cambiar país y bandera" : undefined}
+                        onClick={() => isOwnProfile && setShowCountryModal(true)}
                         style={{
                             position: 'absolute',
                             bottom: '-5px',
@@ -633,6 +703,101 @@ function ProfilePageContent() {
                         >
                             {isDonating ? 'Procesando...' : 'Confirmar Donación'}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal 1: Selector directo de País y Bandera con Buscador (Filtro en vivo) */}
+            {showCountryModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(5px)' }}>
+                    <div style={{ backgroundColor: '#1c1c1e', padding: '20px', borderRadius: '20px', width: '90%', maxWidth: '400px', border: '1px solid #333', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem', fontWeight: 'bold' }}>Selecciona tu País y Bandera</h3>
+                            <button onClick={() => setShowCountryModal(false)} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <X size={22} color="white" />
+                            </button>
+                        </div>
+
+                        {/* Buscador de País */}
+                        <div style={{ position: 'relative', marginBottom: '15px' }}>
+                            <Search size={18} color="#888" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                            <input 
+                                type="text"
+                                placeholder="Buscar país... (ej: España, Estados Unidos, México)"
+                                value={countrySearch}
+                                onChange={(e) => setCountrySearch(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    backgroundColor: '#000',
+                                    color: 'white',
+                                    border: '1px solid #333',
+                                    borderRadius: '12px',
+                                    padding: '10px 12px 10px 38px',
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+
+                        {/* Lista de Países filtrada con banderas */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).map(c => (
+                                <div 
+                                    key={c.code}
+                                    onClick={() => handleSelectCountry(c)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '10px',
+                                        borderRadius: '12px',
+                                        backgroundColor: (displayUser.country?.name || displayUser.country) === c.name ? 'rgba(142, 45, 226, 0.35)' : '#2a2a2c',
+                                        border: (displayUser.country?.name || displayUser.country) === c.name ? '1px solid #8E2DE2' : '1px solid transparent',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '24px', height: '16px', borderRadius: '3px', objectFit: 'cover' }} />
+                                    <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal 2: Foto de Perfil Ampliada en Grande (Lightbox HD) */}
+            {showEnlargedAvatar && (
+                <div 
+                    onClick={() => setShowEnlargedAvatar(false)}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.95)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(8px)', cursor: 'pointer' }}
+                >
+                    <button 
+                        onClick={() => setShowEnlargedAvatar(false)}
+                        style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
+                    >
+                        <X size={24} color="white" />
+                    </button>
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                    >
+                        {displayUser.profileImage ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img 
+                                src={displayUser.profileImage} 
+                                alt={displayUser.name} 
+                                style={{ maxWidth: '85vw', maxHeight: '70vh', borderRadius: '20px', boxShadow: '0 0 30px rgba(142, 45, 226, 0.6)', border: '3px solid #8E2DE2', objectFit: 'contain' }} 
+                            />
+                        ) : (
+                            <div style={{ width: '220px', height: '220px', borderRadius: '50%', backgroundColor: displayUser.profileColor || '#8E2DE2', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '90px', fontWeight: 'bold', color: 'white', border: '4px solid #fff' }}>
+                                {displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?'}
+                            </div>
+                        )}
+                        <h3 style={{ color: 'white', marginTop: '20px', fontSize: '1.2rem', fontWeight: 'bold' }}>{displayUser.name}</h3>
+                        <p style={{ color: '#aaa', margin: '4px 0 0 0', fontSize: '0.9rem' }}>{displayUser.handle}</p>
                     </div>
                 </div>
             )}
