@@ -46,6 +46,30 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     const [stripePromise, setStripePromise] = useState<any>(null);
     const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
+    const [spainRegions, setSpainRegions] = useState<any[]>([]);
+    const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+    const [spainMunicipalities, setSpainMunicipalities] = useState<any[]>([]);
+    const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<string>('');
+    const [selectedCityName, setSelectedCityName] = useState<string>('');
+
+    useEffect(() => {
+        fetch('/api/locations?type=regions&countryId=1')
+            .then(res => res.json())
+            .then(data => setSpainRegions(Array.isArray(data) ? data : []))
+            .catch(err => console.error("Error fetching regions:", err));
+    }, []);
+
+    useEffect(() => {
+        if (selectedRegionId) {
+            fetch(`/api/locations?type=municipalities&regionId=${selectedRegionId}`)
+                .then(res => res.json())
+                .then(data => setSpainMunicipalities(Array.isArray(data) ? data : []))
+                .catch(err => console.error("Error fetching municipalities:", err));
+        } else {
+            setSpainMunicipalities([]);
+        }
+    }, [selectedRegionId]);
+
     // Nuevos estados
     const [showNotificationSettings, setShowNotificationSettings] = useState(false);
     const [isEditingNotifications, setIsEditingNotifications] = useState(false);
@@ -140,18 +164,30 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
             if (editMode === 'name') body.handle = editText;
             if (editMode === 'bio') body.bio = editText;
             if (editMode === 'country') {
-                const countryCodeMap: Record<string, string> = {
-                    'España': 'es', 'México': 'mx', 'Argentina': 'ar', 'Colombia': 'co',
-                    'Chile': 'cl', 'Perú': 'pe', 'Estados Unidos': 'us', 'Venezuela': 've',
-                    'Ecuador': 'ec', 'Guatemala': 'gt', 'Cuba': 'cu', 'República Dominicana': 'do',
-                    'Bolivia': 'bo', 'Honduras': 'hn', 'Paraguay': 'py', 'El Salvador': 'sv',
-                    'Nicaragua': 'ni', 'Costa Rica': 'cr', 'Puerto Rico': 'pr', 'Uruguay': 'uy',
-                    'Panamá': 'pa', 'Andorra': 'ad', 'Brasil': 'br', 'Francia': 'fr',
-                    'Italia': 'it', 'Alemania': 'de', 'Reino Unido': 'gb', 'Portugal': 'pt'
-                };
-                const code = countryCodeMap[editCountry] || 'es';
-                body.country = { name: editCountry, code: code };
-                body.region = editRegion.trim();
+                if (editCountry !== 'España') {
+                    alert('Actualmente la plataforma está disponible únicamente para usuarios ubicados en España.');
+                    setSaving(false);
+                    return;
+                }
+
+                const foundRegion = spainRegions.find(r => String(r.id) === String(selectedRegionId));
+                const foundCity = spainMunicipalities.find(m => String(m.id) === String(selectedMunicipalityId));
+
+                const regionName = foundRegion ? foundRegion.name : editRegion.trim();
+                const cityName = foundCity ? foundCity.name : selectedCityName.trim();
+
+                if (!regionName || !cityName) {
+                    alert('Debes indicar obligatoriamente tu Comunidad Autónoma y Ciudad/Municipio en España (requerido para la segmentación de publicidad local).');
+                    setSaving(false);
+                    return;
+                }
+
+                body.country = { name: 'España', code: 'es' };
+                body.region = regionName;
+                body.city = cityName;
+                body.location = `${cityName}, ${regionName}`;
+                body.region_id = selectedRegionId ? parseInt(selectedRegionId) : (profile.region_id || null);
+                body.municipality_id = selectedMunicipalityId ? parseInt(selectedMunicipalityId) : (profile.municipality_id || null);
             }
             if (editMode === 'live_url') {
                 const kickVal = editKick.trim() || null;
@@ -525,67 +561,97 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                         )}
                         {editMode === 'country' && (
                             <div style={{ marginBottom: '20px' }}>
-                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>Selecciona tu País (Bandera)</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '200px', overflowY: 'auto', backgroundColor: '#111', padding: '10px', borderRadius: '10px', border: '1px solid #444', marginBottom: '15px' }}>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                                    País (Lanzamiento Exclusivo en España 🇪🇸)
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '160px', overflowY: 'auto', backgroundColor: '#111', padding: '10px', borderRadius: '10px', border: '1px solid #333', marginBottom: '15px' }}>
                                     {[
-                                        { name: 'España', code: 'es' },
-                                        { name: 'Estados Unidos', code: 'us' },
-                                        { name: 'México', code: 'mx' },
-                                        { name: 'Argentina', code: 'ar' },
-                                        { name: 'Colombia', code: 'co' },
-                                        { name: 'Chile', code: 'cl' },
-                                        { name: 'Perú', code: 'pe' },
-                                        { name: 'Venezuela', code: 've' },
-                                        { name: 'Ecuador', code: 'ec' },
-                                        { name: 'Guatemala', code: 'gt' },
-                                        { name: 'Cuba', code: 'cu' },
-                                        { name: 'República Dominicana', code: 'do' },
-                                        { name: 'Bolivia', code: 'bo' },
-                                        { name: 'Honduras', code: 'hn' },
-                                        { name: 'Paraguay', code: 'py' },
-                                        { name: 'El Salvador', code: 'sv' },
-                                        { name: 'Nicaragua', code: 'ni' },
-                                        { name: 'Costa Rica', code: 'cr' },
-                                        { name: 'Puerto Rico', code: 'pr' },
-                                        { name: 'Uruguay', code: 'uy' },
-                                        { name: 'Panamá', code: 'pa' },
-                                        { name: 'Andorra', code: 'ad' },
-                                        { name: 'Brasil', code: 'br' },
-                                        { name: 'Francia', code: 'fr' },
-                                        { name: 'Italia', code: 'it' },
-                                        { name: 'Alemania', code: 'de' },
-                                        { name: 'Reino Unido', code: 'gb' },
-                                        { name: 'Portugal', code: 'pt' }
+                                        { name: 'España', code: 'es', active: true },
+                                        { name: 'Estados Unidos', code: 'us', active: false },
+                                        { name: 'México', code: 'mx', active: false },
+                                        { name: 'Argentina', code: 'ar', active: false },
+                                        { name: 'Colombia', code: 'co', active: false },
+                                        { name: 'Chile', code: 'cl', active: false },
+                                        { name: 'Perú', code: 'pe', active: false },
+                                        { name: 'Venezuela', code: 've', active: false },
+                                        { name: 'Ecuador', code: 'ec', active: false },
+                                        { name: 'Guatemala', code: 'gt', active: false },
+                                        { name: 'Cuba', code: 'cu', active: false },
+                                        { name: 'República Dominicana', code: 'do', active: false },
+                                        { name: 'Brasil', code: 'br', active: false },
+                                        { name: 'Francia', code: 'fr', active: false },
+                                        { name: 'Italia', code: 'it', active: false },
+                                        { name: 'Alemania', code: 'de', active: false },
+                                        { name: 'Reino Unido', code: 'gb', active: false },
+                                        { name: 'Portugal', code: 'pt', active: false }
                                     ].map(c => (
                                         <div 
                                             key={c.code} 
-                                            onClick={() => setEditCountry(c.name)}
+                                            onClick={() => {
+                                                if (c.active) {
+                                                    setEditCountry('España');
+                                                } else {
+                                                    alert("Lanzamiento inicial disponible exclusivamente en España. Próximamente en más países.");
+                                                }
+                                            }}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '8px',
                                                 padding: '8px',
                                                 borderRadius: '8px',
-                                                backgroundColor: editCountry === c.name ? 'rgba(142, 45, 226, 0.35)' : '#1a1a1a',
-                                                border: editCountry === c.name ? '1px solid #8E2DE2' : '1px solid #333',
-                                                cursor: 'pointer',
+                                                backgroundColor: c.active ? 'rgba(142, 45, 226, 0.35)' : '#181818',
+                                                border: c.active ? '1px solid #8E2DE2' : '1px solid #282828',
+                                                cursor: c.active ? 'pointer' : 'not-allowed',
+                                                opacity: c.active ? 1 : 0.45,
+                                                filter: c.active ? 'none' : 'grayscale(70%)',
                                                 transition: 'all 0.2s'
                                             }}
                                         >
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '22px', height: '15px', borderRadius: '2px', objectFit: 'cover' }} />
-                                            <span style={{ color: 'white', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+                                            <span style={{ color: c.active ? 'white' : '#888', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {c.name} {c.active ? '✅' : '🔒'}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
-                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Región / Ciudad (Opcional)</div>
-                                <input 
-                                    type="text"
-                                    value={editRegion}
-                                    onChange={(e) => setEditRegion(e.target.value)}
-                                    placeholder="Ej: Comunidad de Madrid - Madrid"
-                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem' }}
-                                />
+
+                                {/* Selección OBLIGATORIA de Comunidad Autónoma / Región */}
+                                <div style={{ color: '#FFD700', fontSize: '0.82rem', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>Comunidad Autónoma / Región *</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#8E2DE2', fontWeight: 'bold' }}>[Requerido Publicidad]</span>
+                                </div>
+                                <select
+                                    value={selectedRegionId}
+                                    onChange={(e) => {
+                                        setSelectedRegionId(e.target.value);
+                                        setSelectedMunicipalityId('');
+                                    }}
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #8E2DE2', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
+                                >
+                                    <option value="">-- Selecciona tu Comunidad Autónoma --</option>
+                                    {spainRegions.map(r => (
+                                        <option key={r.id} value={r.id}>{r.name}</option>
+                                    ))}
+                                </select>
+
+                                {/* Selección OBLIGATORIA de Ciudad / Municipio */}
+                                <div style={{ color: '#FFD700', fontSize: '0.82rem', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>Ciudad / Municipio / Localidad *</span>
+                                    <span style={{ fontSize: '0.72rem', color: '#8E2DE2', fontWeight: 'bold' }}>[Requerido Publicidad]</span>
+                                </div>
+                                <select
+                                    value={selectedMunicipalityId}
+                                    onChange={(e) => setSelectedMunicipalityId(e.target.value)}
+                                    disabled={!selectedRegionId || spainMunicipalities.length === 0}
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #8E2DE2', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', opacity: selectedRegionId ? 1 : 0.5 }}
+                                >
+                                    <option value="">-- Selecciona tu Ciudad / Municipio --</option>
+                                    {spainMunicipalities.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: '10px' }}>

@@ -740,29 +740,43 @@ function ProfilePageContent() {
                             />
                         </div>
 
-                        {/* Lista de Países filtrada con banderas */}
+                        {/* Lista de Países filtrada con banderas (Lanzamiento inicial sólo en España) */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                            {ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).map(c => (
-                                <div 
-                                    key={c.code}
-                                    onClick={() => handleSelectCountry(c)}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        padding: '10px',
-                                        borderRadius: '12px',
-                                        backgroundColor: (displayUser.country?.name || displayUser.country) === c.name ? 'rgba(142, 45, 226, 0.35)' : '#2a2a2c',
-                                        border: (displayUser.country?.name || displayUser.country) === c.name ? '1px solid #8E2DE2' : '1px solid transparent',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '24px', height: '16px', borderRadius: '3px', objectFit: 'cover' }} />
-                                    <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
-                                </div>
-                            ))}
+                            {ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).map(c => {
+                                const isSpain = c.code === 'es';
+                                return (
+                                    <div 
+                                        key={c.code}
+                                        onClick={() => {
+                                            if (isSpain) {
+                                                handleSelectCountry(c);
+                                                setIsSettingsOpen(true);
+                                            } else {
+                                                alert("Lanzamiento inicial disponible exclusivamente en España. Próximamente en más países.");
+                                            }
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '10px',
+                                            borderRadius: '12px',
+                                            backgroundColor: isSpain ? 'rgba(142, 45, 226, 0.35)' : '#1f1f22',
+                                            border: isSpain ? '1px solid #8E2DE2' : '1px solid #2a2a2c',
+                                            cursor: isSpain ? 'pointer' : 'not-allowed',
+                                            opacity: isSpain ? 1 : 0.45,
+                                            filter: isSpain ? 'none' : 'grayscale(70%)',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '24px', height: '16px', borderRadius: '3px', objectFit: 'cover' }} />
+                                        <span style={{ color: isSpain ? 'white' : '#888', fontSize: '0.85rem', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {c.name} {isSpain ? '✅' : '🔒'}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
