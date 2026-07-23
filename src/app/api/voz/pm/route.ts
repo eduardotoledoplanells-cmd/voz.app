@@ -95,14 +95,19 @@ export async function POST(request: Request) {
         const PM_COST = 5; // Coste fijo por mensaje/inicio
         const CREATOR_SHARE = 0.6; // 60% para el creador (3.00 monedas)
 
-        const userId = request.headers.get('x-user-id');
-        if (!userId) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        let userId = request.headers.get('x-user-id');
+        const authHeader = request.headers.get('authorization');
+        if (!userId && authHeader && authHeader.startsWith('Bearer ')) {
+            userId = authHeader.substring(7);
         }
 
-        const sender = await getUserById(userId);
+        let sender = userId ? await getUserById(userId) : null;
+        if (!sender && body.senderHandle) {
+            sender = await getUserByHandle(body.senderHandle);
+        }
+
         if (!sender) {
-            return NextResponse.json({ error: 'Usuario autenticado no encontrado' }, { status: 404 });
+            return NextResponse.json({ error: 'No autorizado: Usuario no autenticado' }, { status: 401 });
         }
 
         // 0. Filtro de seguridad de imágenes (porno/infantil/violencia) mediante IA
