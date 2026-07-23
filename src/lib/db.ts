@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendNativePush } from './firebaseAdmin';
-import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS } from './ledger';
+import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS, processRefundPM } from './ledger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -2481,6 +2481,117 @@ export async function getUserPushTokens(userId: string): Promise<string[]> {
     } catch (err) {
         console.error("[db] Exception getting user push tokens:", err);
         return [];
+    }
+}
+
+/**
+ * Automatically checks and refunds PM escrows older than 30 days that have not been completed.
+ * Returns 5 coins back to the sender atomically.
+ */
+export async function checkAndProcessExpiredEscrows(userHandle?: string) {
+    try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        let query = supabaseAdmin
+            .from('pm_escrows')
+            .select('*')
+            .lt('created_at', thirtyDaysAgo)
+            .neq('status', 'refunded')
+            .neq('status', 'completed');
+
+        if (userHandle) {
+            query = query.eq('sender_handle', userHandle);
+        }
+
+        const { data: expiredEscrows } = await query;
+        if (!expiredEscrows || expiredEscrows.length === 0) return;
+
+        for (const escrow of expiredEscrows) {
+            const idempotencyKey = `refund-auto-${escrow.id}-${Date.now()}`;
+            try {
+                await processRefundPM(escrow.sender_handle, escrow.creator_handle, idempotencyKey);
+                await supabaseAdmin
+                    .from('pm_escrows')
+                    .update({ status: 'refunded' })
+                    .eq('id', escrow.id);
+
+                await addNotification({
+                    id: Date.now().toString(),
+                    recipientId: escrow.sender_handle,
+                    type: 'system',
+                    title: 'Monedas Devueltas 🪙',
+                    message: `Tus 5 monedas del chat con ${escrow.creator_handle} han sido devueltas automáticamente al expirar el plazo de 30 días.`,
+                    timestamp: new Date().toISOString(),
+                    readStatus: false
+                });
+            } catch (err) {
+                console.error(`[PM Auto-Refund Error] Escrow ${escrow.id}:`, err);
+            }
+        }
+    } catch (e) {
+        console.error("[PM Auto-Refund Check Error]:", e);
+    }
+}
+
+/**
+ * Returns pending escrow summary ("Monedas en custodia / en el aire") for a user.
+ */
+export async function getUserEscrowSummary(userHandle: string) {
+    try {
+        await checkAndProcessExpiredEscrows(userHandle);
+
+        const { data: escrows } = await supabaseAdmin
+            .from('pm_escrows')
+            .select('*')
+            .eq('sender_handle', userHandle)
+            .neq('status', 'refunded')
+            .neq('status', 'completed');
+
+        if (!escrows || escrows.length === 0) {
+            return {
+                pendingEscrowBalance: 0,
+                activeEscrows: []
+            };
+        }
+
+        const uniqueCreators = Array.from(new Set(escrows.map(e => e.creator_handle)));
+        const { data: creatorsData } = await supabaseAdmin
+            .from('app_users')
+            .select('handle, name, profile_image')
+            .in('handle', uniqueCreators);
+
+        const creatorMap = new Map();
+        creatorsData?.forEach(c => creatorMap.set(c.handle, c));
+
+        let totalPending = 0;
+        const activeEscrows = escrows.map(e => {
+            const amount = Number(e.locked_amount || 5);
+            totalPending += amount;
+
+            const creator = creatorMap.get(e.creator_handle) || { name: e.creator_handle.replace('@', ''), profile_image: null };
+            const createdAt = new Date(e.created_at || Date.now()).getTime();
+            const expiresAtMs = createdAt + 30 * 24 * 60 * 60 * 1000;
+            const daysLeft = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / (1000 * 60 * 60 * 24)));
+
+            return {
+                id: e.id,
+                creatorHandle: e.creator_handle,
+                creatorName: creator.name || e.creator_handle.replace('@', ''),
+                creatorAvatar: creator.profile_image,
+                lockedAmount: amount,
+                createdAt: e.created_at,
+                expiresAt: new Date(expiresAtMs).toISOString(),
+                daysLeft: daysLeft,
+                status: e.status || 'pending'
+            };
+        });
+
+        return {
+            pendingEscrowBalance: totalPending,
+            activeEscrows: activeEscrows
+        };
+    } catch (e) {
+        console.error("getUserEscrowSummary error:", e);
+        return { pendingEscrowBalance: 0, activeEscrows: [] };
     }
 }
 

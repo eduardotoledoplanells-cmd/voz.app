@@ -364,6 +364,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             handle={profile?.handle || profile?.name}
                             initialWalletBalance={Number(profile.walletBalance || profile.wallet_balance || 0)}
                             initialEarningsBalance={Number(profile.earningsBalance || profile.earnings_balance || 0)}
+                            initialPendingEscrowBalance={Number(profile.pendingEscrowBalance || 0)}
                             onRecargarClick={() => setShowCoinPacks(true)}
                             onTransferClick={() => setTransferMode(true)}
                             showTransferButton={!transferMode}

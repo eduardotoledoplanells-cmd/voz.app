@@ -314,6 +314,55 @@ export async function processPremiumMessage(
 }
 
 /**
+ * Refund Premium Message (PM) Operation.
+ * Reverts the 5 coins locked when a PM thread expires (30 days without completion).
+ * Sender receives +5 coins back, VOZ returns -2 coins, Creator pending hold -3 coins.
+ */
+export async function processRefundPM(
+    senderHandleOrId: string,
+    receiverHandleOrId: string,
+    idempotencyKey: string
+) {
+    const senderWalletId = await getOrCreateUserWallet(senderHandleOrId);
+    const receiverWalletId = await getOrCreateUserWallet(receiverHandleOrId);
+
+    const total = Money.fromCoins(5);
+    const [vozShare, creatorShare] = total.calculateSplit(0.40);
+
+    const entries = [
+        // Refund sender +5 coins in available balance
+        {
+            wallet_id: senderWalletId,
+            entry_type: 'AVAILABLE' as const,
+            amount: total.toMicrocoinsNumber()
+        },
+        // VOZ Platform returns 2 coins
+        {
+            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            entry_type: 'AVAILABLE' as const,
+            amount: -vozShare.toMicrocoinsNumber()
+        },
+        // Creator pending hold reduced by 3 coins
+        {
+            wallet_id: receiverWalletId,
+            entry_type: 'PENDING' as const,
+            amount: -creatorShare.toMicrocoinsNumber()
+        }
+    ];
+
+    return executeLedgerTransaction(
+        'PREMIUM_MESSAGE_REFUND',
+        entries,
+        null,
+        idempotencyKey,
+        { 
+            cost: total.toCoins(), 
+            status: 'refunded' 
+        }
+    );
+}
+
+/**
  * Send Gift Operation.
  * Cost: Custom coins amount.
  * Split: 35% VOZ platform, 65% Creator (in pending hold).

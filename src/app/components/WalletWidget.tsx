@@ -9,6 +9,7 @@ interface WalletWidgetProps {
     handle?: string;
     initialWalletBalance?: number;
     initialEarningsBalance?: number;
+    initialPendingEscrowBalance?: number;
     onRecargarClick?: () => void;
     onTransferClick?: () => void;
     showTransferButton?: boolean;
@@ -19,6 +20,7 @@ export default function WalletWidget({
     handle,
     initialWalletBalance = 0,
     initialEarningsBalance = 0,
+    initialPendingEscrowBalance = 0,
     onRecargarClick,
     onTransferClick,
     showTransferButton = true,
@@ -27,6 +29,8 @@ export default function WalletWidget({
     const router = useRouter();
     const [walletBalance, setWalletBalance] = useState<number>(Number(initialWalletBalance));
     const [earningsBalance, setEarningsBalance] = useState<number>(Number(initialEarningsBalance));
+    const [pendingEscrowBalance, setPendingEscrowBalance] = useState<number>(Number(initialPendingEscrowBalance));
+    const [activeEscrows, setActiveEscrows] = useState<any[]>([]);
     const [isWalletUpdated, setIsWalletUpdated] = useState<boolean>(false);
     const [isEarningsUpdated, setIsEarningsUpdated] = useState<boolean>(false);
     
@@ -37,7 +41,8 @@ export default function WalletWidget({
     useEffect(() => {
         if (initialWalletBalance !== undefined) setWalletBalance(Number(initialWalletBalance));
         if (initialEarningsBalance !== undefined) setEarningsBalance(Number(initialEarningsBalance));
-    }, [initialWalletBalance, initialEarningsBalance]);
+        if (initialPendingEscrowBalance !== undefined) setPendingEscrowBalance(Number(initialPendingEscrowBalance));
+    }, [initialWalletBalance, initialEarningsBalance, initialPendingEscrowBalance]);
 
     // Realtime WebSocket Subscription (Zero Polling / Zero Server Stress)
     useEffect(() => {
@@ -63,10 +68,14 @@ export default function WalletWidget({
                 if (data.success && data.user) {
                     const newW = Number(data.user.walletBalance || data.user.wallet_balance || 0);
                     const newE = Number(data.user.earningsBalance || data.user.earnings_balance || 0);
+                    const newP = Number(data.user.pendingEscrowBalance || 0);
+                    const escrows = Array.isArray(data.user.activeEscrows) ? data.user.activeEscrows : [];
                     prevWallet.current = newW;
                     prevEarnings.current = newE;
                     setWalletBalance(newW);
                     setEarningsBalance(newE);
+                    setPendingEscrowBalance(newP);
+                    setActiveEscrows(escrows);
                 }
             })
             .catch(e => console.warn("Initial wallet fetch error:", e));
@@ -231,6 +240,48 @@ export default function WalletWidget({
                         >
                             Pasar a Saldo
                         </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Sector 3: Monedas en Custodia ("Monedas en el Aire") */}
+            <div 
+                style={{ 
+                    backgroundColor: '#181818', 
+                    borderRadius: '15px', 
+                    padding: '20px', 
+                    marginTop: '12px',
+                    border: '1px solid rgba(168, 85, 247, 0.4)'
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ color: '#A855F7', fontSize: '0.85rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>🔒 Monedas en Custodia ("En el Aire")</span>
+                        </div>
+                        <div style={{ color: '#A855F7', fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                            <span>{pendingEscrowBalance.toFixed(2).replace('.', ',')}</span>
+                            <Coins size={22} color="#A855F7" style={{ display: 'inline-block' }} />
+                        </div>
+                    </div>
+                </div>
+                <div style={{ color: '#888', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.3' }}>
+                    Monedas retenidas por chats privados iniciados. Si el creador no concluye o responde en 30 días, se devuelven automáticamente a tu saldo de compras.
+                </div>
+                {activeEscrows.length > 0 && (
+                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #333' }}>
+                        <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>Chats en Custodia Activa:</div>
+                        {activeEscrows.map((escrow: any) => (
+                            <div key={escrow.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#111', padding: '8px 12px', borderRadius: '8px', marginBottom: '6px', fontSize: '0.82rem' }}>
+                                <div style={{ color: 'white' }}>
+                                    <span style={{ fontWeight: 'bold' }}>{escrow.creatorName || escrow.creatorHandle}</span>
+                                    <span style={{ color: '#888', marginLeft: '6px' }}>({escrow.lockedAmount} 🪙)</span>
+                                </div>
+                                <div style={{ color: '#A855F7', fontSize: '0.78rem' }}>
+                                    Expira en {escrow.daysLeft}d
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

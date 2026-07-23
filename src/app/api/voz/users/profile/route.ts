@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByIdOrHandleOrEmail, supabaseAdmin } from "@/lib/db";
+import { getUserByIdOrHandleOrEmail, getUserEscrowSummary, supabaseAdmin } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
 
@@ -80,12 +80,23 @@ export async function GET(request: NextRequest) {
             console.error("Enrichment error:", e);
         }
 
+        let escrowSummary = { pendingEscrowBalance: 0, activeEscrows: [] as any[] };
+        if (user.handle) {
+            try {
+                escrowSummary = await getUserEscrowSummary(user.handle);
+            } catch (e) {
+                console.error("Escrow summary error:", e);
+            }
+        }
+
         const enrichedProfile = {
             ...userWithoutPassword,
             walletBalance: user.walletBalance || 0,
             wallet_balance: user.walletBalance || 0,
             earningsBalance: user.earningsBalance || 0,
             earnings_balance: user.earningsBalance || 0,
+            pendingEscrowBalance: escrowSummary.pendingEscrowBalance,
+            activeEscrows: escrowSummary.activeEscrows,
             fans: fansCount.toString(),
             following: followingCount.toString(),
             likes: totalLikes.toString()
