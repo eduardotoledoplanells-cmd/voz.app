@@ -84,13 +84,15 @@ export async function POST(request: Request) {
 
         let publicUrl = '';
 
-        if (isVideo) {
-            // Upload to Cloudflare R2
+        const useR2 = (isVideo || isAudio || isImage) && targetBucket !== 'kyc_documents';
+
+        if (useR2) {
+            // Upload to Cloudflare R2 for Zero Egress Cost ($0/GB download bandwidth)
             const { r2Client, R2_BUCKET_NAME } = require('@/lib/r2');
             const { PutObjectCommand } = require('@aws-sdk/client-s3');
             
             try {
-                console.log(`[R2 Media Upload] Uploading video ${fileName} to bucket ${R2_BUCKET_NAME}...`);
+                console.log(`[R2 Media Upload] Uploading ${subDir} (${fileName}) to bucket ${R2_BUCKET_NAME}...`);
                 await r2Client.send(
                     new PutObjectCommand({
                         Bucket: R2_BUCKET_NAME,
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
                 console.error('R2 upload error:', r2Error);
                 await logSystemAlert('R2Upload', `R2 upload failed (File: ${fileName}): ${r2Error.message}`);
                 return NextResponse.json({
-                    error: 'Failed to upload video to Cloudflare R2',
+                    error: 'Failed to upload media to Cloudflare R2',
                     message: r2Error.message,
                     fileName,
                     fileType: file.type
