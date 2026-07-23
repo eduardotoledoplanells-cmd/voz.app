@@ -512,20 +512,15 @@ function ProfilePageContent() {
                 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
                     {isOwnProfile ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-                                <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '120px', padding: '10px 10px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                                    Editar perfil
-                                </button>
-                                <button onClick={() => router.push('/messages')} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                    💬 Mensajes
-                                </button>
-                                <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                                    Anuncios
-                                </button>
-                            </div>
-                            <button onClick={logout} style={{ width: '100%', maxWidth: '360px', padding: '10px 20px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-                                Cerrar sesión
+                        <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                            <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '120px', padding: '10px 10px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                                Editar perfil
+                            </button>
+                            <button onClick={() => router.push('/messages')} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                💬 Mensajes
+                            </button>
+                            <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                                Anuncios
                             </button>
                         </div>
                     ) : (
