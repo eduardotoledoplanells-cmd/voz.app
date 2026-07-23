@@ -17,8 +17,12 @@ const getFlagUri = (country: any) => {
         countryName = country.name || country.label || '';
         countryCode = country.code || '';
     }
-    const code = (countryCode || (countryName.toLowerCase().includes('españa') || countryName.toLowerCase().includes('spain') ? 'es' : 'es')).toLowerCase();
-    return `https://flagcdn.com/w80/${code}.png`;
+    const found = ALL_COUNTRIES.find(c =>
+        (countryCode && c.code.toLowerCase() === countryCode.toLowerCase()) ||
+        (countryName && c.name.toLowerCase() === countryName.toLowerCase())
+    );
+    const code = found ? found.code : (countryCode || 'es');
+    return `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
 };
 
 const getLocationText = (userObj: any) => {

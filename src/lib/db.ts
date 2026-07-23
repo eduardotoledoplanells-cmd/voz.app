@@ -622,7 +622,8 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     // Resolve string locations to IDs if provided
     if (updates.country !== undefined || updates.region !== undefined) {
         try {
-            let countryName = updates.country || 'España';
+            const rawCountry = (updates as any).country || 'España';
+            let countryName = typeof rawCountry === 'string' ? rawCountry : (rawCountry?.name || 'España');
             let regionName = '';
             let muniName = '';
 
