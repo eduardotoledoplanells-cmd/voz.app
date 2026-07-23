@@ -600,33 +600,36 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 </div>
                                 <select 
                                     value={editCountry} 
-                                    onChange={(e) => {
-                                        if (e.target.value === 'España') {
-                                            setEditCountry('España');
-                                        } else {
-                                            alert("Lanzamiento inicial disponible exclusivamente en España. Próximamente en más países.");
-                                        }
-                                    }}
+                                    onChange={(e) => setEditCountry(e.target.value)}
                                     style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
                                 >
-                                    <option value="España">España</option>
-                                    <option value="Estados Unidos" disabled style={{ color: '#666' }}>Estados Unidos 🔒</option>
-                                    <option value="México" disabled style={{ color: '#666' }}>México 🔒</option>
-                                    <option value="Argentina" disabled style={{ color: '#666' }}>Argentina 🔒</option>
-                                    <option value="Colombia" disabled style={{ color: '#666' }}>Colombia 🔒</option>
-                                    <option value="Chile" disabled style={{ color: '#666' }}>Chile 🔒</option>
-                                    <option value="Perú" disabled style={{ color: '#666' }}>Perú 🔒</option>
-                                    <option value="Venezuela" disabled style={{ color: '#666' }}>Venezuela 🔒</option>
-                                    <option value="Ecuador" disabled style={{ color: '#666' }}>Ecuador 🔒</option>
-                                    <option value="Guatemala" disabled style={{ color: '#666' }}>Guatemala 🔒</option>
-                                    <option value="Cuba" disabled style={{ color: '#666' }}>Cuba 🔒</option>
-                                    <option value="República Dominicana" disabled style={{ color: '#666' }}>República Dominicana 🔒</option>
-                                    <option value="Brasil" disabled style={{ color: '#666' }}>Brasil 🔒</option>
-                                    <option value="Francia" disabled style={{ color: '#666' }}>Francia 🔒</option>
-                                    <option value="Italia" disabled style={{ color: '#666' }}>Italia 🔒</option>
-                                    <option value="Alemania" disabled style={{ color: '#666' }}>Alemania 🔒</option>
-                                    <option value="Reino Unido" disabled style={{ color: '#666' }}>Reino Unido 🔒</option>
-                                    <option value="Portugal" disabled style={{ color: '#666' }}>Portugal 🔒</option>
+                                    <option value="España">España 🇪🇸</option>
+                                    <option value="Estados Unidos">Estados Unidos 🇺🇸</option>
+                                    <option value="México">México 🇲🇽</option>
+                                    <option value="Argentina">Argentina 🇦🇷</option>
+                                    <option value="Colombia">Colombia 🇨🇴</option>
+                                    <option value="Chile">Chile 🇨🇱</option>
+                                    <option value="Perú">Perú 🇵🇪</option>
+                                    <option value="Venezuela">Venezuela 🇻🇪</option>
+                                    <option value="Ecuador">Ecuador 🇪🇨</option>
+                                    <option value="Guatemala">Guatemala 🇬🇹</option>
+                                    <option value="Cuba">Cuba 🇨🇺</option>
+                                    <option value="República Dominicana">República Dominicana 🇩🇴</option>
+                                    <option value="Bolivia">Bolivia 🇧🇴</option>
+                                    <option value="Honduras">Honduras 🇭🇳</option>
+                                    <option value="Paraguay">Paraguay 🇵🇾</option>
+                                    <option value="El Salvador">El Salvador 🇸🇻</option>
+                                    <option value="Nicaragua">Nicaragua 🇳🇮</option>
+                                    <option value="Costa Rica">Costa Rica 🇨🇷</option>
+                                    <option value="Puerto Rico">Puerto Rico 🇵🇷</option>
+                                    <option value="Uruguay">Uruguay 🇺🇾</option>
+                                    <option value="Panamá">Panamá 🇵🇦</option>
+                                    <option value="Brasil">Brasil 🇧🇷</option>
+                                    <option value="Francia">Francia 🇫🇷</option>
+                                    <option value="Italia">Italia 🇮🇹</option>
+                                    <option value="Alemania">Alemania 🇩🇪</option>
+                                    <option value="Reino Unido">Reino Unido 🇬🇧</option>
+                                    <option value="Portugal">Portugal 🇵🇹</option>
                                 </select>
 
                                 {/* Selección OBLIGATORIA de Comunidad Autónoma / Región */}
