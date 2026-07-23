@@ -70,6 +70,40 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
         }
     }, [selectedRegionId]);
 
+    // Auto-preselect region from profile data
+    useEffect(() => {
+        if (editMode === 'country' && profile && spainRegions.length > 0 && !selectedRegionId) {
+            let matchR = null;
+            if (profile.region_id) {
+                matchR = spainRegions.find(r => String(r.id) === String(profile.region_id));
+            }
+            if (!matchR && profile.region) {
+                const clean = profile.region.toLowerCase();
+                matchR = spainRegions.find(r => clean.includes(r.name.toLowerCase()) || r.name.toLowerCase().includes(clean));
+            }
+            if (matchR) {
+                setSelectedRegionId(String(matchR.id));
+            }
+        }
+    }, [editMode, spainRegions, profile, selectedRegionId]);
+
+    // Auto-preselect municipality from profile data
+    useEffect(() => {
+        if (editMode === 'country' && profile && selectedRegionId && spainMunicipalities.length > 0 && !selectedMunicipalityId) {
+            let matchM = null;
+            if (profile.municipality_id) {
+                matchM = spainMunicipalities.find(m => String(m.id) === String(profile.municipality_id));
+            }
+            if (!matchM && (profile.city || profile.municipality || profile.region)) {
+                const searchTarget = (profile.city || profile.municipality || profile.region).toLowerCase();
+                matchM = spainMunicipalities.find(m => searchTarget.includes(m.name.toLowerCase()) || m.name.toLowerCase().includes(searchTarget));
+            }
+            if (matchM) {
+                setSelectedMunicipalityId(String(matchM.id));
+            }
+        }
+    }, [editMode, selectedRegionId, spainMunicipalities, profile, selectedMunicipalityId]);
+
     // Nuevos estados
     const [showNotificationSettings, setShowNotificationSettings] = useState(false);
     const [isEditingNotifications, setIsEditingNotifications] = useState(false);
@@ -562,60 +596,38 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                         {editMode === 'country' && (
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>
-                                    País (Lanzamiento Exclusivo en España 🇪🇸)
+                                    País
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '160px', overflowY: 'auto', backgroundColor: '#111', padding: '10px', borderRadius: '10px', border: '1px solid #333', marginBottom: '15px' }}>
-                                    {[
-                                        { name: 'España', code: 'es', active: true },
-                                        { name: 'Estados Unidos', code: 'us', active: false },
-                                        { name: 'México', code: 'mx', active: false },
-                                        { name: 'Argentina', code: 'ar', active: false },
-                                        { name: 'Colombia', code: 'co', active: false },
-                                        { name: 'Chile', code: 'cl', active: false },
-                                        { name: 'Perú', code: 'pe', active: false },
-                                        { name: 'Venezuela', code: 've', active: false },
-                                        { name: 'Ecuador', code: 'ec', active: false },
-                                        { name: 'Guatemala', code: 'gt', active: false },
-                                        { name: 'Cuba', code: 'cu', active: false },
-                                        { name: 'República Dominicana', code: 'do', active: false },
-                                        { name: 'Brasil', code: 'br', active: false },
-                                        { name: 'Francia', code: 'fr', active: false },
-                                        { name: 'Italia', code: 'it', active: false },
-                                        { name: 'Alemania', code: 'de', active: false },
-                                        { name: 'Reino Unido', code: 'gb', active: false },
-                                        { name: 'Portugal', code: 'pt', active: false }
-                                    ].map(c => (
-                                        <div 
-                                            key={c.code} 
-                                            onClick={() => {
-                                                if (c.active) {
-                                                    setEditCountry('España');
-                                                } else {
-                                                    alert("Lanzamiento inicial disponible exclusivamente en España. Próximamente en más países.");
-                                                }
-                                            }}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                padding: '8px',
-                                                borderRadius: '8px',
-                                                backgroundColor: c.active ? 'rgba(142, 45, 226, 0.35)' : '#181818',
-                                                border: c.active ? '1px solid #8E2DE2' : '1px solid #282828',
-                                                cursor: c.active ? 'pointer' : 'not-allowed',
-                                                opacity: c.active ? 1 : 0.45,
-                                                filter: c.active ? 'none' : 'grayscale(70%)',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '22px', height: '15px', borderRadius: '2px', objectFit: 'cover' }} />
-                                            <span style={{ color: c.active ? 'white' : '#888', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {c.name} {c.active ? '✅' : '🔒'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
+                                <select 
+                                    value={editCountry} 
+                                    onChange={(e) => {
+                                        if (e.target.value === 'España') {
+                                            setEditCountry('España');
+                                        } else {
+                                            alert("Lanzamiento inicial disponible exclusivamente en España. Próximamente en más países.");
+                                        }
+                                    }}
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
+                                >
+                                    <option value="España">España</option>
+                                    <option value="Estados Unidos" disabled style={{ color: '#666' }}>Estados Unidos 🔒</option>
+                                    <option value="México" disabled style={{ color: '#666' }}>México 🔒</option>
+                                    <option value="Argentina" disabled style={{ color: '#666' }}>Argentina 🔒</option>
+                                    <option value="Colombia" disabled style={{ color: '#666' }}>Colombia 🔒</option>
+                                    <option value="Chile" disabled style={{ color: '#666' }}>Chile 🔒</option>
+                                    <option value="Perú" disabled style={{ color: '#666' }}>Perú 🔒</option>
+                                    <option value="Venezuela" disabled style={{ color: '#666' }}>Venezuela 🔒</option>
+                                    <option value="Ecuador" disabled style={{ color: '#666' }}>Ecuador 🔒</option>
+                                    <option value="Guatemala" disabled style={{ color: '#666' }}>Guatemala 🔒</option>
+                                    <option value="Cuba" disabled style={{ color: '#666' }}>Cuba 🔒</option>
+                                    <option value="República Dominicana" disabled style={{ color: '#666' }}>República Dominicana 🔒</option>
+                                    <option value="Brasil" disabled style={{ color: '#666' }}>Brasil 🔒</option>
+                                    <option value="Francia" disabled style={{ color: '#666' }}>Francia 🔒</option>
+                                    <option value="Italia" disabled style={{ color: '#666' }}>Italia 🔒</option>
+                                    <option value="Alemania" disabled style={{ color: '#666' }}>Alemania 🔒</option>
+                                    <option value="Reino Unido" disabled style={{ color: '#666' }}>Reino Unido 🔒</option>
+                                    <option value="Portugal" disabled style={{ color: '#666' }}>Portugal 🔒</option>
+                                </select>
 
                                 {/* Selección OBLIGATORIA de Comunidad Autónoma / Región */}
                                 <div style={{ color: '#FFD700', fontSize: '0.82rem', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
