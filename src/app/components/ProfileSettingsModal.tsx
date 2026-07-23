@@ -27,8 +27,10 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     }, [isOpen, refreshUser]);
 
     // Estados para edición
-    const [editMode, setEditMode] = useState<'name' | 'bio' | 'live_url' | null>(null);
+    const [editMode, setEditMode] = useState<'name' | 'bio' | 'live_url' | 'country' | null>(null);
     const [editText, setEditText] = useState('');
+    const [editCountry, setEditCountry] = useState('España');
+    const [editRegion, setEditRegion] = useState('');
     const [editKick, setEditKick] = useState('');
     const [editTwitch, setEditTwitch] = useState('');
     const [editYoutube, setEditYoutube] = useState('');
@@ -452,7 +454,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                 }}>
                     <div style={{ width: '90%', maxWidth: '385px', backgroundColor: '#222', borderRadius: '20px', padding: '20px' }}>
                         <h3 style={{ color: 'white', margin: '0 0 20px 0' }}>
-                            Editar {editMode === 'name' ? 'Usuario' : editMode === 'bio' ? 'Bio' : 'Transmisión en Directo'}
+                            Editar {editMode === 'name' ? 'Usuario' : editMode === 'bio' ? 'Bio' : editMode === 'country' ? 'País / Ubicación' : 'Transmisión en Directo'}
                         </h3>
                         {editMode === 'bio' && (
                             <textarea 
