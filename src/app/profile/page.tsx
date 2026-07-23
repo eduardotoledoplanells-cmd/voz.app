@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
-import { Grid, Bookmark, Heart, Lock, Play } from 'lucide-react';
+import { Grid, Bookmark, Heart, Lock, Play, Camera } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
@@ -50,6 +50,54 @@ function ProfilePageContent() {
     const [showDonateModal, setShowDonateModal] = useState(false);
     const [donateAmount, setDonateAmount] = useState('');
     const [isDonating, setIsDonating] = useState(false);
+
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+    const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setUploadingAvatar(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('subDir', 'avatars');
+
+            const res = await fetch('/api/media/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.url) {
+                const updateRes = await fetch('/api/voz/users/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: user.id,
+                        profileImage: data.url,
+                        profile_image: data.url
+                    })
+                });
+                const updateData = await updateRes.json();
+                if (updateData.success) {
+                    setLiveUser((prev: any) => ({ ...prev, profileImage: data.url, profile_image: data.url }));
+                    const updatedUser = { ...user, profileImage: data.url, profile_image: data.url };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    window.location.reload();
+                } else {
+                    alert("Error actualizando perfil: " + (updateData.error || "Fallo"));
+                }
+            } else {
+                alert("Error al subir imagen.");
+            }
+        } catch (err) {
+            console.error("Avatar upload error:", err);
+            alert("Fallo al subir la imagen.");
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     const handleParam = searchParams.get('handle');
     const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
@@ -280,7 +328,7 @@ function ProfilePageContent() {
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100%', maxWidth: '450px', borderLeft: '1px solid #111', borderRight: '1px solid #111', minHeight: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
-                {/* Avatar container with circular flag badge matching mobile app */}
+                {/* Avatar container with circular flag badge & camera upload overlay matching mobile app */}
                 <div style={{ position: 'relative', width: '100px', height: '100px', marginBottom: '15px' }}>
                     <div style={{ 
                         width: '100px', height: '100px', borderRadius: '50%', 
@@ -294,6 +342,46 @@ function ProfilePageContent() {
                     }}>
                         {!displayUser.profileImage && (displayUser.name ? String(displayUser.name).charAt(0).toUpperCase() : '?')}
                     </div>
+
+                    {/* Camera upload overlay button for changing profile photo on Web */}
+                    {isOwnProfile && (
+                        <>
+                            <input 
+                                type="file" 
+                                ref={avatarInputRef}
+                                accept="image/*"
+                                onChange={handleAvatarFileUpload}
+                                style={{ display: 'none' }} 
+                            />
+                            <div 
+                                onClick={() => avatarInputRef.current?.click()}
+                                title="Cambiar foto de perfil"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '-5px',
+                                    left: '-5px',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#8E2DE2',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    border: '2px solid #fff',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                    zIndex: 3
+                                }}
+                            >
+                                {uploadingAvatar ? (
+                                    <div style={{ color: 'white', fontSize: '10px', fontWeight: 'bold' }}>...</div>
+                                ) : (
+                                    <Camera size={18} color="white" />
+                                )}
+                            </div>
+                        </>
+                    )}
+
                     {/* Circular Flag Badge overlay on bottom-right of avatar */}
                     <div 
                         title={isOwnProfile ? "Cambiar país" : undefined}
@@ -311,7 +399,8 @@ function ProfilePageContent() {
                             alignItems: 'center',
                             border: '2px solid #8E2DE2',
                             overflow: 'hidden',
-                            cursor: isOwnProfile ? 'pointer' : 'default'
+                            cursor: isOwnProfile ? 'pointer' : 'default',
+                            zIndex: 3
                         }}
                     >
                         {/* eslint-disable-next-line @next/next/no-img-element */}

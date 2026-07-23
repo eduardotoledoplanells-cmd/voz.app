@@ -525,16 +525,59 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                         )}
                         {editMode === 'country' && (
                             <div style={{ marginBottom: '20px' }}>
-                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>Selecciona tu País</div>
-                                <select 
-                                    value={editCountry} 
-                                    onChange={(e) => setEditCountry(e.target.value)}
-                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
-                                >
-                                    {['España', 'México', 'Argentina', 'Colombia', 'Chile', 'Perú', 'Estados Unidos', 'Venezuela', 'Ecuador', 'Guatemala', 'Cuba', 'República Dominicana', 'Bolivia', 'Honduras', 'Paraguay', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Puerto Rico', 'Uruguay', 'Panamá', 'Andorra', 'Brasil', 'Francia', 'Italia', 'Alemania', 'Reino Unido', 'Portugal'].map(c => (
-                                        <option key={c} value={c}>{c}</option>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }}>Selecciona tu País (Bandera)</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '200px', overflowY: 'auto', backgroundColor: '#111', padding: '10px', borderRadius: '10px', border: '1px solid #444', marginBottom: '15px' }}>
+                                    {[
+                                        { name: 'España', code: 'es' },
+                                        { name: 'Estados Unidos', code: 'us' },
+                                        { name: 'México', code: 'mx' },
+                                        { name: 'Argentina', code: 'ar' },
+                                        { name: 'Colombia', code: 'co' },
+                                        { name: 'Chile', code: 'cl' },
+                                        { name: 'Perú', code: 'pe' },
+                                        { name: 'Venezuela', code: 've' },
+                                        { name: 'Ecuador', code: 'ec' },
+                                        { name: 'Guatemala', code: 'gt' },
+                                        { name: 'Cuba', code: 'cu' },
+                                        { name: 'República Dominicana', code: 'do' },
+                                        { name: 'Bolivia', code: 'bo' },
+                                        { name: 'Honduras', code: 'hn' },
+                                        { name: 'Paraguay', code: 'py' },
+                                        { name: 'El Salvador', code: 'sv' },
+                                        { name: 'Nicaragua', code: 'ni' },
+                                        { name: 'Costa Rica', code: 'cr' },
+                                        { name: 'Puerto Rico', code: 'pr' },
+                                        { name: 'Uruguay', code: 'uy' },
+                                        { name: 'Panamá', code: 'pa' },
+                                        { name: 'Andorra', code: 'ad' },
+                                        { name: 'Brasil', code: 'br' },
+                                        { name: 'Francia', code: 'fr' },
+                                        { name: 'Italia', code: 'it' },
+                                        { name: 'Alemania', code: 'de' },
+                                        { name: 'Reino Unido', code: 'gb' },
+                                        { name: 'Portugal', code: 'pt' }
+                                    ].map(c => (
+                                        <div 
+                                            key={c.code} 
+                                            onClick={() => setEditCountry(c.name)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                padding: '8px',
+                                                borderRadius: '8px',
+                                                backgroundColor: editCountry === c.name ? 'rgba(142, 45, 226, 0.35)' : '#1a1a1a',
+                                                border: editCountry === c.name ? '1px solid #8E2DE2' : '1px solid #333',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={`https://flagcdn.com/w80/${c.code}.png`} alt={c.name} style={{ width: '22px', height: '15px', borderRadius: '2px', objectFit: 'cover' }} />
+                                            <span style={{ color: 'white', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+                                        </div>
                                     ))}
-                                </select>
+                                </div>
                                 <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '5px' }}>Región / Ciudad (Opcional)</div>
                                 <input 
                                     type="text"
