@@ -630,9 +630,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 </select>
 
                                 {/* Selección OBLIGATORIA de Comunidad Autónoma / Región */}
-                                <div style={{ color: '#FFD700', fontSize: '0.82rem', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>Comunidad Autónoma / Región *</span>
-                                    <span style={{ fontSize: '0.72rem', color: '#8E2DE2', fontWeight: 'bold' }}>[Requerido Publicidad]</span>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '6px' }}>
+                                    Comunidad Autónoma / Región *
                                 </div>
                                 <select
                                     value={selectedRegionId}
@@ -640,7 +639,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                         setSelectedRegionId(e.target.value);
                                         setSelectedMunicipalityId('');
                                     }}
-                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #8E2DE2', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
+                                    style={{ width: '100%', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '0.95rem', marginBottom: '15px' }}
                                 >
                                     <option value="">-- Selecciona tu Comunidad Autónoma --</option>
                                     {spainRegions.map(r => (
@@ -649,9 +648,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 </select>
 
                                 {/* Selección OBLIGATORIA de Ciudad / Municipio */}
-                                <div style={{ color: '#FFD700', fontSize: '0.82rem', fontWeight: 'bold', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>Ciudad / Municipio / Localidad *</span>
-                                    <span style={{ fontSize: '0.72rem', color: '#8E2DE2', fontWeight: 'bold' }}>[Requerido Publicidad]</span>
+                                <div style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '6px' }}>
+                                    Ciudad / Municipio / Localidad *
                                 </div>
                                 <select
                                     value={selectedMunicipalityId}
