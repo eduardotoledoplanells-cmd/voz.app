@@ -23,8 +23,16 @@ export const metadata: Metadata = {
     title: 'VOZ',
   },
   icons: {
-    icon: '/logo/logo-voz.png',
-    apple: '/logo/logo-voz.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/logo/logo-short.png', type: 'image/png' },
+      { url: '/logo/logo-voz.png', type: 'image/png' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/logo/logo-short.png', sizes: '180x180', type: 'image/png' },
+      { url: '/logo/logo-voz.png', type: 'image/png' }
+    ],
   },
 };
 
@@ -35,6 +43,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/logo/logo-short.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo/logo-short.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <GlobalErrorBoundary>
           <AuthProvider>

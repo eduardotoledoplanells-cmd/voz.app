@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addTransaction, getUserById, getUserByHandle, addAppUser, addNotification } from '@/lib/db';
+import { supabaseAdmin, addTransaction, getUserById, getUserByHandle, addAppUser, addNotification } from '@/lib/db';
 import { processGift } from '@/lib/ledger';
 
 export async function POST(request: Request) {

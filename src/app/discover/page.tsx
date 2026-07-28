@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import BottomNav from '../components/BottomNav';
 import Link from 'next/link';
 import { Search, X } from 'lucide-react';
+import { isUserBlocked } from '@/utils/blockedUsers';
 
 export default function DiscoverPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -20,7 +21,8 @@ export default function DiscoverPage() {
                     .then(res => res.json())
                     .then(data => {
                         if (data.success && data.users) {
-                            setFoundCreators(data.users);
+                            const unblocked = data.users.filter((u: any) => !isUserBlocked(u.handle || u.name));
+                            setFoundCreators(unblocked);
                         } else {
                             setFoundCreators([]);
                         }
@@ -38,7 +40,8 @@ export default function DiscoverPage() {
             .then(res => res.json())
             .then(data => {
                 const videoList = Array.isArray(data) ? data : (data.videos || []);
-                setVideos(videoList);
+                const unblockedVideos = videoList.filter((v: any) => !isUserBlocked(v.user || v.user_handle || v.userHandle));
+                setVideos(unblockedVideos);
                 setLoading(false);
             })
             .catch(err => {
@@ -49,6 +52,8 @@ export default function DiscoverPage() {
 
     const filteredItems = videos.filter(item => {
         if (!item || item.isLiveCard) return false;
+        const userHandle = item.user_handle || item.user || '';
+        if (isUserBlocked(userHandle)) return false;
         const rawQuery = (searchQuery || '').trim();
         if (!rawQuery) return true;
         const cleanQuery = rawQuery.toLowerCase();
@@ -58,13 +63,13 @@ export default function DiscoverPage() {
         const description = (item.description || '').toLowerCase();
         const category = (item.category || '').toLowerCase();
         const title = (item.title || '').toLowerCase();
-        const userHandle = (item.user_handle || item.user || '').toLowerCase();
+        const lowerHandle = userHandle.toLowerCase();
 
         return searchTerms.every(term =>
             description.includes(term) || 
             category.includes(term) || 
             title.includes(term) ||
-            userHandle.includes(term)
+            lowerHandle.includes(term)
         );
     });
 

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/db';
 import Link from 'next/link';
 import { TopBarDownload, BottomDownload } from './VideoAuthWrappers';
+import VideoReportButton from './VideoReportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -165,9 +166,17 @@ export default async function SharedVideoPage({ params }: Props) {
                         }}>
                             {creator}
                         </Link>
-                        <div style={{ display: 'flex', gap: '14px', fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
                             <span>👁️ {views.toLocaleString()}</span>
                             <span>❤️ {likes.toLocaleString()}</span>
+                            {video && (
+                                <VideoReportButton video={{
+                                    id,
+                                    user_handle: video.user_handle,
+                                    video_url: video.video_url,
+                                    description: video.description
+                                }} />
+                            )}
                         </div>
                     </div>
 

@@ -1,11 +1,13 @@
 "use client";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Heart, Mic, Gift, Bookmark, Play } from 'lucide-react';
+import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import LiveStreamModal from '../components/LiveStreamModal';
+import ReportModal from '../components/ReportModal';
+import { isUserBlocked } from '@/utils/blockedUsers';
 
 const FeedItem = ({ 
     v, 
@@ -13,6 +15,7 @@ const FeedItem = ({
     scrollNext, 
     currentUserHandle, 
     onCommentClick,
+    onReportClick,
     isActive
 }: { 
     v: any, 
@@ -20,6 +23,7 @@ const FeedItem = ({
     scrollNext: () => void, 
     currentUserHandle?: string, 
     onCommentClick: (videoId: string) => void,
+    onReportClick: (video: any) => void,
     isActive: boolean
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -198,7 +202,7 @@ const FeedItem = ({
     const handleLike = async () => {
         const newLiked = !isLiked;
         setIsLiked(newLiked);
-        setLikesCount(prev => newLiked ? prev + 1 : prev - 1);
+        setLikesCount((prev: number) => newLiked ? prev + 1 : prev - 1);
 
         try {
             const token = localStorage.getItem('token') || '';
@@ -412,14 +416,44 @@ const FeedItem = ({
                         <Bookmark size={32} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
                         <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Favoritos</span>
                     </div>
+                    <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => onReportClick(v)}>
+                        <ShieldAlert size={30} color="#FF3B30" />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', color: '#FF3B30', fontWeight: '600' }}>Denunciar</span>
+                    </div>
                 </div>
 
-                {/* Promotional tag */}
-                {v.isAd && (
-                    <div style={{ position: 'absolute', top: '20px', left: '15px', backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
-                        Promocionado
-                    </div>
-                )}
+                {/* Top Left Report Overlay Button */}
+                <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {v.isAd ? (
+                        <div style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
+                            Promocionado
+                        </div>
+                    ) : null}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onReportClick(v); }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                            border: '1px solid rgba(255, 59, 48, 0.4)',
+                            color: '#FF3B30',
+                            padding: '5px 10px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                            transition: 'all 0.2s'
+                        }}
+                        title="Denunciar vídeo"
+                    >
+                        <ShieldAlert size={14} color="#FF3B30" />
+                        <span>Denunciar</span>
+                    </button>
+                </div>
 
                 {/* Live stream modal */}
                 {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
@@ -448,6 +482,15 @@ export default function FeedPage() {
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
 
+    // Report Modal state
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportVideo, setReportVideo] = useState<any>(null);
+
+    const handleOpenReport = (videoToReport: any) => {
+        setReportVideo(videoToReport);
+        setIsReportModalOpen(true);
+    };
+
     const handleCommentAdded = (videoId: string) => {
         setVideos(prevVideos => 
             prevVideos.map(v => 
@@ -467,9 +510,10 @@ export default function FeedPage() {
             fetchingRef.current = true;
             const res = await fetch(`/api/voz/videos?limit=10&offset=${offset}`);
             const data = await res.json();
-            const fetchedVideos = Array.isArray(data) ? data : data.videos || [];
+            const rawFetched = Array.isArray(data) ? data : data.videos || [];
+            const fetchedVideos = rawFetched.filter((v: any) => !isUserBlocked(v.user || v.userHandle || v.user_handle));
             
-            if (fetchedVideos.length < 10) {
+            if (rawFetched.length < 10) {
                 setHasMore(false);
             }
             
@@ -699,6 +743,7 @@ export default function FeedPage() {
                                 setCurrentVideoId(id);
                                 setIsCommentModalOpen(true);
                             }}
+                            onReportClick={handleOpenReport}
                         />
                     ))
                 )}
@@ -718,6 +763,14 @@ export default function FeedPage() {
                         handleCommentAdded(currentVideoId);
                     }
                 }}
+            />
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => {
+                    setIsReportModalOpen(false);
+                    setReportVideo(null);
+                }}
+                video={reportVideo}
             />
             <BottomNav />
         </div>

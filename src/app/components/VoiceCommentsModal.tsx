@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Play, Pause, Trash2, Heart, MoreVertical, Flag, Ban, Pin, CornerDownRight } from 'lucide-react';
+import { isUserBlocked } from '@/utils/blockedUsers';
 
 export default function VoiceCommentsModal({ isOpen, onClose, videoId, currentUserHandle, videoOwnerHandle, onCommentAdded }: { isOpen: boolean, onClose: () => void, videoId: string, currentUserHandle?: string, videoOwnerHandle?: string, onCommentAdded?: () => void }) {
     const [comments, setComments] = useState<any[]>([]);
@@ -53,7 +54,9 @@ export default function VoiceCommentsModal({ isOpen, onClose, videoId, currentUs
         try {
             const res = await fetch(`/api/voz/voice-comments?videoId=${videoId}&userHandle=${currentUserHandle || ''}`);
             const data = await res.json();
-            setComments(Array.isArray(data) ? data : []);
+            const list = Array.isArray(data) ? data : [];
+            const unblocked = list.filter((c: any) => !isUserBlocked(c.user || c.user_handle || c.userHandle));
+            setComments(unblocked);
         } catch (error) {
             console.error("Error fetching comments:", error);
         } finally {

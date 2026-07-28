@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
-import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X } from 'lucide-react';
+import ReportModal from '../components/ReportModal';
+import { isUserBlocked, blockUser, unblockUser } from '@/utils/blockedUsers';
+import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
@@ -94,6 +96,39 @@ function ProfilePageContent() {
     const [countrySearch, setCountrySearch] = useState('');
     const [savingCountry, setSavingCountry] = useState(false);
 
+    // Blocking & Reporting state
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [showConfirmBlockModal, setShowConfirmBlockModal] = useState(false);
+    const [showProfileReportModal, setShowProfileReportModal] = useState(false);
+
+    const handleParam = searchParams.get('handle');
+    const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
+    const targetHandle = isExplicitHandle ? handleParam : (user ? (user.handle || '@'+user.name) : null);
+
+    useEffect(() => {
+        if (targetHandle) {
+            setIsBlocked(isUserBlocked(targetHandle));
+        }
+    }, [targetHandle]);
+
+    const handleBlockToggle = () => {
+        if (isBlocked) {
+            const myHandle = user?.handle || user?.email || 'usuario_web';
+            unblockUser(myHandle, targetHandle || '');
+            setIsBlocked(false);
+        } else {
+            setShowConfirmBlockModal(true);
+        }
+    };
+
+    const confirmBlock = async () => {
+        if (!targetHandle) return;
+        const myHandle = user?.handle || user?.email || 'usuario_web';
+        await blockUser(myHandle, targetHandle);
+        setIsBlocked(true);
+        setShowConfirmBlockModal(false);
+    };
+
     const handleSelectCountry = async (c: { name: string; code: string }) => {
         if (!user || savingCountry) return;
         if (c.code.toLowerCase() !== 'es' && c.name.toLowerCase() !== 'españa') {
@@ -172,12 +207,6 @@ function ProfilePageContent() {
         }
     };
 
-    const handleParam = searchParams.get('handle');
-    const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
-    
-    // Solo si handleParam es estrictamente null o vacío, se debe cargar el perfil del usuario logueado por defecto.
-    const targetHandle = isExplicitHandle ? handleParam : (user ? (user.handle || '@'+user.name) : null);
-    
     const cleanHandle = (h?: string | null) => (h || '').replace(/^@/, '').trim().toLowerCase();
     const isOwnProfile = Boolean(user && targetHandle && (cleanHandle(targetHandle) === cleanHandle(user.handle || user.name)));
 
@@ -382,7 +411,7 @@ function ProfilePageContent() {
         return <div style={{ backgroundColor: '#000', color: 'white', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>;
     }
 
-    let displayUser = null;
+    let displayUser: any = null;
 
     if (isExplicitHandle) {
         if (isFetchingUser) {
@@ -518,6 +547,43 @@ function ProfilePageContent() {
                     </div>
                 </div>
                 
+                {/* Banner de bloqueo si el perfil está bloqueado */}
+                {!isOwnProfile && isBlocked && (
+                    <div style={{
+                        width: '100%',
+                        backgroundColor: 'rgba(255, 59, 48, 0.12)',
+                        border: '1px solid rgba(255, 59, 48, 0.3)',
+                        borderRadius: '16px',
+                        padding: '12px 16px',
+                        marginTop: '15px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxSizing: 'border-box'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Ban size={18} color="#FF3B30" />
+                            <span style={{ fontSize: '12px', color: '#FF3B30', fontWeight: '600' }}>Has bloqueado a este perfil. Sus vídeos y mensajes están ocultos.</span>
+                        </div>
+                        <button
+                            onClick={handleBlockToggle}
+                            style={{
+                                backgroundColor: '#FF3B30',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '6px 12px',
+                                fontWeight: 'bold',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                flexShrink: 0
+                            }}
+                        >
+                            Desbloquear
+                        </button>
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
                     {isOwnProfile ? (
                         <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
@@ -533,14 +599,48 @@ function ProfilePageContent() {
                         </div>
                     ) : (
                         <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-                            <button onClick={handleFollowToggle} disabled={loadingFollow} style={{ flex: 1, maxWidth: '110px', padding: '10px 10px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                            <button onClick={handleFollowToggle} disabled={loadingFollow || isBlocked} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', opacity: isBlocked ? 0.5 : 1 }}>
                                 {isFollowing ? 'Siguiendo' : 'Seguir'}
                             </button>
-                            <button onClick={() => router.push(`/messages?handle=${encodeURIComponent(displayUser?.handle || targetHandle || '')}`)} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <button onClick={() => !isBlocked && router.push(`/messages?handle=${encodeURIComponent(displayUser?.handle || targetHandle || '')}`)} disabled={isBlocked} style={{ flex: 1, maxWidth: '110px', padding: '10px 10px', background: isBlocked ? '#333' : 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: isBlocked ? 0.5 : 1 }}>
                                 💬 Mensaje
                             </button>
-                            <button onClick={() => setShowDonateModal(true)} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: 'black', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                            <button onClick={() => !isBlocked && setShowDonateModal(true)} disabled={isBlocked} style={{ flex: 1, maxWidth: '90px', padding: '10px 10px', background: isBlocked ? '#333' : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: isBlocked ? 'gray' : 'black', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', opacity: isBlocked ? 0.5 : 1 }}>
                                 Donar
+                            </button>
+                            <button 
+                                onClick={handleBlockToggle} 
+                                style={{ 
+                                    padding: '10px 12px', 
+                                    backgroundColor: isBlocked ? '#34C759' : 'rgba(255, 59, 48, 0.15)', 
+                                    color: isBlocked ? 'white' : '#FF3B30', 
+                                    border: `1px solid ${isBlocked ? '#34C759' : 'rgba(255, 59, 48, 0.4)'}`, 
+                                    borderRadius: '8px', 
+                                    fontWeight: 'bold', 
+                                    fontSize: '12px', 
+                                    cursor: 'pointer', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '4px' 
+                                }}
+                                title={isBlocked ? "Desbloquear usuario" : "Bloquear usuario"}
+                            >
+                                <Ban size={14} color={isBlocked ? 'white' : '#FF3B30'} />
+                                <span>{isBlocked ? 'Desbloquear' : 'Bloquear'}</span>
+                            </button>
+                            <button
+                                onClick={() => setShowProfileReportModal(true)}
+                                style={{
+                                    padding: '10px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                    color: '#888',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer'
+                                }}
+                                title="Denunciar perfil"
+                            >
+                                <ShieldAlert size={16} color="#888" />
                             </button>
                         </div>
                     )}
@@ -823,6 +923,69 @@ function ProfilePageContent() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Confirmación de Bloqueo */}
+            {showConfirmBlockModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 10000,
+                    backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+                }}>
+                    <div style={{
+                        backgroundColor: '#121216', border: '1px solid rgba(255,59,48,0.3)',
+                        borderRadius: '24px', padding: '24px', maxWidth: '400px', width: '100%',
+                        textAlign: 'center', color: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.8)'
+                    }}>
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '50%',
+                            backgroundColor: 'rgba(255,59,48,0.15)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                            border: '1px solid rgba(255,59,48,0.3)'
+                        }}>
+                            <Ban size={26} color="#FF3B30" />
+                        </div>
+                        <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 'bold' }}>
+                            ¿Bloquear a {displayUser?.handle || targetHandle}?
+                        </h3>
+                        <p style={{ fontSize: '13px', color: '#888', lineHeight: '1.5', margin: '0 0 20px' }}>
+                            Al bloquearlo, no verás sus vídeos, historias ni comentarios en el Feed y Descubrir. Tampoco podrá enviarte mensajes privados.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={() => setShowConfirmBlockModal(false)}
+                                style={{
+                                    flex: 1, padding: '12px', borderRadius: '12px',
+                                    backgroundColor: 'rgba(255,255,255,0.08)', color: 'white',
+                                    border: 'none', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer'
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmBlock}
+                                style={{
+                                    flex: 1, padding: '12px', borderRadius: '12px',
+                                    backgroundColor: '#FF3B30', color: 'white',
+                                    border: 'none', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer'
+                                }}
+                            >
+                                Bloquear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Denuncia de Perfil */}
+            <ReportModal
+                isOpen={showProfileReportModal}
+                onClose={() => setShowProfileReportModal(false)}
+                video={{
+                    id: displayUser?.handle || targetHandle || 'perfil',
+                    user: displayUser?.handle || targetHandle,
+                    description: `Perfil reportado: ${displayUser?.name || targetHandle}`
+                }}
+            />
 
             <BottomNav />
             </div>
