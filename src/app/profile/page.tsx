@@ -100,6 +100,7 @@ function ProfilePageContent() {
     const [isBlocked, setIsBlocked] = useState(false);
     const [showConfirmBlockModal, setShowConfirmBlockModal] = useState(false);
     const [showProfileReportModal, setShowProfileReportModal] = useState(false);
+    const [showProfileOptionsModal, setShowProfileOptionsModal] = useState(false);
 
     const handleParam = searchParams.get('handle');
     const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
@@ -430,7 +431,43 @@ function ProfilePageContent() {
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100vh', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100%', maxWidth: '450px', borderLeft: '1px solid #111', borderRight: '1px solid #111', minHeight: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #333' }}>
-                {/* Avatar container with circular flag badge & camera upload overlay matching mobile app */}
+                    
+                    {/* Top Header Bar matching mobile app profileTop */}
+                    <div style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '15px'
+                    }}>
+                        <div style={{ width: '32px' }} />
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'white' }}>
+                            {displayUser.handle || displayUser.name}
+                        </span>
+                        {!isOwnProfile ? (
+                            <button
+                                onClick={() => setShowProfileOptionsModal(true)}
+                                title="Opciones de perfil"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: 0
+                                }}
+                            >
+                                <Ban size={22} color="#FF3B30" />
+                            </button>
+                        ) : (
+                            <div style={{ width: '32px' }} />
+                        )}
+                    </div>
+
+                    {/* Avatar container with circular flag badge & camera upload overlay matching mobile app */}
                 <div style={{ position: 'relative', width: '100px', height: '100px', marginBottom: '15px' }}>
                     <div 
                         onClick={() => setShowEnlargedAvatar(true)}
@@ -599,48 +636,14 @@ function ProfilePageContent() {
                         </div>
                     ) : (
                         <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-                            <button onClick={handleFollowToggle} disabled={loadingFollow || isBlocked} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', opacity: isBlocked ? 0.5 : 1 }}>
+                            <button onClick={handleFollowToggle} disabled={loadingFollow || isBlocked} style={{ flex: 1, maxWidth: '120px', height: '42px', backgroundColor: isFollowing ? '#333' : '#8E2DE2', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', opacity: isBlocked ? 0.5 : 1 }}>
                                 {isFollowing ? 'Siguiendo' : 'Seguir'}
                             </button>
-                            <button onClick={() => !isBlocked && router.push(`/messages?handle=${encodeURIComponent(displayUser?.handle || targetHandle || '')}`)} disabled={isBlocked} style={{ flex: 1, maxWidth: '110px', padding: '10px 10px', background: isBlocked ? '#333' : 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: isBlocked ? 0.5 : 1 }}>
+                            <button onClick={() => !isBlocked && router.push(`/messages?handle=${encodeURIComponent(displayUser?.handle || targetHandle || '')}`)} disabled={isBlocked} style={{ flex: 1, maxWidth: '130px', height: '42px', background: isBlocked ? '#333' : 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', opacity: isBlocked ? 0.5 : 1 }}>
                                 💬 Mensaje
                             </button>
-                            <button onClick={() => !isBlocked && setShowDonateModal(true)} disabled={isBlocked} style={{ flex: 1, maxWidth: '90px', padding: '10px 10px', background: isBlocked ? '#333' : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: isBlocked ? 'gray' : 'black', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', opacity: isBlocked ? 0.5 : 1 }}>
-                                Donar
-                            </button>
-                            <button 
-                                onClick={handleBlockToggle} 
-                                style={{ 
-                                    padding: '10px 12px', 
-                                    backgroundColor: isBlocked ? '#34C759' : 'rgba(255, 59, 48, 0.15)', 
-                                    color: isBlocked ? 'white' : '#FF3B30', 
-                                    border: `1px solid ${isBlocked ? '#34C759' : 'rgba(255, 59, 48, 0.4)'}`, 
-                                    borderRadius: '8px', 
-                                    fontWeight: 'bold', 
-                                    fontSize: '12px', 
-                                    cursor: 'pointer', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '4px' 
-                                }}
-                                title={isBlocked ? "Desbloquear usuario" : "Bloquear usuario"}
-                            >
-                                <Ban size={14} color={isBlocked ? 'white' : '#FF3B30'} />
-                                <span>{isBlocked ? 'Desbloquear' : 'Bloquear'}</span>
-                            </button>
-                            <button
-                                onClick={() => setShowProfileReportModal(true)}
-                                style={{
-                                    padding: '10px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    color: '#888',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer'
-                                }}
-                                title="Denunciar perfil"
-                            >
-                                <ShieldAlert size={16} color="#888" />
+                            <button onClick={() => !isBlocked && setShowDonateModal(true)} disabled={isBlocked} style={{ flex: 1, maxWidth: '110px', height: '42px', background: isBlocked ? '#333' : '#FF3B30', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '13px', cursor: isBlocked ? 'not-allowed' : 'pointer', opacity: isBlocked ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                                🎁 Donar
                             </button>
                         </div>
                     )}
@@ -970,6 +973,76 @@ function ProfilePageContent() {
                                 }}
                             >
                                 Bloquear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Opciones de Perfil (Fiel al diseño de la app) */}
+            {showProfileOptionsModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 10000,
+                    backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+                }}>
+                    <div style={{
+                        backgroundColor: '#121216', border: '1px solid #222',
+                        borderRadius: '24px', padding: '24px', maxWidth: '360px', width: '100%',
+                        textAlign: 'center', color: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.9)'
+                    }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 6px 0', color: 'white' }}>Opciones de perfil</h3>
+                        <p style={{ color: '#aaa', fontSize: '13px', margin: '0 0 20px 0' }}>¿Qué deseas hacer con {displayUser?.handle || targetHandle}?</p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button
+                                onClick={() => {
+                                    setShowProfileOptionsModal(false);
+                                    handleBlockToggle();
+                                }}
+                                style={{
+                                    width: '100%', padding: '14px',
+                                    backgroundColor: isBlocked ? 'rgba(52, 199, 89, 0.15)' : 'rgba(255, 59, 48, 0.15)',
+                                    color: isBlocked ? '#34C759' : '#FF3B30',
+                                    border: `1px solid ${isBlocked ? 'rgba(52, 199, 89, 0.3)' : 'rgba(255, 59, 48, 0.3)'}`,
+                                    borderRadius: '14px', fontWeight: 'bold', fontSize: '14px',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                }}
+                            >
+                                <Ban size={18} color={isBlocked ? '#34C759' : '#FF3B30'} />
+                                <span>{isBlocked ? 'Desbloquear perfil' : 'Bloquear perfil'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setShowProfileOptionsModal(false);
+                                    setShowProfileReportModal(true);
+                                }}
+                                style={{
+                                    width: '100%', padding: '14px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                    color: 'white',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    borderRadius: '14px', fontWeight: 'bold', fontSize: '14px',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                }}
+                            >
+                                <ShieldAlert size={18} color="#FF9500" />
+                                <span>Denunciar perfil</span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowProfileOptionsModal(false)}
+                                style={{
+                                    width: '100%', padding: '14px',
+                                    backgroundColor: 'transparent',
+                                    color: '#aaa',
+                                    border: '1px solid #333',
+                                    borderRadius: '14px', fontWeight: '600', fontSize: '14px',
+                                    cursor: 'pointer', marginTop: '4px'
+                                }}
+                            >
+                                Cancelar
                             </button>
                         </div>
                     </div>
