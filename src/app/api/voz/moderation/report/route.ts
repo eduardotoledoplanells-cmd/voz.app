@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('moderation_queue')
             .insert([{
                 id: moderationId,

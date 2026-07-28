@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: NextRequest) {
@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
         // Generate a random ID for the moderation item
         const moderationId = uuidv4();
 
-        // Insert into the moderation_queue table using the anonymous auth client (now allowed by RLS)
-        const { error } = await supabase
+        // Insert into the moderation_queue table using supabaseAdmin (bypassing RLS)
+        const { error } = await supabaseAdmin
             .from('moderation_queue')
             .insert([{
                 id: moderationId,
