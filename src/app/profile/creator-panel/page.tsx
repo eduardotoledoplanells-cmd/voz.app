@@ -280,27 +280,138 @@ export default function CreatorPanelPage() {
                             />
                         </div>
 
-                        {/* 2. Selección de Vídeo */}
-                        <div style={{ marginBottom: '18px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
+                        {/* 2. Selección de Vídeo con Miniaturas Visuales */}
+                        <div style={{ marginBottom: '22px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '8px' }}>
                                 2. Selecciona el Vídeo a Promocionar *
                             </label>
+                            
+                            {videos.length === 0 ? (
+                                <div style={{ fontSize: '12px', color: '#888', fontStyle: 'italic', padding: '10px 0' }}>
+                                    No se encontraron vídeos subidos en tu perfil.
+                                </div>
+                            ) : (
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                                    gap: '12px',
+                                    maxHeight: '260px',
+                                    overflowY: 'auto',
+                                    padding: '8px',
+                                    backgroundColor: '#16161c',
+                                    borderRadius: '12px',
+                                    border: '1px solid #2a2a35'
+                                }}>
+                                    {videos.map((v) => {
+                                        const videoUrl = v.videoUrl || v.url || v.video_url;
+                                        const thumbUrl = v.thumbnailUrl || v.thumbnail_url || v.thumbnail || v.poster;
+                                        const isSelected = formData.videoUrl === videoUrl;
+                                        const title = v.title || v.description || 'Vídeo sin título';
+
+                                        return (
+                                            <div
+                                                key={v.id}
+                                                onClick={() => setFormData({ ...formData, videoUrl })}
+                                                style={{
+                                                    position: 'relative',
+                                                    borderRadius: '10px',
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    border: `3px solid ${isSelected ? '#8E2DE2' : 'transparent'}`,
+                                                    boxShadow: isSelected ? '0 0 12px rgba(142, 45, 226, 0.8)' : 'none',
+                                                    aspectRatio: '9/14',
+                                                    backgroundColor: '#000',
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'flex-end'
+                                                }}
+                                            >
+                                                {/* Miniatura del vídeo o Vista Previa */}
+                                                {thumbUrl ? (
+                                                    <img
+                                                        src={thumbUrl}
+                                                        alt={title}
+                                                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                ) : (
+                                                    <video
+                                                        src={videoUrl}
+                                                        preload="metadata"
+                                                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
+                                                    />
+                                                )}
+
+                                                {/* Overlay de Selección */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: 0, left: 0, right: 0, bottom: 0,
+                                                    backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.3)' : 'rgba(0,0,0,0.2)',
+                                                    transition: 'all 0.2s'
+                                                }} />
+
+                                                {/* Checkmark Badge si está seleccionado */}
+                                                {isSelected && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '6px',
+                                                        right: '6px',
+                                                        backgroundColor: '#8E2DE2',
+                                                        color: 'white',
+                                                        borderRadius: '50%',
+                                                        width: '22px',
+                                                        height: '22px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold',
+                                                        boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                                                        zIndex: 2
+                                                    }}>
+                                                        ✓
+                                                    </div>
+                                                )}
+
+                                                {/* Título o descripción del vídeo */}
+                                                <div style={{
+                                                    position: 'relative',
+                                                    zIndex: 2,
+                                                    padding: '6px',
+                                                    background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+                                                    color: 'white',
+                                                    fontSize: '10px',
+                                                    fontWeight: 'bold',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {title}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Sincronización con el desplegable */}
                             <select
                                 value={formData.videoUrl}
                                 onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                                 style={{
                                     width: '100%',
-                                    padding: '12px',
+                                    padding: '10px',
+                                    marginTop: '8px',
                                     backgroundColor: '#1a1a20',
                                     border: '1px solid #333',
-                                    borderRadius: '10px',
+                                    borderRadius: '8px',
                                     color: 'white',
-                                    fontSize: '14px',
+                                    fontSize: '12px',
                                     boxSizing: 'border-box'
                                 }}
                                 required
                             >
-                                <option value="">-- Elige un vídeo de tu perfil --</option>
+                                <option value="">-- O selecciona desde la lista si lo prefieres --</option>
                                 {videos.map(v => (
                                     <option key={v.id} value={v.videoUrl || v.url || v.video_url}>
                                         {v.title || v.description || `Vídeo ${v.id.substring(0, 8)}`}
