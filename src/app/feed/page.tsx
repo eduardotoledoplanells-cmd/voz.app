@@ -418,14 +418,38 @@ const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Top Left Tag Overlay (Ad badge) */}
-                {v.isAd && (
-                    <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30 }}>
+                {/* Top Left Overlay: Ad badge & Report button */}
+                <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {v.isAd && (
                         <div style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
                             Promocionado
                         </div>
-                    </div>
-                )}
+                    )}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onReportClick(v); }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                            border: '1px solid rgba(255, 59, 48, 0.4)',
+                            color: '#FF3B30',
+                            padding: '5px 10px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                            transition: 'all 0.2s'
+                        }}
+                        title="Denunciar vídeo"
+                    >
+                        <ShieldAlert size={14} color="#FF3B30" />
+                        <span>Denunciar</span>
+                    </button>
+                </div>
 
                 {/* Live stream modal */}
                 {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
