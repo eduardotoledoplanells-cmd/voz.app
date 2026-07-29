@@ -395,9 +395,9 @@ BEGIN
         c.is_muted,
         CASE 
             WHEN c.age_hours < 2 
-                 AND (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5)) < 1.0
+                 AND (((c.views * 1.0) + (c.shares * 5.0) + (c.comments_count * 7.0) + (c.likes * 10.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.4)) < 1.0
             THEN 1.0 + random()
-            ELSE (((c.views * 1.0) + (c.likes * 5.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.5))
+            ELSE (((c.views * 1.0) + (c.shares * 5.0) + (c.comments_count * 7.0) + (c.likes * 10.0)) / POWER(GREATEST(c.age_hours, 0) + 2.0, 1.4))
         END::FLOAT AS _score
     FROM Calculated c
     -- MEJORA: Forzamos la secuencia del creador pero metemos score y jitter aleatorio (random() * 0.1) para romper bloques estáticos

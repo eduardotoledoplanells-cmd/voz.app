@@ -1742,10 +1742,12 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             const seq = creatorSeqMap[handle];
 
             const createdAtTime = new Date(v.created_at).getTime();
-            const ageInHours = (now - createdAtTime) / (1000 * 60 * 60);
             const views = v.views || 0;
             const likes = v.likes || 0;
-            let score = ((views * 1) + (likes * 5)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.5);
+            const commentsCount = v.comments_count || 0;
+            const shares = v.shares || 0;
+            // Algoritmo de Prioridad: Me Gusta (10x - Máximo privilegio) > Comentarios de Voz (7x) > Compartidos (5x) > Visualizaciones (1x)
+            let score = ((views * 1.0) + (shares * 5.0) + (commentsCount * 7.0) + (likes * 10.0)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.4);
             if (ageInHours < 2 && score < 1) score = 1 + Math.random();
             return { ...v, _score: score, _seq: seq };
         });
