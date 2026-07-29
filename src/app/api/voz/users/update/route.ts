@@ -38,8 +38,14 @@ export async function POST(request: NextRequest) {
         if (pushToken !== undefined) updates.pushToken = pushToken;
         if (is_live !== undefined) updates.is_live = is_live;
         if (live_url !== undefined) updates.live_url = live_url;
-        // Segmentación publicitaria
-        if (country !== undefined) updates.country = country;
+        // Segmentación publicitaria / País
+        if (country !== undefined) {
+            if (typeof country === 'object' && country !== null) {
+                updates.country = (country as any).name || (country as any).label || (country as any).code || String(country);
+            } else {
+                updates.country = country;
+            }
+        }
         if (region !== undefined) updates.region = region;
         if (interests !== undefined) updates.interests = interests;
 

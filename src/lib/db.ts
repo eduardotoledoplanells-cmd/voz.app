@@ -610,7 +610,14 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if ((updates as any).is_live !== undefined) dbUpdates.is_live = (updates as any).is_live;
     if ((updates as any).live_url !== undefined) dbUpdates.live_url = (updates as any).live_url;
     // Segmentación publicitaria
-    if ((updates as any).country !== undefined) dbUpdates.country = (updates as any).country;
+    if ((updates as any).country !== undefined) {
+        const cVal = (updates as any).country;
+        if (typeof cVal === 'object' && cVal !== null) {
+            dbUpdates.country = cVal.name || cVal.label || cVal.code || String(cVal);
+        } else {
+            dbUpdates.country = cVal;
+        }
+    }
     if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;
     if ((updates as any).interests !== undefined) dbUpdates.interests = (updates as any).interests;
 
