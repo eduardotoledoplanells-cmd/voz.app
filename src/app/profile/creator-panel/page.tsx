@@ -36,7 +36,7 @@ export default function CreatorPanelPage() {
     const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
     const modalities = [
-        { id: 1, name: 'Modalidad 1', packSize: 500, price: '12.00 €', duration: '4 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
+        { id: 1, name: 'Modalidad 1', packSize: 350, price: '12.00 €', duration: '4 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
         { id: 2, name: 'Modalidad 2', packSize: 2500, price: '55.00 €', duration: '8 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
         { id: 3, name: 'Modalidad 3', packSize: 15000, price: '199.00 €', duration: '25 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
     ];
