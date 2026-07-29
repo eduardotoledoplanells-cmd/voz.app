@@ -6,13 +6,13 @@ const fs = require('fs');
 
 // Supabase pooler connection - usar puerto 6543 (transaction mode)
 const pool = new Pool({
-    connectionString: `postgresql://postgres.thiftwzubmvcrdhuwcwm:VozDatabase2026!@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
+    connectionString: `postgresql://postgres:VozDatabase2026!@db.thiftwzubmvcrdhuwcwm.supabase.co:5432/postgres`,
     ssl: { rejectUnauthorized: false },
     max: 1,
     connectionTimeoutMillis: 15000,
 });
 
-const SQL = fs.readFileSync('fix_rls_manual.sql', 'utf8');
+const SQL = fs.readFileSync('src/lib/fix_rls_security.sql', 'utf8');
 
 async function main() {
     console.log('\n🔒 VOZ - Aplicando RLS via conexión PostgreSQL directa');

@@ -132,10 +132,6 @@ function ProfilePageContent() {
 
     const handleSelectCountry = async (c: { name: string; code: string }) => {
         if (!user || savingCountry) return;
-        if (c.code.toLowerCase() !== 'es' && c.name.toLowerCase() !== 'españa') {
-            alert("Actualmente solo está disponible España. Próximamente en más países.");
-            return;
-        }
         setSavingCountry(true);
         try {
             const res = await fetch('/api/voz/users/update', {
@@ -850,17 +846,10 @@ function ProfilePageContent() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
                             {ALL_COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).map(c => {
                                 const isSelected = (displayUser?.country?.code || '').toLowerCase() === c.code.toLowerCase() || (displayUser?.country?.name || '').toLowerCase() === c.name.toLowerCase();
-                                const isSpain = c.code.toLowerCase() === 'es' || c.name.toLowerCase() === 'españa';
                                 return (
                                     <div 
                                         key={c.code}
-                                        onClick={() => {
-                                            if (isSpain) {
-                                                handleSelectCountry(c);
-                                            } else {
-                                                alert("Actualmente solo está disponible España. Próximamente en más países.");
-                                            }
-                                        }}
+                                        onClick={() => handleSelectCountry(c)}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -870,8 +859,8 @@ function ProfilePageContent() {
                                             borderRadius: '12px',
                                             backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.35)' : '#1f1f22',
                                             border: isSelected ? '1px solid #8E2DE2' : '1px solid #2a2a2c',
-                                            cursor: isSpain ? 'pointer' : 'not-allowed',
-                                            opacity: isSpain ? 1 : 0.45,
+                                            cursor: 'pointer',
+                                            opacity: 1,
                                             transition: 'all 0.2s'
                                         }}
                                     >
@@ -882,9 +871,6 @@ function ProfilePageContent() {
                                                 {c.name} {isSelected ? '✅' : ''}
                                             </span>
                                         </div>
-                                        {!isSpain && (
-                                            <span title="Próximamente" style={{ fontSize: '0.85rem' }}>🔒</span>
-                                        )}
                                     </div>
                                 );
                             })}
