@@ -45,20 +45,20 @@ const COIN_PACKS_SERVER = {
 
 const CAMPAIGN_PACKS_SERVER = {
     'camp_mod1': {
-        price: 12.00,
-        stripeProductId: 'prod_TjX4aO2Rxu7RSa',
-        stripePriceId: 'price_1TYvEz3BtXxsW9ynSoyhq42g'
+        price: 14.52,
+        stripeProductId: 'prod_UyQsQ7HaUaXcH4',
+        stripePriceId: 'price_1TyU143BtXxsW9ynervAuj3T'
     },
     'camp_mod2': {
-        price: 55.00,
-        stripeProductId: 'prod_TjXCeIKcU0gyzp',
-        stripePriceId: 'price_1TYvF03BtXxsW9ynVddbrspc'
+        price: 66.55,
+        stripeProductId: 'prod_UyQtY9GQeyNSd8',
+        stripePriceId: 'price_1TyU2A3BtXxsW9yncmOTsPGF'
     },
     'camp_mod3': {
-        price: 199.00,
-        stripeProductId: 'prod_TjXF3kLaarGv61',
-        stripePriceId: 'price_1TYvF03BtXxsW9ynfl7DBKlq'
-    }
+        price: 240.79,
+        stripeProductId: 'prod_UyQvGh91T5OgLb',
+        stripePriceId: 'price_1TyU3f3BtXxsW9ynD25Lcr3g'
+    },
 };
 
 export async function POST(request: Request) {
