@@ -208,13 +208,268 @@ export default function CreatorPanelPage() {
 
             <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
                 
+                {/* Banner / Button to Create New Ad Campaign */}
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(142, 45, 226, 0.2) 0%, rgba(74, 0, 224, 0.2) 100%)',
+                    border: '1px solid rgba(142, 45, 226, 0.4)',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    marginBottom: '25px',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.5)'
+                }}>
+                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>📢</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 6px 0', color: 'white' }}>Crea tu Campaña de Anuncios</h3>
+                    <p style={{ color: '#aaa', fontSize: '13px', margin: '0 0 15px 0', lineHeight: '1.4' }}>
+                        Impulsa tu vídeo o negocio promocionándolo a audiencias locales en municipios y regiones específicas de España.
+                    </p>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        style={{
+                            backgroundColor: showForm ? '#333' : '#8E2DE2',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '12px 24px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            boxShadow: showForm ? 'none' : '0 4px 15px rgba(142, 45, 226, 0.6)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {showForm ? 'Cancelar Creación' : '🚀 + Crear Nueva Campaña'}
+                    </button>
+                </div>
+
+                {/* Formulario Interactivo de Creación de Campañas */}
+                {showForm && (
+                    <form onSubmit={handleSubmit} style={{
+                        backgroundColor: '#121216',
+                        border: '1px solid #222',
+                        borderRadius: '20px',
+                        padding: '24px',
+                        marginBottom: '30px',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                    }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 20px 0', color: 'white', borderBottom: '1px solid #222', paddingBottom: '12px' }}>
+                            Configura tu Campaña Publicitaria
+                        </h3>
+
+                        {/* 1. Nombre de la Campaña */}
+                        <div style={{ marginBottom: '18px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
+                                1. Nombre de la Campaña / Negocio *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Ej. Mi Bar - Promoción Verano"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    backgroundColor: '#1a1a20',
+                                    border: '1px solid #333',
+                                    borderRadius: '10px',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    boxSizing: 'border-box'
+                                }}
+                                required
+                            />
+                        </div>
+
+                        {/* 2. Selección de Vídeo */}
+                        <div style={{ marginBottom: '18px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
+                                2. Selecciona el Vídeo a Promocionar *
+                            </label>
+                            <select
+                                value={formData.videoUrl}
+                                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    backgroundColor: '#1a1a20',
+                                    border: '1px solid #333',
+                                    borderRadius: '10px',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    boxSizing: 'border-box'
+                                }}
+                                required
+                            >
+                                <option value="">-- Elige un vídeo de tu perfil --</option>
+                                {videos.map(v => (
+                                    <option key={v.id} value={v.videoUrl || v.url || v.video_url}>
+                                        {v.title || v.description || `Vídeo ${v.id.substring(0, 8)}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* 3. Selección de Modalidad / Pack de Vistas */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '8px' }}>
+                                3. Modalidad y Paquete de Impresiones *
+                            </label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {modalities.map(mod => {
+                                    const isSelected = selectedModalityId === mod.id;
+                                    return (
+                                        <div
+                                            key={mod.id}
+                                            onClick={() => {
+                                                setSelectedModalityId(mod.id);
+                                                setFormData({ ...formData, packSize: mod.packSize, priority: mod.priority });
+                                            }}
+                                            style={{
+                                                padding: '14px',
+                                                borderRadius: '12px',
+                                                backgroundColor: isSelected ? 'rgba(142, 45, 226, 0.15)' : '#1a1a20',
+                                                border: `2px solid ${isSelected ? '#8E2DE2' : '#282830'}`,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: 'white' }}>{mod.name} - {mod.packSize.toLocaleString()} Vistas</div>
+                                                <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Duración estimada: {mod.duration}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#8E2DE2' }}>{mod.price}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* 4. Geolocalización (Región y Municipios) */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
+                                4. Comunidad Autónoma / Región Target *
+                            </label>
+                            <select
+                                value={selectedRegionId}
+                                onChange={(e) => {
+                                    const regId = e.target.value;
+                                    setSelectedRegionId(regId);
+                                    const foundReg = regionsDb.find(r => String(r.id) === regId);
+                                    setSelectedRegionName(foundReg ? foundReg.name : '');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    backgroundColor: '#1a1a20',
+                                    border: '1px solid #333',
+                                    borderRadius: '10px',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    boxSizing: 'border-box'
+                                }}
+                                required
+                            >
+                                <option value="">-- Selecciona CCAA --</option>
+                                {regionsDb.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                            </select>
+
+                            {/* Lista de Municipios */}
+                            {selectedRegionId && (
+                                <div style={{ marginTop: '15px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#aaa' }}>
+                                            Municipios objetivo ({targetMunicipalities.length} seleccionados):
+                                        </label>
+                                        {municipalitiesDb.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (targetMunicipalities.length === municipalitiesDb.length) {
+                                                        setTargetMunicipalities([]);
+                                                    } else {
+                                                        setTargetMunicipalities(municipalitiesDb.map(m => m.id));
+                                                    }
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: '#8E2DE2', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                {targetMunicipalities.length === municipalitiesDb.length ? 'Desmarcar todos' : 'Marcar todos'}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {loadingLocations ? (
+                                        <div style={{ fontSize: '12px', color: '#888', padding: '10px 0' }}>Cargando localidades...</div>
+                                    ) : (
+                                        <div style={{
+                                            maxHeight: '160px',
+                                            overflowY: 'auto',
+                                            backgroundColor: '#16161c',
+                                            border: '1px solid #2a2a35',
+                                            borderRadius: '10px',
+                                            padding: '10px'
+                                        }}>
+                                            {municipalitiesDb.map(m => {
+                                                const isChecked = targetMunicipalities.includes(m.id);
+                                                return (
+                                                    <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '12px', color: 'white', cursor: 'pointer' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setTargetMunicipalities([...targetMunicipalities, m.id]);
+                                                                } else {
+                                                                    setTargetMunicipalities(targetMunicipalities.filter(id => id !== m.id));
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span>{m.name}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={submitting || !selectedModalityId}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                background: !selectedModalityId ? '#333' : 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontWeight: 'bold',
+                                fontSize: '15px',
+                                cursor: !selectedModalityId ? 'not-allowed' : 'pointer',
+                                boxShadow: !selectedModalityId ? 'none' : '0 4px 15px rgba(142, 45, 226, 0.5)',
+                                opacity: submitting ? 0.6 : 1
+                            }}
+                        >
+                            {submitting ? 'Procesando...' : '💳 Continuar al Pago Seguro (Stripe)'}
+                        </button>
+                    </form>
+                )}
+
                 {/* Campaigns List */}
                 <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', marginTop: '20px' }}>Tus Campañas Activas</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {campaigns.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'gray', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '15px' }}>
                             <span style={{ fontSize: '40px', display: 'block', marginBottom: '10px', opacity: 0.5 }}>🚀</span>
-                            Aún no tienes campañas activas. La creación de campañas se gestiona de forma exclusiva desde el Panel de Administración.
+                            Aún no tienes campañas activas. Usa el botón superior para crear tu primera campaña publicitaria.
                         </div>
                     ) : (
                         campaigns.map(camp => (
