@@ -1,13 +1,43 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Plus, Bell, User, MessageSquare } from 'lucide-react';
+import { Home, Search, Plus, Bell, User } from 'lucide-react';
 import ActivityModal from './ActivityModal';
 
 export default function BottomNav() {
     const pathname = usePathname();
     const [showActivity, setShowActivity] = useState(false);
+    const [hasUnread, setHasUnread] = useState(false);
+
+    useEffect(() => {
+        const checkUnread = async () => {
+            try {
+                const storedUser = localStorage.getItem('user');
+                if (!storedUser) return;
+                const user = JSON.parse(storedUser);
+                const recipientId = user.handle || `@${user.name}`;
+                const token = localStorage.getItem('token') || user.id || '';
+                const headers: Record<string, string> = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch(`/api/voz/notifications?recipientId=${encodeURIComponent(recipientId)}`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        const unread = data.some((n: any) => n.readStatus === false || n.read_status === false);
+                        setHasUnread(unread);
+                    }
+                }
+            } catch (e) {
+                // Ignore background check errors
+            }
+        };
+
+        checkUnread();
+        const interval = setInterval(checkUnread, 4000);
+        return () => clearInterval(interval);
+    }, [pathname, showActivity]);
 
     // Don't show on landing page
     if (pathname === '/') return null;
@@ -117,8 +147,23 @@ export default function BottomNav() {
                 </Link>
 
                 {/* Activity / Bell */}
-                <button onClick={() => setShowActivity(true)} style={navItemStyle(false) as any}>
-                    <Bell size={22} strokeWidth={1.8} />
+                <button onClick={() => { setShowActivity(true); setHasUnread(false); }} style={navItemStyle(false) as any}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Bell size={22} strokeWidth={1.8} />
+                        {hasUnread && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '-2px',
+                                right: '-2px',
+                                width: '8px',
+                                height: '8px',
+                                backgroundColor: '#FF3B30',
+                                borderRadius: '50%',
+                                border: '1.5px solid #000',
+                                boxShadow: '0 0 6px #FF3B30'
+                            }} />
+                        )}
+                    </div>
                     <span style={labelStyle(false)}>Actividad</span>
                 </button>
 

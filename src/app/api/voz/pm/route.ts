@@ -417,6 +417,14 @@ export async function GET(request: Request) {
                     .eq('escrow_id', escrowId)
                     .neq('sender_handle', userHandle)
                     .eq('is_read', false);
+
+                const cleanUser = userHandle.replace('@', '');
+                await supabaseAdmin
+                    .from('notifications')
+                    .update({ read_status: true })
+                    .or(`recipient_id.ilike.${cleanUser},recipient_id.ilike.@${cleanUser}`)
+                    .eq('type', 'pm')
+                    .eq('read_status', false);
             }
 
             return NextResponse.json(messages);
