@@ -6,11 +6,12 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe
 import { Coins } from 'lucide-react';
 
 const COIN_PACKS = [
-    { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, image: null },
-    { id: 'p3', name: 'Pack 3', coins: 20, price: 24.20, image: null },
-    { id: 'p4', name: 'Pack 4', coins: 50, price: 60.50, image: null },
-    { id: 'ps', name: 'Super Pack Especial', coins: 100, price: 121.00, image: null, isSuper: true },
-    { id: 'pVIP', name: 'VIP Ultra Pack', coins: 500, price: 605.00, image: null, isSuper: true },
+    { id: 'p1', name: 'Pack 1', coins: 5, price: 6.05, priceBase: '5,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, priceBase: '10,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p3', name: 'Pack 3', coins: 20, price: 24.20, priceBase: '20,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p4', name: 'Pack 4', coins: 50, price: 60.50, priceBase: '50,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'ps', name: 'Super Pack Especial', coins: 100, price: 121.00, priceBase: '100,00 €', taxNote: '+ Impuestos', image: null, isSuper: true },
+    { id: 'pVIP', name: 'VIP Ultra Pack', coins: 500, price: 605.00, priceBase: '500,00 €', taxNote: '+ Impuestos', image: null, isSuper: true },
 ];
 
 function BuyCoinsContent() {
@@ -171,6 +172,8 @@ function BuyCoinsContent() {
                                         <div>
                                             <div style={{ fontWeight: 'bold', fontSize: '16px', color: 'white' }}>{pack.name}</div>
                                             <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: '14px', marginTop: '2px' }}>{pack.coins} Monedas</div>
+                                            <div style={{ color: '#aaa', fontSize: '11px', marginTop: '2px' }}>{pack.priceBase || `${(pack.price / 1.21).toFixed(2).replace('.', ',')} €`} base</div>
+                                            <div style={{ color: '#888', fontSize: '10px', fontStyle: 'italic', marginTop: '1px' }}>+ Impuestos</div>
                                         </div>
                                     </div>
                                     <button 

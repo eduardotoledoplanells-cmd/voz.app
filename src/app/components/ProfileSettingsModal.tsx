@@ -8,11 +8,12 @@ import { Coins } from 'lucide-react';
 import WalletWidget from './WalletWidget';
 
 const COIN_PACKS = [
-    { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, image: null },
-    { id: 'p3', name: 'Pack 3', coins: 20, price: 24.20, image: null },
-    { id: 'p4', name: 'Pack 4', coins: 50, price: 60.50, image: null },
-    { id: 'ps', name: 'Super Pack Especial', coins: 100, price: 121.00, image: null, isSuper: true },
-    { id: 'pVIP', name: 'VIP Ultra Pack', coins: 500, price: 605.00, image: null, isSuper: true },
+    { id: 'p1', name: 'Pack 1', coins: 5, price: 6.05, priceBase: '5,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p2', name: 'Pack 2', coins: 10, price: 12.10, priceBase: '10,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p3', name: 'Pack 3', coins: 20, price: 24.20, priceBase: '20,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'p4', name: 'Pack 4', coins: 50, price: 60.50, priceBase: '50,00 €', taxNote: '+ Impuestos', image: null, isSuper: false },
+    { id: 'ps', name: 'Super Pack Especial', coins: 100, price: 121.00, priceBase: '100,00 €', taxNote: '+ Impuestos', image: null, isSuper: true },
+    { id: 'pVIP', name: 'VIP Ultra Pack', coins: 500, price: 605.00, priceBase: '500,00 €', taxNote: '+ Impuestos', image: null, isSuper: true },
 ];
 
 export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogout }: { isOpen: boolean, onClose: () => void, profile: any, onLogout: () => void }) {
@@ -700,11 +701,12 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                             {pack.coins === 500 ? '💎' : '💳'}
                                         </div>
                                         <div>
-                                            <div style={{ color: 'white', fontWeight: 'bold' }}>{pack.name}</div>
-                                            <div style={{ color: 'gray', fontSize: '0.8rem' }}>{pack.coins} Monedas VOZ</div>
+                                            <div style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>{pack.name} - {pack.coins} Monedas VOZ</div>
+                                            <div style={{ color: '#aaa', fontSize: '0.75rem', marginTop: '2px' }}>{pack.priceBase || `${(pack.price / 1.21).toFixed(2).replace('.', ',')} €`} base</div>
+                                            <div style={{ color: '#888', fontSize: '0.7rem', fontStyle: 'italic', marginTop: '1px' }}>+ Impuestos</div>
                                         </div>
                                     </div>
-                                    <div style={{ color: '#8E2DE2', fontWeight: 'bold', fontSize: '1.1rem' }}>{pack.price}€</div>
+                                    <div style={{ color: '#8E2DE2', fontWeight: 'bold', fontSize: '1.1rem' }}>{pack.price.toFixed(2).replace('.', ',')} €</div>
                                 </button>
                             ))}
                         </div>
