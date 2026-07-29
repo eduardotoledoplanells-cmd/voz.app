@@ -9,7 +9,7 @@ const COIN_PACKS_SERVER = {
     'p1': {
         price: 6.05,
         coins: 5,
-        stripeProductId: 'prod_TjX1aO0Rxu5RSa',
+        stripeProductId: 'prod_TjWpwj5UlowbTV',
         stripePriceId: 'price_1TYvEz3BtXxsW9ynSoyhq41a'
     },
     'p2': {
