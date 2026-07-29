@@ -139,13 +139,15 @@ function ProfilePageContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id: user.id,
+                    handle: user.handle || user.name,
                     country: { name: c.name, code: c.code }
                 })
             });
             const data = await res.json();
             if (data.success) {
-                setLiveUser((prev: any) => ({ ...prev, country: { name: c.name, code: c.code } }));
-                const updatedUser = { ...user, country: { name: c.name, code: c.code } };
+                const updatedCountry = data.user?.country || { name: c.name, code: c.code };
+                setLiveUser((prev: any) => ({ ...prev, country: updatedCountry }));
+                const updatedUser = { ...user, country: updatedCountry };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
                 setShowCountryModal(false);
             } else {
@@ -256,38 +258,39 @@ function ProfilePageContent() {
     }, []);
 
     useEffect(() => {
-        if (user && targetHandle) {
+        const handleToFetch = targetHandle || user?.handle || (user?.name ? '@'+user.name : '');
+        if (user && handleToFetch) {
             setIsFetchingUser(true);
             setUserNotFound(false);
             
-            fetch(`/api/voz/users/profile?handle=${encodeURIComponent(targetHandle)}`)
+            fetch(`/api/voz/users/profile?handle=${encodeURIComponent(handleToFetch)}&id=${user?.id || ''}&t=${Date.now()}`)
                 .then(res => res.json())
                 .then(data => {
-                    let handleForVideos = targetHandle;
+                    let handleForVideos = handleToFetch;
                     if (data.success && data.user) {
                         setLiveUser(data.user);
                         const myHandle = user.handle || '@'+user.name;
                         setIsFollowing(data.fans && data.fans.includes(myHandle));
-                        handleForVideos = data.user.handle || targetHandle;
-                    } else {
+                        handleForVideos = data.user.handle || handleToFetch;
+                    } else if (targetHandle) {
                         setUserNotFound(true);
                     }
                     return fetchVideosForTab(activeTab, handleForVideos, 0);
                 })
                 .catch(err => {
                     console.error("Error fetching profile:", err);
-                    if (!liveUser) setUserNotFound(true);
+                    if (targetHandle && !liveUser) setUserNotFound(true);
                     setLoadingVideos(false);
                 })
                 .finally(() => {
                     setIsFetchingUser(false);
                 });
-        } else if (user && !targetHandle) {
+        } else {
             setIsFetchingUser(false);
             setLoadingVideos(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, targetHandle, activeTab]);
+    }, [user?.id, user?.handle, targetHandle, activeTab]);
 
     const fetchMoreVideos = async () => {
         setLoadingMore(true);
