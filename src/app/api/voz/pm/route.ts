@@ -134,7 +134,7 @@ export async function POST(request: Request) {
 
             const privacySettings = creator.privacySettings || {};
             const arePmsDisabled = privacySettings.receive_pms === false || privacySettings.allow_pms === false;
-            const shouldCharge = privacySettings.charge_pms !== false; // Charge by default unless explicitly false
+            const shouldCharge = privacySettings.charge_pms === true; // Only charge if explicitly enabled (opt-in)
 
             if (arePmsDisabled) {
                 return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 403 });
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
                         usuario: sender.handle,
                         metadata: { creator: creator.handle }
                     });
-                    return NextResponse.json({ error: ledgerError.message || 'Saldo insuficiente' }, { status: 400 });
+                    return NextResponse.json({ error: 'No tienes suficientes monedas para enviar un mensaje privado. Se necesitan 5 monedas.' }, { status: 400 });
                 }
             }
             
