@@ -27,7 +27,7 @@ export default function CreatorPanelPage() {
     const [selectedRegionId, setSelectedRegionId] = useState<string>('');
     const [selectedRegionName, setSelectedRegionName] = useState<string>('');
     const [municipalitiesDb, setMunicipalitiesDb] = useState<any[]>([]);
-    const [targetMunicipalities, setTargetMunicipalities] = useState<number[]>([]);
+    const [selectedMunicipalitiesData, setSelectedMunicipalitiesData] = useState<{ id: number; name: string; regionId: string; regionName: string }[]>([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
 
     // Stripe checkout states
@@ -90,13 +90,12 @@ export default function CreatorPanelPage() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true') {
             alert('¡Pago recibido! Tu campaña de publicidad ha sido activada y comenzará a mostrarse.');
-            // Clean up the URL query params so they don't see the alert on reload
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
 
     useEffect(() => {
-        if (selectedRegionId) {
+        if (selectedRegionId && selectedRegionId !== 'ALL_SPAIN') {
             setLoadingLocations(true);
             fetch(`/api/locations?type=municipalities&regionId=${selectedRegionId}`)
                 .then(res => res.json())
@@ -112,7 +111,6 @@ export default function CreatorPanelPage() {
                 });
         } else {
             setMunicipalitiesDb([]);
-            setTargetMunicipalities([]);
         }
     }, [selectedRegionId]);
 
@@ -124,13 +122,23 @@ export default function CreatorPanelPage() {
         }
 
         if (!selectedRegionId) {
-            alert("Debe seleccionar una Comunidad Autónoma / Región");
+            alert("Debe seleccionar una Comunidad Autónoma o 'Toda España'");
             return;
         }
 
-        if (targetMunicipalities.length === 0) {
-            alert("Debe seleccionar al menos un municipio / localidad para tu campaña");
-            return;
+        let targetRegions: string[] = [];
+        let target_municipalities: number[] = [];
+
+        if (selectedRegionId === 'ALL_SPAIN') {
+            targetRegions = ['Toda España'];
+            target_municipalities = [];
+        } else {
+            if (selectedMunicipalitiesData.length === 0) {
+                alert("Debe seleccionar 'Toda España' o elegir al menos un municipio objetivo en la región.");
+                return;
+            }
+            targetRegions = Array.from(new Set(selectedMunicipalitiesData.map(m => m.regionName)));
+            target_municipalities = selectedMunicipalitiesData.map(m => m.id);
         }
 
         setSubmitting(true);
@@ -145,8 +153,8 @@ export default function CreatorPanelPage() {
                     userRealName: user.name,
                     userEmail: user.email,
                     targetCountries: ['España'],
-                    targetRegions: selectedRegionName ? [selectedRegionName] : [],
-                    target_municipalities: targetMunicipalities
+                    targetRegions,
+                    target_municipalities
                 })
             });
             const data = await res.json();
@@ -157,7 +165,7 @@ export default function CreatorPanelPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        packId: `camp_mod${selectedModalityId}`, // camp_mod1, camp_mod2, camp_mod3
+                        packId: `camp_mod${selectedModalityId}`,
                         type: 'campaign_payment',
                         campaignId: data.campaign.id,
                         userId: user.id,
@@ -176,7 +184,7 @@ export default function CreatorPanelPage() {
                     setCampaigns([data.campaign, ...campaigns]);
                     setShowForm(false);
                     setSelectedModalityId(null);
-                    setTargetMunicipalities([]);
+                    setSelectedMunicipalitiesData([]);
                     setSelectedRegionId('');
                     setSelectedRegionName('');
                     setFormData({ name: '', videoUrl: '', packSize: 1000, priority: 'Local_Standard' });
@@ -460,57 +468,110 @@ export default function CreatorPanelPage() {
                             </div>
                         </div>
 
-                        {/* 4. Geolocalización (Región y Municipios) */}
+                        {/* 4. Geolocalización (Toda España, Regiones y Municipios) */}
                         <div style={{ marginBottom: '20px' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#ccc', marginBottom: '6px' }}>
-                                4. Comunidad Autónoma / Región Target *
+                                4. Comunidad Autónoma / Cobertura Geográfica *
                             </label>
+                            
                             <select
                                 value={selectedRegionId}
                                 onChange={(e) => {
                                     const regId = e.target.value;
                                     setSelectedRegionId(regId);
-                                    const foundReg = regionsDb.find(r => String(r.id) === regId);
-                                    setSelectedRegionName(foundReg ? foundReg.name : '');
+                                    if (regId === 'ALL_SPAIN') {
+                                        setSelectedRegionName('Toda España');
+                                    } else {
+                                        const foundReg = regionsDb.find(r => String(r.id) === regId);
+                                        setSelectedRegionName(foundReg ? foundReg.name : '');
+                                    }
                                 }}
                                 style={{
                                     width: '100%',
                                     padding: '12px',
-                                    backgroundColor: '#1a1a20',
-                                    border: '1px solid #333',
+                                    backgroundColor: selectedRegionId === 'ALL_SPAIN' ? 'rgba(76,217,100,0.15)' : '#1a1a20',
+                                    border: `1px solid ${selectedRegionId === 'ALL_SPAIN' ? '#4CD964' : '#333'}`,
                                     borderRadius: '10px',
-                                    color: 'white',
+                                    color: selectedRegionId === 'ALL_SPAIN' ? '#4CD964' : 'white',
                                     fontSize: '14px',
+                                    fontWeight: selectedRegionId === 'ALL_SPAIN' ? 'bold' : 'normal',
                                     boxSizing: 'border-box'
                                 }}
                                 required
                             >
-                                <option value="">-- Selecciona CCAA --</option>
-                                {regionsDb.map(r => (
-                                    <option key={r.id} value={r.id}>{r.name}</option>
-                                ))}
+                                <option value="">-- Selecciona Cobertura o CCAA --</option>
+                                <option value="ALL_SPAIN" style={{ fontWeight: 'bold', color: '#4CD964', backgroundColor: '#111' }}>
+                                    🇪🇸 Toda España (Cobertura Nacional Completa)
+                                </option>
+                                {regionsDb.map(r => {
+                                    const count = selectedMunicipalitiesData.filter(m => String(m.regionId) === String(r.id)).length;
+                                    const hasSelected = count > 0;
+                                    return (
+                                        <option
+                                            key={r.id}
+                                            value={r.id}
+                                            style={{
+                                                fontWeight: hasSelected ? 'bold' : 'normal',
+                                                color: hasSelected ? '#4CD964' : 'white',
+                                                backgroundColor: '#111'
+                                            }}
+                                        >
+                                            {hasSelected ? `🟢 ${r.name} (${count} municipio${count > 1 ? 's' : ''} selecc.)` : r.name}
+                                        </option>
+                                    );
+                                })}
                             </select>
 
-                            {/* Lista de Municipios */}
-                            {selectedRegionId && (
+                            {/* Banner de Cobertura Nacional cuando se elige Toda España */}
+                            {selectedRegionId === 'ALL_SPAIN' && (
+                                <div style={{
+                                    marginTop: '12px',
+                                    backgroundColor: 'rgba(76, 217, 100, 0.12)',
+                                    border: '1px solid rgba(76, 217, 100, 0.4)',
+                                    borderRadius: '12px',
+                                    padding: '14px',
+                                    color: 'white'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: '#4CD964', fontSize: '13px' }}>
+                                        <span>🟢</span> Cobertura Nacional "Toda España" Activa
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#ccc', marginTop: '4px', lineHeight: '1.4' }}>
+                                        Tu anuncio se mostrará a usuarios de todas las comunidades autónomas y municipios de España sin restricciones geográficas.
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Lista de Municipios para la Región Seleccionada */}
+                            {selectedRegionId && selectedRegionId !== 'ALL_SPAIN' && (
                                 <div style={{ marginTop: '15px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                         <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#aaa' }}>
-                                            Municipios objetivo ({targetMunicipalities.length} seleccionados):
+                                            Municipios en {selectedRegionName} ({selectedMunicipalitiesData.filter(m => String(m.regionId) === String(selectedRegionId)).length} seleccionados):
                                         </label>
                                         {municipalitiesDb.length > 0 && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    if (targetMunicipalities.length === municipalitiesDb.length) {
-                                                        setTargetMunicipalities([]);
+                                                    const currentSelectedInRegion = selectedMunicipalitiesData.filter(m => String(m.regionId) === String(selectedRegionId));
+                                                    
+                                                    if (currentSelectedInRegion.length === municipalitiesDb.length) {
+                                                        // Desmarcar todos de esta región
+                                                        setSelectedMunicipalitiesData(selectedMunicipalitiesData.filter(m => String(m.regionId) !== String(selectedRegionId)));
                                                     } else {
-                                                        setTargetMunicipalities(municipalitiesDb.map(m => m.id));
+                                                        // Marcar todos de esta región (preservando otras regiones)
+                                                        const otherRegionsData = selectedMunicipalitiesData.filter(m => String(m.regionId) !== String(selectedRegionId));
+                                                        const newForThisRegion = municipalitiesDb.map(m => ({
+                                                            id: m.id,
+                                                            name: m.name,
+                                                            regionId: String(selectedRegionId),
+                                                            regionName: selectedRegionName
+                                                        }));
+                                                        setSelectedMunicipalitiesData([...otherRegionsData, ...newForThisRegion]);
                                                     }
                                                 }}
                                                 style={{ background: 'none', border: 'none', color: '#8E2DE2', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
                                             >
-                                                {targetMunicipalities.length === municipalitiesDb.length ? 'Desmarcar todos' : 'Marcar todos'}
+                                                {selectedMunicipalitiesData.filter(m => String(m.regionId) === String(selectedRegionId)).length === municipalitiesDb.length ? 'Desmarcar esta CCAA' : 'Marcar todos en esta CCAA'}
                                             </button>
                                         )}
                                     </div>
@@ -527,7 +588,7 @@ export default function CreatorPanelPage() {
                                             padding: '10px'
                                         }}>
                                             {municipalitiesDb.map(m => {
-                                                const isChecked = targetMunicipalities.includes(m.id);
+                                                const isChecked = selectedMunicipalitiesData.some(item => item.id === m.id);
                                                 return (
                                                     <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '12px', color: 'white', cursor: 'pointer' }}>
                                                         <input
@@ -535,9 +596,12 @@ export default function CreatorPanelPage() {
                                                             checked={isChecked}
                                                             onChange={(e) => {
                                                                 if (e.target.checked) {
-                                                                    setTargetMunicipalities([...targetMunicipalities, m.id]);
+                                                                    setSelectedMunicipalitiesData([
+                                                                        ...selectedMunicipalitiesData,
+                                                                        { id: m.id, name: m.name, regionId: String(selectedRegionId), regionName: selectedRegionName }
+                                                                    ]);
                                                                 } else {
-                                                                    setTargetMunicipalities(targetMunicipalities.filter(id => id !== m.id));
+                                                                    setSelectedMunicipalitiesData(selectedMunicipalitiesData.filter(item => item.id !== m.id));
                                                                 }
                                                             }}
                                                         />
@@ -547,6 +611,70 @@ export default function CreatorPanelPage() {
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Resumen Completo de Comunidades y Municipios Seleccionados */}
+                            {selectedMunicipalitiesData.length > 0 && selectedRegionId !== 'ALL_SPAIN' && (
+                                <div style={{
+                                    marginTop: '15px',
+                                    backgroundColor: '#141419',
+                                    border: '1px solid rgba(76, 217, 100, 0.3)',
+                                    borderRadius: '12px',
+                                    padding: '14px'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4CD964' }}>
+                                            📍 Resumen de Selección ({selectedMunicipalitiesData.length} municipios en {Array.from(new Set(selectedMunicipalitiesData.map(m => m.regionName))).length} CCAA)
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMunicipalitiesData([])}
+                                            style={{ background: 'none', border: 'none', color: '#FF3B30', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                            Limpiar selección
+                                        </button>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {Array.from(new Set(selectedMunicipalitiesData.map(m => m.regionName))).map(regName => {
+                                            const regMunis = selectedMunicipalitiesData.filter(m => m.regionName === regName);
+                                            return (
+                                                <div key={regName} style={{ backgroundColor: '#1c1c24', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #4CD964' }}>
+                                                    <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#4CD964', marginBottom: '6px' }}>
+                                                        🟢 {regName} ({regMunis.length})
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                        {regMunis.map(m => (
+                                                            <span
+                                                                key={m.id}
+                                                                style={{
+                                                                    backgroundColor: 'rgba(76, 217, 100, 0.15)',
+                                                                    color: 'white',
+                                                                    border: '1px solid rgba(76, 217, 100, 0.4)',
+                                                                    padding: '3px 8px',
+                                                                    borderRadius: '12px',
+                                                                    fontSize: '11px',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '6px'
+                                                                }}
+                                                            >
+                                                                {m.name}
+                                                                <span
+                                                                    onClick={() => setSelectedMunicipalitiesData(selectedMunicipalitiesData.filter(item => item.id !== m.id))}
+                                                                    style={{ cursor: 'pointer', color: '#FF3B30', fontWeight: 'bold' }}
+                                                                    title="Eliminar municipio"
+                                                                >
+                                                                    ✕
+                                                                </span>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>
