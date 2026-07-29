@@ -39,17 +39,17 @@ const COIN_PACKS_SERVER = {
 
 const CAMPAIGN_PACKS_SERVER = {
     'camp_mod1': {
-        price: 10.00,
+        price: 12.00,
         stripeProductId: 'prod_TjX4aO2Rxu7RSa',
         stripePriceId: 'price_1TYvEz3BtXxsW9ynSoyhq42g'
     },
     'camp_mod2': {
-        price: 45.00,
+        price: 55.00,
         stripeProductId: 'prod_TjXCeIKcU0gyzp',
         stripePriceId: 'price_1TYvF03BtXxsW9ynVddbrspc'
     },
     'camp_mod3': {
-        price: 150.00,
+        price: 199.00,
         stripeProductId: 'prod_TjXF3kLaarGv61',
         stripePriceId: 'price_1TYvF03BtXxsW9ynfl7DBKlq'
     }

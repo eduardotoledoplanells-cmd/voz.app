@@ -36,9 +36,9 @@ export default function CreatorPanelPage() {
     const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
     const modalities = [
-        { id: 1, name: 'Modalidad 1', packSize: 1000, price: '10.00 €', duration: '7 Días', priority: 'Local_Standard' },
-        { id: 2, name: 'Modalidad 2', packSize: 5000, price: '45.00 €', duration: '15 Días', priority: 'Local_Standard' },
-        { id: 3, name: 'Modalidad 3', packSize: 20000, price: '150.00 €', duration: '30 Días', priority: 'Local_Standard' },
+        { id: 1, name: 'Modalidad 1', packSize: 500, price: '12.00 €', duration: '4 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
+        { id: 2, name: 'Modalidad 2', packSize: 2500, price: '55.00 €', duration: '8 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
+        { id: 3, name: 'Modalidad 3', packSize: 15000, price: '199.00 €', duration: '25 Días', taxNote: '+ Impuestos', priority: 'Local_Standard' },
     ];
 
     useEffect(() => {
@@ -456,8 +456,9 @@ export default function CreatorPanelPage() {
                                             }}
                                         >
                                             <div>
-                                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: 'white' }}>{mod.name} - {mod.packSize.toLocaleString()} Vistas</div>
+                                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: 'white' }}>{mod.name} - {mod.packSize.toLocaleString('es-ES')} Impresiones</div>
                                                 <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Duración estimada: {mod.duration}</div>
+                                                <div style={{ fontSize: '10px', color: '#888', marginTop: '1px', fontStyle: 'italic' }}>{mod.taxNote}</div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#8E2DE2' }}>{mod.price}</div>
