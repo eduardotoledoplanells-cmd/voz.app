@@ -9,7 +9,121 @@ export default function UploadPage() {
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
     const [uploadedUrl, setUploadedUrl] = useState('');
-    const fileRef = useRef<HTMLInputElement>(null);
+    const [statusMsg, setStatusMsg] = useState('');
+
+    const compressWebVideo = async (inputFile: File): Promise<File> => {
+        if (!inputFile.type.startsWith('video/') || inputFile.size <= 2 * 1024 * 1024) {
+            return inputFile;
+        }
+
+        try {
+            setStatusMsg('Optimizando y comprimiendo vídeo en el navegador...');
+            console.log(`[WebCompressor] Iniciando compresión de ${inputFile.name} (${(inputFile.size / 1024 / 1024).toFixed(1)} MB)...`);
+
+            return await new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'auto';
+                video.src = URL.createObjectURL(inputFile);
+                video.muted = true;
+                video.playsInline = true;
+
+                const timeout = setTimeout(() => {
+                    console.warn("[WebCompressor] Timeout en compresión, utilizando vídeo original.");
+                    URL.revokeObjectURL(video.src);
+                    resolve(inputFile);
+                }, 35000);
+
+                video.onloadedmetadata = async () => {
+                    try {
+                        let width = video.videoWidth || 1280;
+                        let height = video.videoHeight || 720;
+                        const maxDim = 1280;
+
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+
+                        width = width - (width % 2);
+                        height = height - (height % 2);
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+
+                        if (!ctx) {
+                            clearTimeout(timeout);
+                            URL.revokeObjectURL(video.src);
+                            return resolve(inputFile);
+                        }
+
+                        const stream = canvas.captureStream(30);
+                        const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+                            ? 'video/mp4;codecs=avc1'
+                            : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                            ? 'video/webm;codecs=vp9'
+                            : 'video/webm';
+
+                        const recorder = new MediaRecorder(stream, {
+                            mimeType,
+                            videoBitsPerSecond: 2500000
+                        });
+
+                        const chunks: Blob[] = [];
+                        recorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) chunks.push(e.data);
+                        };
+
+                        recorder.onstop = () => {
+                            clearTimeout(timeout);
+                            URL.revokeObjectURL(video.src);
+                            const blob = new Blob(chunks, { type: mimeType });
+                            if (blob.size > 0 && blob.size < inputFile.size) {
+                                console.log(`[WebCompressor] Compresión exitosa: ${(inputFile.size / 1024 / 1024).toFixed(1)} MB -> ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
+                                const ext = mimeType.includes('mp4') ? '.mp4' : '.webm';
+                                const compressedFile = new File([blob], inputFile.name.replace(/\.[^/.]+$/, "") + "_opt" + ext, { type: mimeType });
+                                resolve(compressedFile);
+                            } else {
+                                resolve(inputFile);
+                            }
+                        };
+
+                        recorder.start();
+                        await video.play();
+
+                        const draw = () => {
+                            if (!video.paused && !video.ended) {
+                                ctx.drawImage(video, 0, 0, width, height);
+                                requestAnimationFrame(draw);
+                            } else {
+                                recorder.stop();
+                            }
+                        };
+                        draw();
+                    } catch (err) {
+                        clearTimeout(timeout);
+                        URL.revokeObjectURL(video.src);
+                        resolve(inputFile);
+                    }
+                };
+
+                video.onerror = () => {
+                    clearTimeout(timeout);
+                    URL.revokeObjectURL(video.src);
+                    resolve(inputFile);
+                };
+            });
+        } catch (e) {
+            console.warn("[WebCompressor] Fallback a archivo original:", e);
+            return inputFile;
+        }
+    };
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,9 +131,15 @@ export default function UploadPage() {
 
         setStatus('uploading');
         setErrorMsg('');
+        setStatusMsg('Procesando archivo...');
 
         try {
-            // 1. Get user & session token from localStorage
+            // 1. Apply web video compression matching app rules (> 2MB threshold)
+            const fileToUpload = await compressWebVideo(file);
+
+            setStatusMsg('Subiendo vídeo a los servidores...');
+
+            // 2. Get user & session token from localStorage
             const storedUser = localStorage.getItem('user');
             const supabaseSession =
                 localStorage.getItem('supabase_session') ||
@@ -44,9 +164,9 @@ export default function UploadPage() {
                 }
             }
 
-            // 2. Upload video file to R2
+            // 3. Upload video file to R2
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fileToUpload);
 
             let videoUrl = '';
 
@@ -237,7 +357,7 @@ export default function UploadPage() {
                             }}
                         >
                             {status === 'uploading' ? (
-                                <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> Publicando...</>
+                                <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> {statusMsg || 'Publicando...'}</>
                             ) : (
                                 'Publicar en VOZ'
                             )}
