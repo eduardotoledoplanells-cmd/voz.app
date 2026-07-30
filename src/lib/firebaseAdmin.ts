@@ -61,6 +61,14 @@ export async function sendNativePush(
                     color: "#8E2DE2"
                 }
             },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "default",
+                        badge: 1
+                    }
+                }
+            },
             data: {
                 ...dataPayload
             }
