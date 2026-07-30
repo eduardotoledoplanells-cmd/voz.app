@@ -1379,58 +1379,78 @@ export async function getNotifications(recipientId?: string): Promise<Notificati
     }));
 }
 
-export async function addNotification(n: Notification): Promise<Notification | null> {
-    const { data, error } = await supabaseAdmin.from('notifications').insert([{
-        recipient_id: n.recipientId,
-        type: n.type,
-        title: n.title,
-        message: n.message,
-        timestamp: n.timestamp || new Date().toISOString(),
-        read_status: n.readStatus
-    }]).select().single();
+export function isNotificationCategoryEnabled(type: string, settings: any): boolean {
+    if (!settings || typeof settings !== 'object') return true;
 
-    if (error) {
-        console.error('[DB] Error adding notification:', error);
-        return null;
+    let settingsKey = '';
+    if (type === 'comment') settingsKey = 'notify_comments';
+    else if (type === 'reply') settingsKey = 'notify_replies';
+    else if (type === 'pm' || type === 'pm_locked') settingsKey = 'notify_pms';
+    else if (type === 'donation') settingsKey = 'notify_donations';
+    else if (type === 'gift') settingsKey = 'notify_gifts';
+    else if (type === 'like') settingsKey = 'notify_likes';
+    else if (type === 'follow') settingsKey = 'notify_followers';
+    else if (['live', 'live_alert', 'on_air'].includes(type || '')) settingsKey = 'notify_live';
+    else if (['balance', 'billing', 'withdrawal', 'payout'].includes(type || '')) settingsKey = 'notify_balance';
+    else if (['strike', 'penalty', 'moderation', 'ban', 'warning'].includes(type || '')) settingsKey = 'notify_strikes';
+    else if (['system', 'important', 'update', 'promo', 'alert', 'announcement'].includes(type || '')) settingsKey = 'notify_system';
+
+    if (settingsKey && settings[settingsKey] === false) {
+        return false;
     }
+    return true;
+}
 
+export async function addNotification(n: Notification): Promise<Notification | null> {
     try {
         const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId : `@${n.recipientId}`;
         const rawHandle = cleanHandle.replace('@', '');
 
-        // Fetch user's notification settings first
+        // Fetch recipient's notification settings FIRST
         const { data: userProfile } = await supabaseAdmin
             .from('app_users')
             .select('notification_settings')
-            .or(`handle.eq.${cleanHandle},handle.eq.${rawHandle}`)
-            .single();
+            .or(`handle.ilike.${cleanHandle},handle.ilike.${rawHandle}`)
+            .maybeSingle();
 
         const settings = userProfile?.notification_settings || {};
 
-        // Map notification type to setting key
-        let settingsKey = '';
-        if (n.type === 'comment') settingsKey = 'notify_comments';
-        else if (n.type === 'reply') settingsKey = 'notify_replies';
-        else if (n.type === 'pm') settingsKey = 'notify_pms';
-        else if (n.type === 'donation') settingsKey = 'notify_donations';
-        else if (n.type === 'gift') settingsKey = 'notify_gifts';
-        else if (n.type === 'like') settingsKey = 'notify_likes';
-        else if (n.type === 'follow') settingsKey = 'notify_followers';
-        else if (n.type === 'balance') settingsKey = 'notify_balance';
-        else if (n.type === 'strike') settingsKey = 'notify_strikes';
-        else if (['system', 'important', 'update', 'promo'].includes(n.type || '')) settingsKey = 'notify_system';
-
-        // Check if explicitly disabled
-        if (settingsKey && settings[settingsKey] === false) {
-            console.log(`[Push Blocked] User ${cleanHandle} has disabled push for type ${n.type} (${settingsKey})`);
-            return data;
+        // Check if category is disabled by recipient
+        if (!isNotificationCategoryEnabled(n.type, settings)) {
+            console.log(`[Notification Suppressed] User ${cleanHandle} has disabled notifications for category/type ${n.type}`);
+            return null;
         }
 
-        // 1. Buscar en la tabla nativa push_tokens
+        // Check if live notification sender is muted by recipient
+        if (['live', 'live_alert', 'on_air'].includes(n.type || '') && Array.isArray(settings.mutedLiveCreators) && n.referenceId) {
+            const senderClean = n.referenceId.replace('@', '').toLowerCase();
+            const isMuted = settings.mutedLiveCreators.some((h: string) => h.replace('@', '').toLowerCase() === senderClean);
+            if (isMuted) {
+                console.log(`[Notification Suppressed] Live from ${n.referenceId} to ${cleanHandle} is muted by user.`);
+                return null;
+            }
+        }
+
+        // Insert notification record
+        const { data, error } = await supabaseAdmin.from('notifications').insert([{
+            recipient_id: n.recipientId,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            timestamp: n.timestamp || new Date().toISOString(),
+            read_status: n.readStatus
+        }]).select().single();
+
+        if (error) {
+            console.error('[DB] Error adding notification:', error);
+            return null;
+        }
+
+        // 1. Send via FCM Native tokens
         const { data: fcmTokens } = await supabaseAdmin
             .from('push_tokens')
             .select('fcm_token, device_type')
-            .or(`user_id.eq.${cleanHandle},user_id.eq.${rawHandle}`);
+            .or(`user_id.ilike.${cleanHandle},user_id.ilike.${rawHandle}`);
 
         let nativeSent = false;
         if (fcmTokens && fcmTokens.length > 0) {
@@ -1440,7 +1460,6 @@ export async function addNotification(n: Notification): Promise<Notification | n
                     const res = await sendNativePush(item.fcm_token, n.title, n.message, { type: n.type, notificationId: data?.id || '' });
                     
                     if (res && !res.success && res.code === 'messaging/registration-token-not-registered') {
-                        // Limpiar asincrónicamente el token de push_tokens
                         supabaseAdmin.from('push_tokens').delete().eq('fcm_token', item.fcm_token).then();
                     } else if (res && res.success) {
                         nativeSent = true;
@@ -1449,12 +1468,12 @@ export async function addNotification(n: Notification): Promise<Notification | n
             }
         }
 
-        // 2. Buscar en app_users.push_token (como fallback)
+        // 2. Fallback to app_users.push_token
         const { data: userData } = await supabaseAdmin
             .from('app_users')
             .select('push_token')
-            .or(`handle.eq.${cleanHandle},handle.eq.${rawHandle}`)
-            .single();
+            .or(`handle.ilike.${cleanHandle},handle.ilike.${rawHandle}`)
+            .maybeSingle();
 
         if (userData && userData.push_token) {
             const token = userData.push_token;
@@ -1472,16 +1491,16 @@ export async function addNotification(n: Notification): Promise<Notification | n
                 const res = await sendNativePush(token, n.title, n.message, { type: n.type, notificationId: data?.id || '' });
                 
                 if (res && !res.success && res.code === 'messaging/registration-token-not-registered') {
-                    // Limpiar asincrónicamente el token de app_users
-                    supabaseAdmin.from('app_users').update({ push_token: null }).or(`handle.eq.${cleanHandle},handle.eq.${rawHandle}`).then();
+                    supabaseAdmin.from('app_users').update({ push_token: null }).or(`handle.ilike.${cleanHandle},handle.ilike.${rawHandle}`).then();
                 }
             }
         }
-    } catch (e: any) {
-        console.warn("[Push Dispatch Error]:", e.message || e);
-    }
 
-    return data;
+        return data;
+    } catch (e: any) {
+        console.error('[DB] Error sending push / adding notification:', e);
+        return null;
+    }
 }
 
 // --- Campaigns ---

@@ -1026,30 +1026,52 @@ export async function getNotifications(recipientId?: string): Promise<Notificati
 }
 
 export async function addNotification(n: Notification): Promise<Notification | null> {
-    const { data, error } = await supabaseAdmin.from('notifications').insert([{
-        recipient_id: n.recipientId,
-        type: n.type,
-        title: n.title,
-        message: n.message,
-        timestamp: n.timestamp || new Date().toISOString(),
-        read_status: n.readStatus
-    }]).select().single();
-
-    if (error) {
-        console.error('[DB] Error adding notification:', error);
-        return null;
-    }
-
-    // --- NEW: Attempt Push Notification via Expo ---
     try {
-        const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId.substring(1) : n.recipientId;
-        const { data: userData } = await supabaseAdmin
-            .from('app_users')
-            .select('push_token')
-            .or(`handle.eq.${cleanHandle},handle.eq.@${cleanHandle}`)
-            .single();
+        const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId : `@${n.recipientId}`;
+        const rawHandle = cleanHandle.replace('@', '');
 
-        if (userData && userData.push_token) {
+        // Fetch user's notification settings first
+        const { data: userProfile } = await supabaseAdmin
+            .from('app_users')
+            .select('notification_settings, push_token')
+            .or(`handle.ilike.${cleanHandle},handle.ilike.${rawHandle}`)
+            .maybeSingle();
+
+        const settings = userProfile?.notification_settings || {};
+
+        let settingsKey = '';
+        if (n.type === 'comment') settingsKey = 'notify_comments';
+        else if (n.type === 'reply') settingsKey = 'notify_replies';
+        else if (n.type === 'pm' || n.type === 'pm_locked') settingsKey = 'notify_pms';
+        else if (n.type === 'donation') settingsKey = 'notify_donations';
+        else if (n.type === 'gift') settingsKey = 'notify_gifts';
+        else if (n.type === 'like') settingsKey = 'notify_likes';
+        else if (n.type === 'follow') settingsKey = 'notify_followers';
+        else if (['live', 'live_alert', 'on_air'].includes(n.type || '')) settingsKey = 'notify_live';
+        else if (['balance', 'billing', 'withdrawal', 'payout'].includes(n.type || '')) settingsKey = 'notify_balance';
+        else if (['strike', 'penalty', 'moderation', 'ban', 'warning'].includes(n.type || '')) settingsKey = 'notify_strikes';
+        else if (['system', 'important', 'update', 'promo', 'alert', 'announcement'].includes(n.type || '')) settingsKey = 'notify_system';
+
+        if (settingsKey && settings[settingsKey] === false) {
+            console.log(`[Admin Notification Suppressed] User ${cleanHandle} has disabled category (${settingsKey}) for type ${n.type}`);
+            return null;
+        }
+
+        const { data, error } = await supabaseAdmin.from('notifications').insert([{
+            recipient_id: n.recipientId,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            timestamp: n.timestamp || new Date().toISOString(),
+            read_status: n.readStatus
+        }]).select().single();
+
+        if (error) {
+            console.error('[DB] Error adding notification:', error);
+            return null;
+        }
+
+        if (userProfile && userProfile.push_token) {
             console.log(`[Push] Sending to ${n.recipientId} via Expo...`);
             await fetch('https://exp.host/--/api/v2/push/send', {
                 method: 'POST',

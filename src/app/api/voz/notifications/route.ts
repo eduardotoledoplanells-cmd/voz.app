@@ -88,9 +88,48 @@ export async function GET(request: Request) {
             readStatus: n.read_status
         }));
 
-        // Deduplicate notifications based on recipient, type and message preview
+        // Fetch recipient's notification settings to filter out disabled categories
+        const { data: userData } = await supabaseAdmin
+            .from('app_users')
+            .select('notification_settings')
+            .or(`handle.ilike.${cleanId},handle.ilike.@${cleanId}`)
+            .maybeSingle();
+
+        const settings = userData?.notification_settings || {};
+
+        const typeToSetting: any = {
+            'comment': 'notify_comments',
+            'reply': 'notify_replies',
+            'donation': 'notify_donations',
+            'gift': 'notify_gifts',
+            'pm': 'notify_pms',
+            'pm_locked': 'notify_pms',
+            'system': 'notify_system',
+            'important': 'notify_system',
+            'update': 'notify_system',
+            'promo': 'notify_system',
+            'alert': 'notify_system',
+            'like': 'notify_likes',
+            'follow': 'notify_followers',
+            'balance': 'notify_balance',
+            'billing': 'notify_balance',
+            'withdrawal': 'notify_balance',
+            'payout': 'notify_balance',
+            'strike': 'notify_strikes',
+            'penalty': 'notify_strikes',
+            'moderation': 'notify_strikes',
+            'live': 'notify_live',
+            'live_alert': 'notify_live',
+            'on_air': 'notify_live'
+        };
+
+        // Deduplicate and filter notifications based on user settings
         const seenKeys = new Set<string>();
-        const uniqueData = mappedData.filter((n: any) => {
+        const filteredData = mappedData.filter((n: any) => {
+            const settingKey = typeToSetting[n.type];
+            if (settingKey && settings[settingKey] === false) {
+                return false;
+            }
             const cleanRec = (n.recipientId || '').replace(/^@/, '').toLowerCase();
             const key = `${cleanRec}-${n.type}-${(n.message || '').trim()}`;
             if (seenKeys.has(key)) {
@@ -100,7 +139,7 @@ export async function GET(request: Request) {
             return true;
         });
 
-        return NextResponse.json(uniqueData);
+        return NextResponse.json(filteredData);
     } catch (error) {
         console.error('Error fetching notifications:', error);
         await logSystemAlert('Notificaciones', error);
@@ -120,6 +159,58 @@ export async function POST(request: Request) {
         // Sanitize input: remove '@' and lowercase to maintain DB consistency
         const recipientId = rawRecipientId.replace('@', '').toLowerCase();
 
+        // Check user notification settings FIRST
+        const { data: userData } = await supabaseAdmin
+            .from('app_users')
+            .select('push_token, notification_settings')
+            .or(`handle.ilike.${recipientId},handle.ilike.@${recipientId}`)
+            .maybeSingle();
+
+        const settings = userData?.notification_settings || {};
+
+        const typeToSetting: any = {
+            'comment': 'notify_comments',
+            'reply': 'notify_replies',
+            'donation': 'notify_donations',
+            'gift': 'notify_gifts',
+            'pm': 'notify_pms',
+            'pm_locked': 'notify_pms',
+            'system': 'notify_system',
+            'important': 'notify_system',
+            'update': 'notify_system',
+            'promo': 'notify_system',
+            'alert': 'notify_system',
+            'like': 'notify_likes',
+            'follow': 'notify_followers',
+            'balance': 'notify_balance',
+            'billing': 'notify_balance',
+            'withdrawal': 'notify_balance',
+            'payout': 'notify_balance',
+            'strike': 'notify_strikes',
+            'penalty': 'notify_strikes',
+            'moderation': 'notify_strikes',
+            'live': 'notify_live',
+            'live_alert': 'notify_live',
+            'on_air': 'notify_live'
+        };
+
+        const settingKey = typeToSetting[type];
+        let isEnabled = settingKey ? (settings[settingKey] !== false) : true;
+
+        if (isEnabled && ['live', 'live_alert', 'on_air'].includes(type) && Array.isArray(settings.mutedLiveCreators)) {
+            const senderClean = (senderId || '').replace('@', '').toLowerCase();
+            const isMuted = settings.mutedLiveCreators.some((h: string) => h.replace('@', '').toLowerCase() === senderClean);
+            if (isMuted) {
+                console.log(`[Notifications] Skipping live notification from ${senderId} to ${recipientId} because sender is muted.`);
+                isEnabled = false;
+            }
+        }
+
+        if (!isEnabled) {
+            console.log(`[Notifications Suppressed] Category ${settingKey || type} is disabled for ${recipientId}`);
+            return NextResponse.json({ success: true, message: 'Notification category disabled by recipient settings' });
+        }
+
         const newNotification = {
             recipient_id: recipientId,
             type,
@@ -132,73 +223,33 @@ export async function POST(request: Request) {
         const { data, error } = await supabaseAdmin.from('notifications').insert([newNotification]).select().single();
         if (error) throw error;
 
-        // Attempt Real Native Push Notification via Firebase FCM if settings allow
+        // 1. Enviar push nativa real FCM si existe token en push_tokens
         try {
-            const { data: userData } = await supabaseAdmin
-                .from('app_users')
-                .select('push_token, notification_settings')
-                .or(`handle.ilike.${recipientId},handle.ilike.@${recipientId}`)
-                .single();
-            
-            const settings = userData?.notification_settings || {};
-            
-            // Map notification type to setting key
-            const typeToSetting: any = {
-                'comment': 'notify_comments',
-                'reply': 'notify_replies',
-                'donation': 'notify_donations',
-                'gift': 'notify_gifts',
-                'pm': 'notify_pms',
-                'pm_locked': 'notify_pms',
-                'system': 'notify_system',
-                'like': 'notify_likes',
-                'follow': 'notify_followers',
-                'balance': 'notify_balance',
-                'billing': 'notify_balance',
-                'strike': 'notify_strikes',
-                'live_alert': 'notify_live'
-            };
+            const nativeTokens = await getUserPushTokens(recipientId);
+            const handleWithAt = `@${recipientId}`;
+            const nativeTokensWithAt = await getUserPushTokens(handleWithAt);
+            const allNativeTokens = Array.from(new Set([...nativeTokens, ...nativeTokensWithAt]));
 
-            const settingKey = typeToSetting[type];
-            let isEnabled = settingKey ? (settings[settingKey] !== false) : true;
-
-            if (isEnabled && type === 'live_alert' && Array.isArray(settings.mutedLiveCreators)) {
-                const senderClean = (senderId || '').replace('@', '').toLowerCase();
-                const isMuted = settings.mutedLiveCreators.some((h: string) => h.replace('@', '').toLowerCase() === senderClean);
-                if (isMuted) {
-                    console.log(`[Notifications] Skipping live_alert from ${senderId} to ${recipientId} because sender is muted.`);
-                    isEnabled = false;
+            if (allNativeTokens.length > 0) {
+                console.log(`[Push Notification Real] Enviando a ${allNativeTokens.length} tokens FCM para usuario ${recipientId}`);
+                for (const token of allNativeTokens) {
+                    await sendNativePush(token, title, message, { type, notificationId: data?.id });
                 }
-            }
-
-            if (isEnabled) {
-                // 1. Enviar push nativa real FCM si existe token en push_tokens
-                const nativeTokens = await getUserPushTokens(recipientId);
-                const handleWithAt = `@${recipientId}`;
-                const nativeTokensWithAt = await getUserPushTokens(handleWithAt);
-                const allNativeTokens = Array.from(new Set([...nativeTokens, ...nativeTokensWithAt]));
-
-                if (allNativeTokens.length > 0) {
-                    console.log(`[Push Notification Real] Enviando a ${allNativeTokens.length} tokens FCM para usuario ${recipientId}`);
-                    for (const token of allNativeTokens) {
-                        await sendNativePush(token, title, message, { type, notificationId: data?.id });
-                    }
-                } else if (userData && userData.push_token) {
-                    // 2. Fallback a Expo si aún no ha registrado token nativo
-                    await fetch('https://exp.host/--/api/v2/push/send', {
-                        method: 'POST',
-                        headers: { 'Accept': 'application/json', 'Accept-encoding': 'gzip, deflate', 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: userData.push_token,
-                            sound: 'default',
-                            priority: 'high',
-                            channelId: 'voz_high_priority',
-                            title: title,
-                            body: message,
-                            data: { type }
-                        })
-                    });
-                }
+            } else if (userData && userData.push_token) {
+                // 2. Fallback a Expo si aún no ha registrado token nativo
+                await fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Accept-encoding': 'gzip, deflate', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: userData.push_token,
+                        sound: 'default',
+                        priority: 'high',
+                        channelId: 'voz_high_priority',
+                        title: title,
+                        body: message,
+                        data: { type }
+                    })
+                });
             }
         } catch (e) { console.warn("Push dispatch error", e); }
 
