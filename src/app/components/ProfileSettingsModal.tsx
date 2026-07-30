@@ -291,18 +291,22 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     };
 
     const toggleNotificationSetting = async (key: string) => {
-        const currentSettings = profile.notificationSettings || {};
+        const currentSettings = profile.notificationSettings || profile.notification_settings || {};
         let currentValue = currentSettings[key];
         if (currentValue === undefined) currentValue = true;
         
         const newSettings = { ...currentSettings, [key]: !currentValue };
-        updateUser({ ...profile, notificationSettings: newSettings });
+        updateUser({ ...profile, notificationSettings: newSettings, notification_settings: newSettings });
         
         try {
             await fetch('/api/voz/users/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: profile.id, notificationSettings: newSettings })
+                body: JSON.stringify({
+                    id: profile.id,
+                    handle: profile.handle || profile.name,
+                    notificationSettings: newSettings
+                })
             });
         } catch (e) {
             console.error("Error", e);
@@ -310,18 +314,22 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     };
 
     const togglePrivacySetting = async (key: string) => {
-        const currentSettings = profile.privacySettings || {};
+        const currentSettings = profile.privacySettings || profile.privacy_settings || {};
         let currentValue = currentSettings[key];
         if (currentValue === undefined) currentValue = true;
         
         const newSettings = { ...currentSettings, [key]: !currentValue };
-        updateUser({ ...profile, privacySettings: newSettings });
+        updateUser({ ...profile, privacySettings: newSettings, privacy_settings: newSettings });
         
         try {
             await fetch('/api/voz/users/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: profile.id, privacySettings: newSettings })
+                body: JSON.stringify({
+                    id: profile.id,
+                    handle: profile.handle || profile.name,
+                    privacySettings: newSettings
+                })
             });
         } catch (e) {
             console.error("Error", e);
@@ -745,7 +753,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 { key: 'notify_strikes', label: 'Avisos de moderación / Strikes', icon: '🛡️' },
                                 { key: 'notify_system', label: 'Alertas de la aplicación', icon: '⚙️' }
                             ].map((item, idx, arr) => {
-                                let isEnabled = (profile.notificationSettings || {})[item.key];
+                                let isEnabled = (profile.notificationSettings || profile.notification_settings || {})[item.key];
                                 if (isEnabled === undefined) isEnabled = true;
                                 return (
                                     <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #222' }}>

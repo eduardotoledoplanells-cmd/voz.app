@@ -33,8 +33,12 @@ export async function POST(request: NextRequest) {
         if (nationality !== undefined) updates.nationality = nationality;
         if (dob !== undefined) updates.dob = dob;
         if (phone !== undefined) updates.phone = phone;
-        if (notificationSettings !== undefined) updates.notificationSettings = notificationSettings;
-        if (privacySettings !== undefined) updates.privacySettings = privacySettings;
+        if (notificationSettings !== undefined || (body as any).notification_settings !== undefined) {
+            updates.notificationSettings = notificationSettings !== undefined ? notificationSettings : (body as any).notification_settings;
+        }
+        if (privacySettings !== undefined || (body as any).privacy_settings !== undefined) {
+            updates.privacySettings = privacySettings !== undefined ? privacySettings : (body as any).privacy_settings;
+        }
         if (pushToken !== undefined) updates.pushToken = pushToken;
         if (is_live !== undefined) updates.is_live = is_live;
         if (live_url !== undefined) updates.live_url = live_url;
