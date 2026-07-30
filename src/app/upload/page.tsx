@@ -2,8 +2,10 @@
 import { useState, useRef } from 'react';
 import BottomNav from '../components/BottomNav';
 import { Upload, Music, FileVideo, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function UploadPage() {
+    const { user: authUser } = useAuth();
     const [title, setTitle] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -139,24 +141,32 @@ export default function UploadPage() {
 
             setStatusMsg('Subiendo vídeo a los servidores...');
 
-            // 2. Get user & session token from localStorage or sessionStorage
-            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-            const supabaseSession =
-                localStorage.getItem('supabase_session') ||
-                localStorage.getItem('sb-thiftwzubmvcrdhuwcwm-auth-token');
+            // 2. Get user from AuthContext or localStorage / sessionStorage
+            let user = authUser;
+            if (!user) {
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                if (storedUser) {
+                    try {
+                        user = JSON.parse(storedUser);
+                    } catch (e) {}
+                }
+            }
 
-            if (!storedUser) {
+            if (!user) {
                 setErrorMsg('Debes iniciar sesión en VOZ para subir contenido.');
                 setStatus('error');
                 return;
             }
 
-            const user = JSON.parse(storedUser);
-            const userHandle = user.handle || user.name || user.id || '';
+            const userHandle = user.handle || (user as any).userHandle || user.name || user.id || '';
+            const userToken = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
 
-            // Parse token from Supabase session storage
-            let token = '';
-            if (supabaseSession) {
+            const supabaseSession =
+                localStorage.getItem('supabase_session') ||
+                localStorage.getItem('sb-thiftwzubmvcrdhuwcwm-auth-token');
+
+            let token = userToken;
+            if (!token && supabaseSession) {
                 try {
                     const sessionData = JSON.parse(supabaseSession);
                     token = sessionData?.access_token || sessionData?.[0]?.access_token || '';

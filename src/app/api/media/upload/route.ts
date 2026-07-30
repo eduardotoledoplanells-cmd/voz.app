@@ -44,6 +44,8 @@ export async function POST(request: Request) {
 
             if (appUser) {
                 authenticatedUserId = appUser.id;
+            } else {
+                authenticatedUserId = userHandleHeader;
             }
         }
 
