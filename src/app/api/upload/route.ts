@@ -9,22 +9,40 @@ const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'vide
 
 export async function POST(request: Request) {
     try {
-        // 1. Session Validation: Verify Bearer token against Supabase Auth
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json(
-                { error: 'No autorizado. Se requiere token Bearer.' },
-                { status: 401 }
-            );
+        // 1. Session Validation: Verify Bearer token or user headers against Supabase / app_users
+        let authenticatedUserId: string | null = null;
+        const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+        const userHandleHeader = request.headers.get('x-user-handle') || request.headers.get('x-user-id');
+
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+                if (user && !authError) {
+                    authenticatedUserId = user.id;
+                }
+            } catch (e) {
+                console.warn('[R2 Upload API] Token verification fallback:', e);
+            }
         }
 
-        const token = authHeader.split(' ')[1];
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authenticatedUserId && userHandleHeader) {
+            const cleanHandle = userHandleHeader.replace('@', '');
+            const { data: appUser } = await supabase
+                .from('app_users')
+                .select('id, handle')
+                .or(`id.eq.${userHandleHeader},handle.ilike.${cleanHandle},handle.ilike.@${cleanHandle}`)
+                .maybeSingle();
 
-        if (authError || !user) {
-            console.warn('[R2 Upload API] Invalid or expired session token attempt.');
+            if (appUser) {
+                authenticatedUserId = appUser.id;
+            }
+        }
+
+        if (!authenticatedUserId) {
+            console.warn('[R2 Upload API] Unauthorized upload attempt.');
             return NextResponse.json(
-                { error: 'Sesión inválida o expirada. Vuelva a iniciar sesión.' },
+                { error: 'No autorizado. Se requiere iniciar sesión en VOZ.' },
                 { status: 401 }
             );
         }

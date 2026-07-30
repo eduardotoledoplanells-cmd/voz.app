@@ -139,19 +139,20 @@ export default function UploadPage() {
 
             setStatusMsg('Subiendo vídeo a los servidores...');
 
-            // 2. Get user & session token from localStorage
-            const storedUser = localStorage.getItem('user');
+            // 2. Get user & session token from localStorage or sessionStorage
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
             const supabaseSession =
                 localStorage.getItem('supabase_session') ||
                 localStorage.getItem('sb-thiftwzubmvcrdhuwcwm-auth-token');
 
             if (!storedUser) {
-                setErrorMsg('Debes iniciar sesión para subir contenido.');
+                setErrorMsg('Debes iniciar sesión en VOZ para subir contenido.');
                 setStatus('error');
                 return;
             }
 
             const user = JSON.parse(storedUser);
+            const userHandle = user.handle || user.name || user.id || '';
 
             // Parse token from Supabase session storage
             let token = '';
@@ -160,40 +161,45 @@ export default function UploadPage() {
                     const sessionData = JSON.parse(supabaseSession);
                     token = sessionData?.access_token || sessionData?.[0]?.access_token || '';
                 } catch {
-                    token = supabaseSession;
+                    token = typeof supabaseSession === 'string' ? supabaseSession : '';
                 }
             }
 
-            // 3. Upload video file to R2
+            // 3. Upload video file to R2 with Auth headers
             const formData = new FormData();
             formData.append('file', fileToUpload);
 
-            let videoUrl = '';
-
+            const uploadHeaders: Record<string, string> = {
+                'x-user-handle': userHandle,
+                'x-user-id': user.id || ''
+            };
             if (token) {
-                // Authenticated upload to R2
-                const uploadRes = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData,
-                });
-                const uploadData = await uploadRes.json();
-                if (!uploadRes.ok) {
-                    throw new Error(uploadData.error || 'Error al subir el archivo a R2.');
-                }
+                uploadHeaders['Authorization'] = `Bearer ${token}`;
+            }
+
+            let videoUrl = '';
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                headers: uploadHeaders,
+                body: formData,
+            });
+
+            const uploadData = await uploadRes.json();
+
+            if (uploadRes.ok && uploadData.url) {
                 videoUrl = uploadData.url;
             } else {
-                // Fallback: media/upload endpoint (no auth required)
+                // Fallback: media/upload endpoint with user headers
                 const mediaRes = await fetch('/api/media/upload', {
                     method: 'POST',
+                    headers: uploadHeaders,
                     body: formData,
                 });
-                if (mediaRes.ok) {
-                    const mediaData = await mediaRes.json();
-                    videoUrl = mediaData.url || mediaData.videoUrl || '';
-                }
-                if (!videoUrl) {
-                    throw new Error('No se encontró sesión activa. Cierra sesión y vuelve a entrar.');
+                const mediaData = await mediaRes.json();
+                if (mediaRes.ok && (mediaData.url || mediaData.videoUrl)) {
+                    videoUrl = mediaData.url || mediaData.videoUrl;
+                } else {
+                    throw new Error(uploadData.error || mediaData.error || 'Error al subir el archivo.');
                 }
             }
 

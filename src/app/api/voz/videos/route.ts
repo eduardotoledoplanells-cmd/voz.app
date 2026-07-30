@@ -201,13 +201,8 @@ export async function POST(request: NextRequest) {
                     error: "Tienes que tener 10.000 seguidores para subir más de 150 vídeos." 
                 }, { status: 403 }));
             }
-        } else {
-            if (currentCount >= 250) {
-                return corsHeaders(NextResponse.json({ 
-                    error: "Has alcanzado el límite máximo de 250 vídeos en tu cuenta." 
-                }, { status: 403 }));
-            }
         }
+        // Usuarios con 10.000 seguidores o más: sin límite de vídeos
 
         const newVideo: VideoPost = {
             id: uuidv4(),

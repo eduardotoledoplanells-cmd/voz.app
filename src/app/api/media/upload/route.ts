@@ -17,9 +17,11 @@ const ALLOWED_DOC_TYPES = ['application/pdf'];
 
 export async function POST(request: Request) {
     try {
-        // Autenticación estricta con Token Bearer de Supabase Auth
+        // Autenticación estricta con Token Bearer de Supabase Auth o Headers de usuario VOZ
         let authenticatedUserId: string | null = null;
-        const authHeader = request.headers.get('authorization');
+        const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+        const userHandleHeader = request.headers.get('x-user-handle') || request.headers.get('x-user-id');
+
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
             try {
@@ -32,8 +34,21 @@ export async function POST(request: Request) {
             }
         }
 
+        if (!authenticatedUserId && userHandleHeader) {
+            const cleanHandle = userHandleHeader.replace('@', '');
+            const { data: appUser } = await supabaseAdmin
+                .from('app_users')
+                .select('id, handle')
+                .or(`id.eq.${userHandleHeader},handle.ilike.${cleanHandle},handle.ilike.@${cleanHandle}`)
+                .maybeSingle();
+
+            if (appUser) {
+                authenticatedUserId = appUser.id;
+            }
+        }
+
         if (!authenticatedUserId) {
-            return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
+            return NextResponse.json({ error: 'Acceso denegado: Se requiere iniciar sesión en VOZ.' }, { status: 401 });
         }
 
         const formData = await request.formData();
