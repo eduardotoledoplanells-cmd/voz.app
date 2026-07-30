@@ -576,7 +576,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'nationality', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -609,13 +609,16 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if ((updates as any).profile_color !== undefined) dbUpdates.profile_color = (updates as any).profile_color;
     if ((updates as any).is_live !== undefined) dbUpdates.is_live = (updates as any).is_live;
     if ((updates as any).live_url !== undefined) dbUpdates.live_url = (updates as any).live_url;
-    // Segmentación publicitaria
+    // Segmentación publicitaria / País
+    if ((updates as any).nationality !== undefined) dbUpdates.nationality = (updates as any).nationality;
     if ((updates as any).country !== undefined) {
         const cVal = (updates as any).country;
         if (typeof cVal === 'object' && cVal !== null) {
             dbUpdates.country = cVal.name || cVal.label || cVal.code || String(cVal);
+            if (!dbUpdates.nationality) dbUpdates.nationality = dbUpdates.country;
         } else {
             dbUpdates.country = cVal;
+            if (!dbUpdates.nationality) dbUpdates.nationality = cVal;
         }
     }
     if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;

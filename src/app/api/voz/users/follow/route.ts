@@ -68,22 +68,54 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Missing handle parameter" }, { status: 400 });
         }
 
+        const clean = handle.replace('@', '');
+
         // Get Fans (People following this handle)
         const { data: fansData } = await supabaseAdmin
             .from("user_follows")
             .select("follower_handle")
-            .eq("following_handle", handle);
+            .or(`following_handle.ilike.${clean},following_handle.ilike.@${clean}`);
 
         // Get Following (People this handle follows)
         const { data: followingData } = await supabaseAdmin
             .from("user_follows")
             .select("following_handle")
-            .eq("follower_handle", handle);
+            .or(`follower_handle.ilike.${clean},follower_handle.ilike.@${clean}`);
 
-        const fans = fansData ? fansData.map((f: any) => f.follower_handle) : [];
-        const following = followingData ? followingData.map((f: any) => f.following_handle) : [];
+        const fansHandles = fansData ? fansData.map((f: any) => f.follower_handle) : [];
+        const followingHandles = followingData ? followingData.map((f: any) => f.following_handle) : [];
 
-        return NextResponse.json({ success: true, fans, following });
+        // Fetch user profiles for fans
+        let fansProfiles: any[] = [];
+        if (fansHandles.length > 0) {
+            const cleanFans = fansHandles.map(h => h.replace('@', ''));
+            const { data: fUsers } = await supabaseAdmin
+                .from("app_users")
+                .select("id, name, handle, profile_image, profile_color");
+            if (fUsers) {
+                fansProfiles = fUsers.filter((u: any) => u.handle && cleanFans.includes(u.handle.replace('@', '')));
+            }
+        }
+
+        // Fetch user profiles for following
+        let followingProfiles: any[] = [];
+        if (followingHandles.length > 0) {
+            const cleanFollowing = followingHandles.map(h => h.replace('@', ''));
+            const { data: flwUsers } = await supabaseAdmin
+                .from("app_users")
+                .select("id, name, handle, profile_image, profile_color");
+            if (flwUsers) {
+                followingProfiles = flwUsers.filter((u: any) => u.handle && cleanFollowing.includes(u.handle.replace('@', '')));
+            }
+        }
+
+        return NextResponse.json({ 
+            success: true, 
+            fans: fansHandles, 
+            following: followingHandles,
+            fansProfiles: fansProfiles.length > 0 ? fansProfiles : fansHandles.map(h => ({ name: h.replace('@', ''), handle: h.startsWith('@') ? h : `@${h}` })),
+            followingProfiles: followingProfiles.length > 0 ? followingProfiles : followingHandles.map(h => ({ name: h.replace('@', ''), handle: h.startsWith('@') ? h : `@${h}` }))
+        });
 
     } catch (error) {
         console.error("GET follows error:", error);

@@ -7,23 +7,32 @@ import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import ReportModal from '../components/ReportModal';
 import { isUserBlocked, blockUser, unblockUser } from '@/utils/blockedUsers';
-import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical } from 'lucide-react';
+import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical, Share2, Trash2 } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
     let countryName = '';
     let countryCode = '';
     if (typeof country === 'string') {
-        countryName = country;
+        if (country.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(country);
+                countryName = parsed.name || parsed.label || '';
+                countryCode = parsed.code || '';
+            } catch(e) { countryName = country; }
+        } else {
+            countryName = country;
+        }
     } else if (typeof country === 'object') {
         countryName = country.name || country.label || '';
         countryCode = country.code || '';
     }
     const found = ALL_COUNTRIES.find(c =>
         (countryCode && c.code.toLowerCase() === countryCode.toLowerCase()) ||
-        (countryName && c.name.toLowerCase() === countryName.toLowerCase())
+        (countryName && c.name.toLowerCase() === countryName.toLowerCase()) ||
+        (countryName && c.code.toLowerCase() === countryName.toLowerCase())
     );
-    const code = found ? found.code : (countryCode || 'es');
+    const code = found ? found.code : (countryCode || (countryName && countryName.length === 2 ? countryName : 'es'));
     return `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
 };
 
@@ -101,6 +110,43 @@ function ProfilePageContent() {
     const [showConfirmBlockModal, setShowConfirmBlockModal] = useState(false);
     const [showProfileReportModal, setShowProfileReportModal] = useState(false);
     const [showProfileOptionsModal, setShowProfileOptionsModal] = useState(false);
+
+    // Fans & Following Modal state
+    const [showFollowsModal, setShowFollowsModal] = useState(false);
+    const [followsModalType, setFollowsModalType] = useState<'fans' | 'following'>('fans');
+    const [followsList, setFollowsList] = useState<any[]>([]);
+    const [loadingFollows, setLoadingFollows] = useState(false);
+
+    const openFollowsModal = async (type: 'fans' | 'following') => {
+        setFollowsModalType(type);
+        setShowFollowsModal(true);
+        setLoadingFollows(true);
+        try {
+            const h = targetHandle || displayUser?.handle || user?.handle;
+            if (!h) return;
+            const res = await fetch(`/api/voz/users/follow?handle=${encodeURIComponent(h)}`);
+            const data = await res.json();
+            if (data.success) {
+                const rawList = type === 'fans' ? (data.fansProfiles || data.fans || []) : (data.followingProfiles || data.following || []);
+                setFollowsList(rawList.map((item: any) => {
+                    if (typeof item === 'string') {
+                        return { name: item.replace('@', ''), handle: item.startsWith('@') ? item : `@${item}` };
+                    }
+                    return {
+                        id: item.id,
+                        name: item.name || item.handle?.replace('@', '') || 'Usuario',
+                        handle: item.handle?.startsWith('@') ? item.handle : `@${item.handle}`,
+                        profile_image: item.profile_image || item.profileImage,
+                        profile_color: item.profile_color
+                    };
+                }));
+            }
+        } catch (err) {
+            console.error("Error al cargar lista de " + type, err);
+        } finally {
+            setLoadingFollows(false);
+        }
+    };
 
     const handleParam = searchParams.get('handle');
     const isExplicitHandle = handleParam !== null && handleParam.trim() !== '';
@@ -572,13 +618,23 @@ function ProfilePageContent() {
                 <p style={{ textAlign: 'center', fontSize: '0.9rem', maxWidth: '300px', margin: '5px 0 0' }}>{displayUser.bio || 'Sin biografía todavía.'}</p>
                 
                 <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
-                    <div style={{ textAlign: 'center' }}>
+                    <div 
+                        onClick={() => openFollowsModal('fans')} 
+                        style={{ textAlign: 'center', cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', transition: 'background 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                         <strong>{displayUser.fans || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Fans</span>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div 
+                        onClick={() => openFollowsModal('following')} 
+                        style={{ textAlign: 'center', cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', transition: 'background 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                         <strong>{displayUser.following || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Siguiendo</span>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', padding: '4px 8px' }}>
                         <strong>{displayUser.likes || 0}</strong><br/><span style={{ fontSize: '0.8rem', color: '#888' }}>Likes</span>
                     </div>
                 </div>
@@ -712,6 +768,19 @@ function ProfilePageContent() {
                                             <span>{v.likes || 0}</span>
                                         </div>
 
+                                        {/* Shares Badge top-right matching mobile app */}
+                                        <div style={{ 
+                                            position: 'absolute', top: '6px', right: '6px', 
+                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                            padding: '3px 7px', borderRadius: '10px', 
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                        }}>
+                                            <Share2 size={11} color="white" />
+                                            <span>{v.shares || v.sharesCount || v.shares_count || v.share_count || 0}</span>
+                                        </div>
+
                                         {/* Views Badge bottom-left */}
                                         <div style={{ 
                                             position: 'absolute', bottom: '6px', left: '6px', 
@@ -753,12 +822,13 @@ function ProfilePageContent() {
                                             }
                                         }} 
                                         style={{ 
-                                            position: 'absolute', top: '5px', right: '5px', zIndex: 10, padding: '5px',
-                                            background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', cursor: 'pointer',
-                                            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '26px', height: '26px'
+                                            position: 'absolute', bottom: '6px', right: '6px', zIndex: 10, padding: '5px',
+                                            background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', border: 'none', borderRadius: '50%', cursor: 'pointer',
+                                            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '28px', height: '28px'
                                         }}
+                                        title="Eliminar vídeo"
                                     >
-                                        <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🗑️</span>
+                                        <Trash2 size={14} color="white" />
                                     </button>
                                 )}
                             </div>
@@ -1033,6 +1103,99 @@ function ProfilePageContent() {
                             >
                                 Cancelar
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Fans / Siguiendo */}
+            {showFollowsModal && (
+                <div 
+                    onClick={() => setShowFollowsModal(false)}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                        display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        zIndex: 10000, padding: '20px'
+                    }}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: '100%', maxWidth: '420px', maxHeight: '80vh',
+                            backgroundColor: '#18181c', border: '1px solid #2b2b32',
+                            borderRadius: '24px', padding: '20px', display: 'flex',
+                            flexDirection: 'column', color: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.8)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #2a2a30' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>
+                                {followsModalType === 'fans' ? 'Fans' : 'Siguiendo'}
+                            </h3>
+                            <button 
+                                onClick={() => setShowFollowsModal(false)}
+                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+                            {loadingFollows ? (
+                                <div style={{ textAlign: 'center', padding: '30px 0', color: '#888' }}>Cargando lista...</div>
+                            ) : followsList.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '30px 0', color: '#888' }}>
+                                    {followsModalType === 'fans' ? 'Aún no tiene fans.' : 'No sigue a nadie aún.'}
+                                </div>
+                            ) : (
+                                followsList.map((item, idx) => (
+                                    <div 
+                                        key={idx}
+                                        onClick={() => {
+                                            setShowFollowsModal(false);
+                                            router.push(`/profile?handle=${encodeURIComponent(item.handle)}`);
+                                        }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '14px',
+                                            padding: '10px 12px', borderRadius: '14px',
+                                            backgroundColor: 'rgba(255,255,255,0.04)',
+                                            cursor: 'pointer', transition: 'all 0.2s',
+                                            border: '1px solid transparent'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'rgba(142, 45, 226, 0.15)';
+                                            e.currentTarget.style.borderColor = 'rgba(142, 45, 226, 0.4)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                                            e.currentTarget.style.borderColor = 'transparent';
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: '44px', height: '44px', borderRadius: '50%',
+                                            background: item.profile_color || 'linear-gradient(135deg, #8E2DE2, #4A00E0)',
+                                            overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            {item.profile_image ? (
+                                                <img src={item.profile_image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>
+                                                    {(item.name || item.handle || 'U')[0].toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                                            <span style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {item.name}
+                                            </span>
+                                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {item.handle}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
