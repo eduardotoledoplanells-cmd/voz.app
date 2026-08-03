@@ -174,53 +174,80 @@ export default function UploadPage() {
                 }
             }
             
-            // 3. Request presigned upload URL to bypass Vercel Serverless 4.5MB payload limit
-            setStatusMsg('Generando enlace de subida directa...');
-            const presignRes = await fetch('/api/media/presign', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: file.name,
-                    fileType: file.type || 'video/mp4'
-                }),
-            });
+            // 3. Attempt direct presigned R2 upload with fallback to server route
+            setStatusMsg('Subiendo vídeo a Cloudflare R2...');
+            let videoUrl = '';
 
-            const presignData = await presignRes.json();
-            if (!presignRes.ok || !presignData.signedUrl) {
-                throw new Error(presignData.error || 'No se pudo obtener el enlace de subida directa.');
+            try {
+                const presignRes = await fetch('/api/media/presign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: file.name,
+                        fileType: file.type || 'video/mp4'
+                    }),
+                });
+
+                const presignData = await presignRes.json();
+                if (presignRes.ok && presignData.signedUrl) {
+                    const { signedUrl, publicUrl } = presignData;
+                    await new Promise<void>((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('PUT', signedUrl, true);
+                        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                                setStatusMsg(`Subiendo a Cloudflare R2 (${percentComplete}%)...`);
+                            }
+                        };
+
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                resolve();
+                            } else {
+                                reject(new Error(`HTTP ${xhr.status}`));
+                            }
+                        };
+
+                        xhr.onerror = () => {
+                            reject(new Error('CORS / Network Error'));
+                        };
+
+                        xhr.send(file);
+                    });
+                    videoUrl = publicUrl;
+                } else {
+                    throw new Error('Presign failed');
+                }
+            } catch (presignErr) {
+                console.warn('[Upload] Direct R2 PUT failed or blocked by CORS, executing backend upload fallback:', presignErr);
+                setStatusMsg('Transmitiendo vídeo al servidor de almacenamiento...');
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                const uploadHeaders: Record<string, string> = {
+                    'x-user-handle': userHandle,
+                    'x-user-id': userId
+                };
+                if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: uploadHeaders,
+                    body: formData,
+                });
+                const uploadText = await uploadRes.text();
+                let uploadData: any = {};
+                try { uploadData = JSON.parse(uploadText); } catch {}
+
+                if (uploadRes.ok && uploadData.url) {
+                    videoUrl = uploadData.url;
+                } else {
+                    throw new Error(uploadData.error || 'No se pudo subir el archivo a Cloudflare R2.');
+                }
             }
-
-            const { signedUrl, publicUrl } = presignData;
-
-            // 4. Upload file directly to Cloudflare R2 using XMLHttpRequest to track upload percentage
-            await new Promise<void>((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('PUT', signedUrl, true);
-                xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-
-                xhr.upload.onprogress = (event) => {
-                    if (event.lengthComputable) {
-                        const percentComplete = Math.round((event.loaded / event.total) * 100);
-                        setStatusMsg(`Subiendo vídeo a la nube (${percentComplete}%)...`);
-                    }
-                };
-
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve();
-                    } else {
-                        reject(new Error(`Error al subir a almacenamiento directo (HTTP ${xhr.status}).`));
-                    }
-                };
-
-                xhr.onerror = () => {
-                    reject(new Error('Error de red al transmitir el archivo de vídeo.'));
-                };
-
-                xhr.send(file);
-            });
-
-            const videoUrl = publicUrl;
 
             // 5. Register video in the database
             setStatusMsg('Registrando vídeo en VOZ...');
