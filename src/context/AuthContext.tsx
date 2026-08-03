@@ -26,10 +26,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!u?.id && !u?.handle) return;
         try {
             const query = u.id ? `id=${encodeURIComponent(u.id)}` : `handle=${encodeURIComponent(u.handle || '')}`;
-            const res = await fetch(`/api/voz/users/profile?${query}`);
+            const res = await fetch(`/api/voz/users/profile?${query}&t=${Date.now()}`);
             const data = await res.json();
             if (data.success && data.user) {
                 const fresh = { ...u, ...data.user };
+                const storedLogout = localStorage.getItem('last_logout_ts') || sessionStorage.getItem('last_logout_ts');
+                if (data.user.last_logout && storedLogout && data.user.last_logout !== storedLogout) {
+                    // Logged out on another device/app
+                    setUser(null);
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    localStorage.removeItem('last_logout_ts');
+                    sessionStorage.removeItem('last_logout_ts');
+                    router.push('/login');
+                    return;
+                }
+                if (data.user.last_logout) {
+                    if (localStorage.getItem('user')) localStorage.setItem('last_logout_ts', data.user.last_logout);
+                    else sessionStorage.setItem('last_logout_ts', data.user.last_logout);
+                }
                 setUser(fresh);
                 if (localStorage.getItem('user')) {
                     localStorage.setItem('user', JSON.stringify(fresh));
@@ -40,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.warn('[Auth] refreshUser failed:', e);
         }
-    }, []);
+    }, [router]);
 
     const refreshUser = useCallback(async () => {
         setUser(current => {
@@ -65,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         if (data.success && data.user) {
                             setUser(data.user);
                             localStorage.setItem('user', JSON.stringify(data.user));
+                            if (data.user.last_logout) localStorage.setItem('last_logout_ts', data.user.last_logout);
                             setIsLoading(false);
                             return;
                         }
@@ -80,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     const parsed = JSON.parse(storedUser);
                     setUser(parsed);
-                    // Immediately fetch fresh data in the background to sync balance
-                    setTimeout(() => refreshUserWithData(parsed), 800);
+                    // Immediately fetch fresh data in the background to sync balance & session
+                    setTimeout(() => refreshUserWithData(parsed), 300);
                 } catch (error) {
                     console.error('Failed to parse stored user:', error);
                     localStorage.removeItem('user');
@@ -92,31 +108,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         checkAuth();
-    }, []);
+    }, [refreshUserWithData]);
 
-    // Poll server every 30s to keep balance/coins in sync with app
+    // Poll server every 10s to keep session and balance in sync with mobile app
     useEffect(() => {
         if (!user) return;
-        const interval = setInterval(() => refreshUserWithData(user), 30000);
+        const interval = setInterval(() => refreshUserWithData(user), 10000);
         return () => clearInterval(interval);
-    }, [user?.id, refreshUserWithData]);
+    }, [user, refreshUserWithData]);
 
     const login = (userData: User, rememberMe: boolean = true) => {
         setUser(userData);
         if (rememberMe) {
             localStorage.setItem('user', JSON.stringify(userData));
+            if (userData.last_logout) localStorage.setItem('last_logout_ts', (userData as any).last_logout);
             sessionStorage.removeItem('user');
+            sessionStorage.removeItem('last_logout_ts');
         } else {
             sessionStorage.setItem('user', JSON.stringify(userData));
+            if (userData.last_logout) sessionStorage.setItem('last_logout_ts', (userData as any).last_logout);
             localStorage.removeItem('user');
+            localStorage.removeItem('last_logout_ts');
         }
         router.push('/profile');
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const currentUser = user;
         setUser(null);
         localStorage.removeItem('user');
         sessionStorage.removeItem('user');
+        localStorage.removeItem('last_logout_ts');
+        sessionStorage.removeItem('last_logout_ts');
+
+        if (currentUser?.id || currentUser?.handle) {
+            try {
+                const nowIso = new Date().toISOString();
+                await fetch('/api/voz/users/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentUser.id,
+                        handle: currentUser.handle,
+                        last_logout: nowIso
+                    })
+                });
+            } catch (e) {
+                console.warn("Failed to sync logout timestamp with server:", e);
+            }
+        }
+
         router.push('/login');
     };
 

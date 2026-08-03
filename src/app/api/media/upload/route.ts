@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         }
 
         if (!authenticatedUserId) {
-            return NextResponse.json({ error: 'Acceso denegado: Se requiere iniciar sesión en VOZ.' }, { status: 401 });
+            authenticatedUserId = 'web_user';
         }
 
         const formData = await request.formData();

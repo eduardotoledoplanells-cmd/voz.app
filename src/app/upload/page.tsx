@@ -12,6 +12,7 @@ export default function UploadPage() {
     const [errorMsg, setErrorMsg] = useState('');
     const [uploadedUrl, setUploadedUrl] = useState('');
     const [statusMsg, setStatusMsg] = useState('');
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const compressWebVideo = async (inputFile: File): Promise<File> => {
         if (!inputFile.type.startsWith('video/') || inputFile.size <= 2 * 1024 * 1024) {
@@ -152,13 +153,12 @@ export default function UploadPage() {
                 }
             }
 
-            if (!user) {
-                setErrorMsg('Debes iniciar sesión en VOZ para subir contenido.');
-                setStatus('error');
-                return;
+            if (!user || !user.handle) {
+                throw new Error('Debes iniciar sesión para subir contenido.');
             }
 
-            const userHandle = user.handle || (user as any).userHandle || user.name || user.id || '';
+            const userHandle = user.handle.startsWith('@') ? user.handle : `@${user.handle}`;
+            const userId = user.id || (user as any).userId || userHandle;
             const userToken = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
 
             const supabaseSession =
@@ -181,7 +181,7 @@ export default function UploadPage() {
 
             const uploadHeaders: Record<string, string> = {
                 'x-user-handle': userHandle,
-                'x-user-id': user.id || ''
+                'x-user-id': userId
             };
             if (token) {
                 uploadHeaders['Authorization'] = `Bearer ${token}`;
@@ -214,13 +214,12 @@ export default function UploadPage() {
             }
 
             // 3. Register video in the database
-            const handle = user.handle || `@${user.name}`;
             const videoRes = await fetch('/api/voz/videos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     videoUrl,
-                    user: handle,
+                    user: userHandle,
                     description: title || '',
                     thumbnailUrl: '',
                     isMuted: false,
@@ -350,11 +349,31 @@ export default function UploadPage() {
                                 backgroundColor: 'rgba(255,59,48,0.1)',
                                 border: '1px solid rgba(255,59,48,0.3)',
                                 borderRadius: '12px',
-                                padding: '12px 16px',
+                                padding: '16px',
                                 color: '#FF6B6B',
                                 fontSize: '14px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px'
                             }}>
-                                ⚠️ {errorMsg}
+                                <span>⚠️ {errorMsg}</span>
+                                {errorMsg.includes('iniciar sesión') && (
+                                    <a
+                                        href="/login"
+                                        style={{
+                                            display: 'inline-block',
+                                            padding: '10px 16px',
+                                            backgroundColor: '#8E2DE2',
+                                            color: 'white',
+                                            borderRadius: '8px',
+                                            fontWeight: '700',
+                                            textAlign: 'center',
+                                            textDecoration: 'none'
+                                        }}
+                                    >
+                                        Ir a Iniciar Sesión
+                                    </a>
+                                )}
                             </div>
                         )}
 
