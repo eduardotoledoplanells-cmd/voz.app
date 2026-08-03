@@ -174,8 +174,8 @@ export default function UploadPage() {
                 }
             }
             
-            // 3. Upload video to Cloudflare R2 via server route
-            setStatusMsg('Subiendo vídeo a Cloudflare R2...');
+            // 3. Upload video to storage via server route
+            setStatusMsg('Subiendo contenido...');
             
             const formData = new FormData();
             formData.append('file', file);
@@ -203,7 +203,7 @@ export default function UploadPage() {
             }
 
             if (!uploadRes.ok || !uploadData.url) {
-                throw new Error(uploadData.error || 'No se pudo subir el archivo a Cloudflare R2.');
+                throw new Error(uploadData.error || 'No se pudo subir el archivo. Inténtalo de nuevo.');
             }
 
             const videoUrl = uploadData.url;

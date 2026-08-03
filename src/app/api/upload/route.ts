@@ -5,7 +5,10 @@ import { r2Client, R2_BUCKET_NAME } from '@/lib/r2';
 import { logSystemAlert } from '@/lib/alerts';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska', 'video/avi', 'video/mpeg'];
+const ALLOWED_VIDEO_TYPES = [
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska', 'video/avi', 'video/mpeg', 'video/mov', 'video/3gpp', 'video/x-m4v',
+    'audio/m4a', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/wav', 'audio/x-wav', 'audio/ogg'
+];
 
 export async function POST(request: Request) {
     try {
