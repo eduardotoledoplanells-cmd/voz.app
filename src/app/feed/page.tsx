@@ -62,6 +62,73 @@ const FeedItem = ({
     const [giftScale, setGiftScale] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
 
+    // Scrubber states
+    const [progressPct, setProgressPct] = useState(0);
+    const [videoDuration, setVideoDuration] = useState(0);
+    const [isDraggingScrubber, setIsDraggingScrubber] = useState(false);
+    const [dragPct, setDragPct] = useState(0);
+    const scrubberBarRef = useRef<HTMLDivElement | null>(null);
+
+    const formatScrubTime = (sec: number) => {
+        if (!sec || isNaN(sec)) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    const handleVideoTimeUpdate = () => {
+        if (!videoRef.current || isDraggingScrubber) return;
+        const cur = videoRef.current.currentTime || 0;
+        const dur = videoRef.current.duration || 0;
+        if (dur > 0) {
+            setVideoDuration(dur);
+            setProgressPct((cur / dur) * 100);
+        }
+    };
+
+    const computePctFromEvent = (clientX: number) => {
+        if (!scrubberBarRef.current) return 0;
+        const rect = scrubberBarRef.current.getBoundingClientRect();
+        if (rect.width <= 0) return 0;
+        const offset = clientX - rect.left;
+        const rawPct = (offset / rect.width) * 100;
+        return Math.max(0, Math.min(rawPct, 100));
+    };
+
+    const handleScrubMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+        e.stopPropagation();
+        setIsDraggingScrubber(true);
+        if (videoRef.current) {
+            videoRef.current.pause();
+        }
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const p = computePctFromEvent(clientX);
+        setDragPct(p);
+    };
+
+    const handleScrubMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDraggingScrubber) return;
+        e.stopPropagation();
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const p = computePctFromEvent(clientX);
+        setDragPct(p);
+    };
+
+    const handleScrubMouseUp = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDraggingScrubber) return;
+        e.stopPropagation();
+        setIsDraggingScrubber(false);
+        if (videoRef.current && videoDuration > 0) {
+            const targetSec = (dragPct / 100) * videoDuration;
+            videoRef.current.currentTime = targetSec;
+            setProgressPct(dragPct);
+            if (isActive && !isManualPause) {
+                videoRef.current.play().catch(() => {});
+                setIsPlaying(true);
+            }
+        }
+    };
+
     const hasViewed = useRef(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -295,6 +362,12 @@ const FeedItem = ({
                             playsInline
                             preload="auto"
                             onEnded={handleVideoEnded}
+                            onTimeUpdate={handleVideoTimeUpdate}
+                            onLoadedMetadata={() => {
+                                if (videoRef.current && videoRef.current.duration) {
+                                    setVideoDuration(videoRef.current.duration);
+                                }
+                            }}
                         />
                         {/* Sound Badge if Browser forced muted play */}
                         {isMuted && isPlaying && (
@@ -415,6 +488,93 @@ const FeedItem = ({
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleBookmark}>
                         <Bookmark size={32} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
                         <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Favoritos</span>
+                    </div>
+                </div>
+
+                {/* Scrubber Progress Bar (Línea con Bolita Roja idéntica a la App Móvil) */}
+                <div 
+                    ref={scrubberBarRef}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={handleScrubMouseDown}
+                    onMouseMove={handleScrubMouseMove}
+                    onMouseUp={handleScrubMouseUp}
+                    onTouchStart={handleScrubMouseDown}
+                    onTouchMove={handleScrubMouseMove}
+                    onTouchEnd={handleScrubMouseUp}
+                    style={{
+                        position: 'absolute',
+                        bottom: '75px',
+                        left: '0',
+                        right: '0',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 20px',
+                        zIndex: 40,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        touchAction: 'none'
+                    }}
+                >
+                    {/* Badge de Tiempo al arrastrar */}
+                    {isDraggingScrubber && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-32px',
+                            left: `${dragPct}%`,
+                            transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(18, 18, 20, 0.92)',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 0, 85, 0.4)',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            letterSpacing: '0.5px',
+                            boxShadow: '0 2px 8px rgba(255,0,85,0.4)',
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            <span style={{ color: '#FF0055' }}>{formatScrubTime((dragPct / 100) * videoDuration)}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}> / </span>
+                            {formatScrubTime(videoDuration)}
+                        </div>
+                    )}
+
+                    {/* Track Base */}
+                    <div style={{
+                        width: '100%',
+                        height: isDraggingScrubber ? '6px' : '4px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                        borderRadius: '4px',
+                        position: 'relative',
+                        transition: 'height 0.15s ease'
+                    }}>
+                        {/* Relleno Activo */}
+                        <div style={{
+                            position: 'absolute',
+                            left: '0',
+                            top: '0',
+                            bottom: '0',
+                            backgroundColor: '#FF0055',
+                            borderRadius: '4px',
+                            width: `${isDraggingScrubber ? dragPct : progressPct}%`
+                        }} />
+
+                        {/* Bolita Roja (Thumb Dot) */}
+                        <div style={{
+                            position: 'absolute',
+                            left: `${isDraggingScrubber ? dragPct : progressPct}%`,
+                            top: '50%',
+                            width: isDraggingScrubber ? '18px' : '14px',
+                            height: isDraggingScrubber ? '18px' : '14px',
+                            borderRadius: '50%',
+                            backgroundColor: '#FF0055',
+                            border: '2px solid #FFFFFF',
+                            transform: 'translate(-50%, -50%)',
+                            boxShadow: '0 0 8px rgba(255,0,85,0.8)',
+                            transition: 'width 0.15s ease, height 0.15s ease'
+                        }} />
                     </div>
                 </div>
 
