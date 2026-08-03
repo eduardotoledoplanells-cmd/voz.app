@@ -138,14 +138,9 @@ export default function UploadPage() {
 
         setStatus('uploading');
         setErrorMsg('');
-        setStatusMsg('Procesando archivo...');
+        setStatusMsg('Subiendo vídeo a los servidores...');
 
         try {
-            // 1. Apply web video compression matching app rules (> 5MB threshold)
-            const fileToUpload = await compressWebVideo(file);
-
-            setStatusMsg('Subiendo vídeo a los servidores...');
-
             // 2. Get user from AuthContext or localStorage / sessionStorage
             let user = authUser;
             if (!user) {
@@ -181,7 +176,7 @@ export default function UploadPage() {
 
             // 3. Upload video file to R2 with Auth headers
             const formData = new FormData();
-            formData.append('file', fileToUpload);
+            formData.append('file', file);
 
             const uploadHeaders: Record<string, string> = {
                 'x-user-handle': userHandle,
@@ -226,7 +221,8 @@ export default function UploadPage() {
                 if (mediaRes.ok && (mediaData.url || mediaData.videoUrl)) {
                     videoUrl = mediaData.url || mediaData.videoUrl;
                 } else {
-                    throw new Error(uploadData.error || mediaData.error || 'Servidor en mantenimiento o respuesta no válida al subir vídeo.');
+                    const detail = uploadData.error || mediaData.error || uploadText || mediaText || 'Error en el servidor de almacenamiento.';
+                    throw new Error(`Error al subir archivo (${uploadRes.status || mediaRes.status}): ${detail.substring(0, 150)}`);
                 }
             }
 
