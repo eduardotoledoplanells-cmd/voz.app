@@ -174,8 +174,8 @@ export default function UploadPage() {
                 }
             }
             
-            // 3. Attempt direct presigned R2 upload with fallback to server route
-            setStatusMsg('Subiendo vídeo a Cloudflare R2...');
+            // 3. Upload file directly to Cloudflare R2 using presigned URL
+            setStatusMsg('Generando enlace de subida a Cloudflare R2...');
             let videoUrl = '';
 
             try {
@@ -189,42 +189,30 @@ export default function UploadPage() {
                 });
 
                 const presignData = await presignRes.json();
-                if (presignRes.ok && presignData.signedUrl) {
-                    const { signedUrl, publicUrl } = presignData;
-                    await new Promise<void>((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('PUT', signedUrl, true);
-                        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-
-                        xhr.upload.onprogress = (event) => {
-                            if (event.lengthComputable) {
-                                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                                setStatusMsg(`Subiendo a Cloudflare R2 (${percentComplete}%)...`);
-                            }
-                        };
-
-                        xhr.onload = () => {
-                            if (xhr.status >= 200 && xhr.status < 300) {
-                                resolve();
-                            } else {
-                                reject(new Error(`HTTP ${xhr.status}`));
-                            }
-                        };
-
-                        xhr.onerror = () => {
-                            reject(new Error('CORS / Network Error'));
-                        };
-
-                        xhr.send(file);
-                    });
-                    videoUrl = publicUrl;
-                } else {
-                    throw new Error('Presign failed');
+                if (!presignRes.ok || !presignData.signedUrl) {
+                    throw new Error(presignData.error || 'No se pudo obtener el enlace de Cloudflare R2.');
                 }
-            } catch (presignErr) {
-                console.warn('[Upload] Direct R2 PUT failed or blocked by CORS, executing backend upload fallback:', presignErr);
-                setStatusMsg('Transmitiendo vídeo al servidor de almacenamiento...');
-                
+
+                const { signedUrl, publicUrl } = presignData;
+                setStatusMsg('Subiendo vídeo a Cloudflare R2...');
+
+                const uploadToR2 = await fetch(signedUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type || 'video/mp4',
+                    },
+                    body: file,
+                });
+
+                if (!uploadToR2.ok) {
+                    throw new Error(`Error en el almacenamiento de R2 (HTTP ${uploadToR2.status})`);
+                }
+
+                videoUrl = publicUrl;
+            } catch (r2Error: any) {
+                console.warn('[Upload] Direct R2 upload failed, attempting server upload proxy:', r2Error);
+                setStatusMsg('Enviando vídeo al servidor...');
+
                 const formData = new FormData();
                 formData.append('file', file);
                 const uploadHeaders: Record<string, string> = {
@@ -245,7 +233,7 @@ export default function UploadPage() {
                 if (uploadRes.ok && uploadData.url) {
                     videoUrl = uploadData.url;
                 } else {
-                    throw new Error(uploadData.error || 'No se pudo subir el archivo a Cloudflare R2.');
+                    throw new Error(uploadData.error || r2Error.message || 'No se pudo completar la subida del vídeo.');
                 }
             }
 
