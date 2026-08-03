@@ -15,17 +15,17 @@ export default function UploadPage() {
     const fileRef = useRef<HTMLInputElement>(null);
 
     const compressWebVideo = async (inputFile: File): Promise<File> => {
-        if (!inputFile.type.startsWith('video/') || inputFile.size <= 2 * 1024 * 1024) {
+        if (!inputFile.type.startsWith('video/') || inputFile.size <= 5 * 1024 * 1024) {
             return inputFile;
         }
 
         try {
-            setStatusMsg('Optimizando y comprimiendo vídeo en el navegador...');
+            setStatusMsg('Optimizando y comprimiendo vídeo en el navegador (0%)...');
             console.log(`[WebCompressor] Iniciando compresión de ${inputFile.name} (${(inputFile.size / 1024 / 1024).toFixed(1)} MB)...`);
 
             return await new Promise((resolve) => {
                 const video = document.createElement('video');
-                video.preload = 'auto';
+                video.preload = 'metadata';
                 video.src = URL.createObjectURL(inputFile);
                 video.muted = true;
                 video.playsInline = true;
@@ -34,12 +34,13 @@ export default function UploadPage() {
                     console.warn("[WebCompressor] Timeout en compresión, utilizando vídeo original.");
                     URL.revokeObjectURL(video.src);
                     resolve(inputFile);
-                }, 35000);
+                }, 40000);
 
                 video.onloadedmetadata = async () => {
                     try {
                         let width = video.videoWidth || 1280;
                         let height = video.videoHeight || 720;
+                        const duration = video.duration || 1;
                         const maxDim = 1280;
 
                         if (width > maxDim || height > maxDim) {
@@ -102,9 +103,12 @@ export default function UploadPage() {
 
                         const draw = () => {
                             if (!video.paused && !video.ended) {
+                                const pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
+                                setStatusMsg(`Optimizando y comprimiendo vídeo en el navegador (${pct}%)...`);
                                 ctx.drawImage(video, 0, 0, width, height);
                                 requestAnimationFrame(draw);
                             } else {
+                                setStatusMsg('Compresión completada (100%). Preparando envío...');
                                 recorder.stop();
                             }
                         };
@@ -137,7 +141,7 @@ export default function UploadPage() {
         setStatusMsg('Procesando archivo...');
 
         try {
-            // 1. Apply web video compression matching app rules (> 2MB threshold)
+            // 1. Apply web video compression matching app rules (> 5MB threshold)
             const fileToUpload = await compressWebVideo(file);
 
             setStatusMsg('Subiendo vídeo a los servidores...');
@@ -194,7 +198,13 @@ export default function UploadPage() {
                 body: formData,
             });
 
-            const uploadData = await uploadRes.json();
+            const uploadText = await uploadRes.text();
+            let uploadData: any = {};
+            try {
+                uploadData = JSON.parse(uploadText);
+            } catch {
+                console.error('[Upload API Response non-JSON]:', uploadText);
+            }
 
             if (uploadRes.ok && uploadData.url) {
                 videoUrl = uploadData.url;
@@ -205,11 +215,18 @@ export default function UploadPage() {
                     headers: uploadHeaders,
                     body: formData,
                 });
-                const mediaData = await mediaRes.json();
+                const mediaText = await mediaRes.text();
+                let mediaData: any = {};
+                try {
+                    mediaData = JSON.parse(mediaText);
+                } catch {
+                    console.error('[Media Upload Response non-JSON]:', mediaText);
+                }
+
                 if (mediaRes.ok && (mediaData.url || mediaData.videoUrl)) {
                     videoUrl = mediaData.url || mediaData.videoUrl;
                 } else {
-                    throw new Error(uploadData.error || mediaData.error || 'Error al subir el archivo.');
+                    throw new Error(uploadData.error || mediaData.error || 'Servidor en mantenimiento o respuesta no válida al subir vídeo.');
                 }
             }
 
@@ -226,9 +243,16 @@ export default function UploadPage() {
                 }),
             });
 
-            const videoData = await videoRes.json();
+            const videoText = await videoRes.text();
+            let videoData: any = {};
+            try {
+                videoData = JSON.parse(videoText);
+            } catch {
+                console.error('[Video Register Response non-JSON]:', videoText);
+            }
+
             if (!videoRes.ok) {
-                throw new Error(videoData.error || 'El vídeo se subió pero no se pudo registrar.');
+                throw new Error(videoData.error || 'El vídeo se subió pero no se pudo registrar en la base de datos.');
             }
 
             setUploadedUrl(videoUrl);
