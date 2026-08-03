@@ -486,7 +486,6 @@ const FeedItem = ({
                 {/* Video Scrubber Progress Bar (Línea interactiva con Bolita Roja idéntica a la app) */}
                 <div 
                     ref={scrubberTrackRef}
-                    onClick={(e) => e.stopPropagation()}
                     onMouseDown={handleScrubStart}
                     onMouseMove={handleScrubMove}
                     onMouseUp={handleScrubEnd}
@@ -495,14 +494,14 @@ const FeedItem = ({
                     onTouchEnd={handleScrubEnd}
                     style={{
                         position: 'absolute',
-                        bottom: '75px',
+                        bottom: '80px',
                         left: '0',
                         right: '0',
-                        height: '24px',
+                        height: '30px',
                         display: 'flex',
                         alignItems: 'center',
                         padding: '0 20px',
-                        zIndex: 50,
+                        zIndex: 40,
                         cursor: 'pointer',
                         userSelect: 'none',
                         touchAction: 'none'
