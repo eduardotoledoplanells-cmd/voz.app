@@ -173,60 +173,57 @@ export default function UploadPage() {
                     token = typeof supabaseSession === 'string' ? supabaseSession : '';
                 }
             }
-
-            // 3. Upload video file to R2 with Auth headers
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const uploadHeaders: Record<string, string> = {
-                'x-user-handle': userHandle,
-                'x-user-id': userId
-            };
-            if (token) {
-                uploadHeaders['Authorization'] = `Bearer ${token}`;
-            }
-
-            let videoUrl = '';
-            const uploadRes = await fetch('/api/upload', {
+            
+            // 3. Request presigned upload URL to bypass Vercel Serverless 4.5MB payload limit
+            setStatusMsg('Generando enlace de subida directa...');
+            const presignRes = await fetch('/api/media/presign', {
                 method: 'POST',
-                headers: uploadHeaders,
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: file.name,
+                    fileType: file.type || 'video/mp4'
+                }),
             });
 
-            const uploadText = await uploadRes.text();
-            let uploadData: any = {};
-            try {
-                uploadData = JSON.parse(uploadText);
-            } catch {
-                console.error('[Upload API Response non-JSON]:', uploadText);
+            const presignData = await presignRes.json();
+            if (!presignRes.ok || !presignData.signedUrl) {
+                throw new Error(presignData.error || 'No se pudo obtener el enlace de subida directa.');
             }
 
-            if (uploadRes.ok && uploadData.url) {
-                videoUrl = uploadData.url;
-            } else {
-                // Fallback: media/upload endpoint with user headers
-                const mediaRes = await fetch('/api/media/upload', {
-                    method: 'POST',
-                    headers: uploadHeaders,
-                    body: formData,
-                });
-                const mediaText = await mediaRes.text();
-                let mediaData: any = {};
-                try {
-                    mediaData = JSON.parse(mediaText);
-                } catch {
-                    console.error('[Media Upload Response non-JSON]:', mediaText);
-                }
+            const { signedUrl, publicUrl } = presignData;
 
-                if (mediaRes.ok && (mediaData.url || mediaData.videoUrl)) {
-                    videoUrl = mediaData.url || mediaData.videoUrl;
-                } else {
-                    const detail = uploadData.error || mediaData.error || uploadText || mediaText || 'Error en el servidor de almacenamiento.';
-                    throw new Error(`Error al subir archivo (${uploadRes.status || mediaRes.status}): ${detail.substring(0, 150)}`);
-                }
-            }
+            // 4. Upload file directly to Cloudflare R2 using XMLHttpRequest to track upload percentage
+            await new Promise<void>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', signedUrl, true);
+                xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
 
-            // 3. Register video in the database
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        setStatusMsg(`Subiendo vídeo a la nube (${percentComplete}%)...`);
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Error al subir a almacenamiento directo (HTTP ${xhr.status}).`));
+                    }
+                };
+
+                xhr.onerror = () => {
+                    reject(new Error('Error de red al transmitir el archivo de vídeo.'));
+                };
+
+                xhr.send(file);
+            });
+
+            const videoUrl = publicUrl;
+
+            // 5. Register video in the database
+            setStatusMsg('Registrando vídeo en VOZ...');
             const videoRes = await fetch('/api/voz/videos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
