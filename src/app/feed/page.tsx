@@ -57,7 +57,70 @@ const FeedItem = ({
     
     // Icon States
     const [isLiked, setIsLiked] = useState(v.isLikedByMe || false);
-    const [likesCount, setLikesCount] = useState(v.likes || 0);
+    const [videoProgress, setVideoProgress] = useState(0);
+    const [durationSec, setDurationSec] = useState(0);
+    const [isScrubbing, setIsScrubbing] = useState(false);
+    const [scrubProgress, setScrubProgress] = useState(0);
+    const scrubberTrackRef = useRef<HTMLDivElement | null>(null);
+
+    const formatTime = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+
+    const handleTimeUpdate = () => {
+        if (!videoRef.current || isScrubbing) return;
+        const current = videoRef.current.currentTime || 0;
+        const dur = videoRef.current.duration || 0;
+        if (dur > 0) {
+            setDurationSec(dur);
+            setVideoProgress(current / dur);
+        }
+    };
+
+    const calculateScrubProgress = (clientX: number) => {
+        if (!scrubberTrackRef.current) return 0;
+        const rect = scrubberTrackRef.current.getBoundingClientRect();
+        if (rect.width <= 0) return 0;
+        let pos = (clientX - rect.left) / rect.width;
+        return Math.max(0, Math.min(pos, 1));
+    };
+
+    const handleScrubStart = (e: React.MouseEvent | React.TouchEvent) => {
+        e.stopPropagation();
+        setIsScrubbing(true);
+        if (videoRef.current) {
+            videoRef.current.pause();
+        }
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const pct = calculateScrubProgress(clientX);
+        setScrubProgress(pct);
+    };
+
+    const handleScrubMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isScrubbing) return;
+        e.stopPropagation();
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const pct = calculateScrubProgress(clientX);
+        setScrubProgress(pct);
+    };
+
+    const handleScrubEnd = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isScrubbing) return;
+        e.stopPropagation();
+        setIsScrubbing(false);
+        if (videoRef.current && durationSec > 0) {
+            const newTime = scrubProgress * durationSec;
+            videoRef.current.currentTime = newTime;
+            setVideoProgress(scrubProgress);
+            if (isActive && !isManualPause) {
+                videoRef.current.play().catch(() => {});
+                setIsPlaying(true);
+            }
+        }
+    };
     const [isBookmarked, setIsBookmarked] = useState(v.isBookmarkedByMe || false);
     const [giftScale, setGiftScale] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
@@ -295,6 +358,12 @@ const FeedItem = ({
                             playsInline
                             preload="auto"
                             onEnded={handleVideoEnded}
+                            onTimeUpdate={handleTimeUpdate}
+                            onLoadedMetadata={() => {
+                                if (videoRef.current && videoRef.current.duration) {
+                                    setDurationSec(videoRef.current.duration);
+                                }
+                            }}
                         />
                         {/* Sound Badge if Browser forced muted play */}
                         {isMuted && isPlaying && (
@@ -415,6 +484,93 @@ const FeedItem = ({
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleBookmark}>
                         <Bookmark size={32} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
                         <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Favoritos</span>
+                    </div>
+                </div>
+
+                {/* Video Scrubber Progress Bar (Barra interactiva con Bolita Roja idéntica a la app) */}
+                <div 
+                    ref={scrubberTrackRef}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={handleScrubStart}
+                    onMouseMove={handleScrubMove}
+                    onMouseUp={handleScrubEnd}
+                    onTouchStart={handleScrubStart}
+                    onTouchMove={handleScrubMove}
+                    onTouchEnd={handleScrubEnd}
+                    style={{
+                        position: 'absolute',
+                        bottom: '75px',
+                        left: '0',
+                        right: '0',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 20px',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        touchAction: 'none'
+                    }}
+                >
+                    {/* Floating Time Badge on Scrubbing */}
+                    {isScrubbing && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-32px',
+                            left: `${(scrubProgress || 0) * 100}%`,
+                            transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(18, 18, 20, 0.92)',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 0, 85, 0.4)',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            letterSpacing: '0.5px',
+                            boxShadow: '0 2px 8px rgba(255,0,85,0.4)',
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            <span style={{ color: '#FF0055' }}>{formatTime((scrubProgress || 0) * durationSec)}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}> / </span>
+                            {formatTime(durationSec)}
+                        </div>
+                    )}
+
+                    {/* Track Background */}
+                    <div style={{
+                        width: '100%',
+                        height: isScrubbing ? '6px' : '4px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                        borderRadius: '4px',
+                        position: 'relative',
+                        transition: 'height 0.15s ease'
+                    }}>
+                        {/* Active Progress Fill */}
+                        <div style={{
+                            position: 'absolute',
+                            left: '0',
+                            top: '0',
+                            bottom: '0',
+                            backgroundColor: '#FF0055',
+                            borderRadius: '4px',
+                            width: `${(isScrubbing ? (scrubProgress || 0) : (videoProgress || 0)) * 100}%`
+                        }} />
+
+                        {/* Red Dot (Thumb) with Glow */}
+                        <div style={{
+                            position: 'absolute',
+                            left: `${(isScrubbing ? (scrubProgress || 0) : (videoProgress || 0)) * 100}%`,
+                            top: '50%',
+                            width: isScrubbing ? '18px' : '14px',
+                            height: isScrubbing ? '18px' : '14px',
+                            borderRadius: '50%',
+                            backgroundColor: '#FF0055',
+                            border: '2px solid #FFFFFF',
+                            transform: 'translate(-50%, -50%)',
+                            boxShadow: '0 0 8px rgba(255,0,85,0.8)',
+                            transition: 'width 0.15s ease, height 0.15s ease'
+                        }} />
                     </div>
                 </div>
 
