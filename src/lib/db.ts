@@ -638,6 +638,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     }
     if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;
     if ((updates as any).interests !== undefined) dbUpdates.interests = (updates as any).interests;
+    if ((updates as any).flag !== undefined) dbUpdates.flag = (updates as any).flag;
 
     // Platform-specific live urls
     if ((updates as any).live_url_kick !== undefined) dbUpdates.live_url_kick = (updates as any).live_url_kick;

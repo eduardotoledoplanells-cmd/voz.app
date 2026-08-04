@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url, country, region, interests, live_url_kick, live_url_twitch, live_url_youtube } = body;
+        const { id, handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, notificationSettings, privacySettings, pushToken, is_live, live_url, country, region, interests, flag, live_url_kick, live_url_twitch, live_url_youtube } = body;
 
         console.log(`[API Update] Attempting update for user ID: ${id || 'MISSING'}`);
         console.log(`[API Update] Payload received:`, JSON.stringify({ handle, name, bio, profile_image, profileImage, profile_color, email, nationality, dob, phone, pushToken, privacySettings, is_live, live_url, country, region, interests, live_url_kick, live_url_twitch, live_url_youtube }));
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         }
         if (region !== undefined) updates.region = region;
         if (interests !== undefined) updates.interests = interests;
+        if (flag !== undefined) updates.flag = flag;
 
         // Platform-specific live urls
         if (live_url_kick !== undefined) updates.live_url_kick = live_url_kick;
