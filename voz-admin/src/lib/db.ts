@@ -1084,7 +1084,7 @@ export async function addNotification(n: Notification): Promise<Notification | n
                     'Content-Type': 'application/json' 
                 },
                 body: JSON.stringify({
-                    to: userData.push_token,
+                    to: userProfile.push_token,
                     sound: 'default',
                     title: n.title,
                     body: n.message,

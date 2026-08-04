@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import bcrypt from 'bcryptjs';
-import '98.css';
+import './98-nobitmap.css';
 
 export default function VozAdminDashboard() {
     const [stats, setStats] = useState({

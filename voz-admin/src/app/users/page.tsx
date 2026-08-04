@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import '98.css';
+import '../98-nobitmap.css';
 
 export default function VozUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
