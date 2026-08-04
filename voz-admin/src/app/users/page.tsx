@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import '../98-nobitmap.css';
+import spainLocations from '@/lib/spainLocations.json';
 
 export default function VozUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -741,46 +742,53 @@ export default function VozUsersPage() {
                                                             return acc;
                                                         }, {} as Record<string, { total: number, municipalities: Record<string, number> }>);
                                                         
-                                                        const sortedCommunities = Object.entries(regions).sort((a: any, b: any) => b[1].total - a[1].total);
+                                                        const sortedCommunitiesList = [...spainLocations].sort((a: any, b: any) => a.name.localeCompare(b.name));
+                                                        const selectedCommunityData = selectedCommunity ? spainLocations.find(c => c.name === selectedCommunity) : null;
                                                         
                                                         return (
                                                             <div style={{ display: 'flex', gap: 15, marginTop: 15 }}>
                                                                 <div className="sunken-panel" style={{ flex: 1, padding: 10, background: '#fff', maxHeight: 250, overflowY: 'auto' }}>
                                                                     <p style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: 5, margin: 0, marginBottom: 5 }}>Comunidades Autónomas</p>
-                                                                    {sortedCommunities.map(([comm, data]: any) => (
-                                                                        <div 
-                                                                            key={comm} 
-                                                                            onClick={() => setSelectedCommunity(comm)}
-                                                                            style={{ 
-                                                                                padding: 5, 
-                                                                                cursor: 'pointer', 
-                                                                                backgroundColor: selectedCommunity === comm ? '#000080' : 'transparent',
-                                                                                color: selectedCommunity === comm ? 'white' : 'black',
-                                                                                display: 'flex',
-                                                                                justifyContent: 'space-between',
-                                                                                fontSize: 13
-                                                                            }}
-                                                                        >
-                                                                            <span>{comm}</span>
-                                                                            <span style={{ fontWeight: 'bold' }}>{data.total}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                    {sortedCommunities.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>No hay datos de ubicación registrados.</p>}
+                                                                    {sortedCommunitiesList.map((commData: any) => {
+                                                                        const comm = commData.name;
+                                                                        const totalUsers = regions[comm] ? regions[comm].total : 0;
+                                                                        return (
+                                                                            <div 
+                                                                                key={comm} 
+                                                                                onClick={() => setSelectedCommunity(comm)}
+                                                                                style={{ 
+                                                                                    padding: 5, 
+                                                                                    cursor: 'pointer', 
+                                                                                    backgroundColor: selectedCommunity === comm ? '#000080' : 'transparent',
+                                                                                    color: selectedCommunity === comm ? 'white' : 'black',
+                                                                                    display: 'flex',
+                                                                                    justifyContent: 'space-between',
+                                                                                    fontSize: 13
+                                                                                }}
+                                                                            >
+                                                                                <span>{comm}</span>
+                                                                                <span style={{ fontWeight: 'bold' }}>{totalUsers}</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                                 
                                                                 <div className="sunken-panel" style={{ flex: 1, padding: 10, background: '#fff', maxHeight: 250, overflowY: 'auto' }}>
                                                                     <p style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: 5, margin: 0, marginBottom: 5 }}>
                                                                         Municipios {selectedCommunity ? `en ${selectedCommunity}` : ''}
                                                                     </p>
-                                                                    {selectedCommunity && regions[selectedCommunity] ? (
-                                                                        Object.entries(regions[selectedCommunity].municipalities)
-                                                                            .sort((a: any, b: any) => b[1] - a[1])
-                                                                            .map(([mun, count]: any) => (
-                                                                            <div key={mun} style={{ padding: 5, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', fontSize: 13 }}>
-                                                                                <span>{mun}</span>
-                                                                                <span style={{ fontWeight: 'bold', color: '#008000' }}>{count}</span>
-                                                                            </div>
-                                                                        ))
+                                                                    {selectedCommunity && selectedCommunityData ? (
+                                                                        [...selectedCommunityData.municipalities]
+                                                                            .sort((a: string, b: string) => a.localeCompare(b))
+                                                                            .map((mun: string) => {
+                                                                                const count = regions[selectedCommunity]?.municipalities[mun] || 0;
+                                                                                return (
+                                                                                    <div key={mun} style={{ padding: 5, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', fontSize: 13 }}>
+                                                                                        <span>{mun}</span>
+                                                                                        <span style={{ fontWeight: 'bold', color: count > 0 ? '#008000' : '#888' }}>{count}</span>
+                                                                                    </div>
+                                                                                );
+                                                                            })
                                                                     ) : (
                                                                         <p style={{ color: '#666', fontStyle: 'italic', padding: 5, fontSize: 13 }}>Seleccione una comunidad para ver sus municipios.</p>
                                                                     )}
