@@ -54,6 +54,8 @@ export interface AppUser {
     live_url_kick?: string | null;
     live_url_twitch?: string | null;
     live_url_youtube?: string | null;
+    country?: string;
+    region?: string;
     country_id?: number;
     region_id?: number;
     municipality_id?: number;
@@ -230,7 +232,12 @@ function mapUserRowToAppUser(u: any): AppUser {
         custom_video_duration: u.custom_video_duration || 0,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         stripeAccountId: u.stripe_account_id,
-        stripeOnboardingComplete: u.stripe_onboarding_complete
+        stripeOnboardingComplete: u.stripe_onboarding_complete,
+        country: u.country,
+        region: u.region,
+        country_id: u.country_id,
+        region_id: u.region_id,
+        municipality_id: u.municipality_id
     };
 }
 
