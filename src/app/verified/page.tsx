@@ -140,7 +140,7 @@ export default async function Home(props: { searchParams: Promise<{ lang?: strin
           </p>
           <img 
             src="/logo/logo-voz.png" 
-            alt="Logo VOZ" 
+            alt="Logo LYVO" 
             style={{ 
               height: '80px', 
               opacity: 0.95,

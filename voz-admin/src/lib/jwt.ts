@@ -1,5 +1,5 @@
 /**
- * JWT Utility — VOZ Admin Panel
+ * JWT Utility — LYVO Admin Panel
  * 
  * Emite tokens firmados con HS256 que expiran en 8 horas.
  * La SECRET_KEY debe estar configurada en las env vars de Vercel

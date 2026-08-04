@@ -128,7 +128,7 @@ export default function PromoSlider() {
                 zIndex: 2,
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}>
-                VOZ Rewards
+                LYVO Rewards
             </h2>
 
             <div style={{

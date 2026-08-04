@@ -6,8 +6,8 @@ import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'VOZ - La comunidad del video y audio',
-  description: 'Comparte tus momentos en VOZ',
+  title: 'LYVO - La comunidad del video y audio',
+  description: 'Comparte tus momentos en LYVO',
   manifest: '/manifest.json',
   themeColor: '#000000',
   viewport: {
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'VOZ',
+    title: 'LYVO',
   },
   icons: {
     icon: [

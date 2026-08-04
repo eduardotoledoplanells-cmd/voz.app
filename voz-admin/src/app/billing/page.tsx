@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function BillingPage() {
     const [data, setData] = useState<{ sales: any[], stats: any, redemptions: any[], withdrawals?: any[], creators: any[], campaigns: any[], companies: any[], stripeData?: any, stripeSalesCount?: any } | null>(null);
@@ -575,7 +575,7 @@ export default function BillingPage() {
                 </div>
                 <div className="status-bar">
                     <p className="status-bar-field">Estado: {viewMode === 'folders' ? 'Explorando' : 'Viendo ' + viewMode}</p>
-                    <p className="status-bar-field">VOZ Finance System</p>
+                    <p className="status-bar-field">LYVO Finance System</p>
                 </div>
             </div>
         );

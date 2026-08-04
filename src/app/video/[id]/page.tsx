@@ -22,16 +22,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
         if (!video) {
             return {
-                title: 'Vídeo en VOZ 🎙️',
-                description: 'Mira este vídeo en la aplicación oficial de VOZ.'
+                title: 'Vídeo en LYVO 🎙️',
+                description: 'Mira este vídeo en la aplicación oficial de LYVO.'
             };
         }
 
         const creator = video.user_handle || 'un creador';
-        const title = `Mira el vídeo de ${creator} en VOZ 🎙️`;
+        const title = `Mira el vídeo de ${creator} en LYVO 🎙️`;
         const description = video.description
             ? `"${video.description}" — Escucha voces reales y participa en la comunidad.`
-            : 'Escucha voces reales y participa en la comunidad de audio de VOZ.';
+            : 'Escucha voces reales y participa en la comunidad de audio de LYVO.';
         const imageUrl = video.thumbnail_url || 'https://server-taupe-six.vercel.app/logo/logo.png';
 
         return {
@@ -40,10 +40,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             openGraph: {
                 title,
                 description,
-                images: [{ url: imageUrl, width: 600, height: 600, alt: 'VOZ App Preview' }],
+                images: [{ url: imageUrl, width: 600, height: 600, alt: 'LYVO App Preview' }],
                 type: 'video.other',
                 url: `https://server-taupe-six.vercel.app/video/${id}`,
-                siteName: 'VOZ App'
+                siteName: 'LYVO App'
             },
             twitter: {
                 card: 'summary_large_image',
@@ -54,8 +54,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     } catch (e) {
         return {
-            title: 'Vídeo en VOZ 🎙️',
-            description: 'Escucha este vídeo en la aplicación oficial de VOZ.'
+            title: 'Vídeo en LYVO 🎙️',
+            description: 'Escucha este vídeo en la aplicación oficial de LYVO.'
         };
     }
 }
@@ -101,7 +101,7 @@ export default async function SharedVideoPage({ params }: Props) {
             }}>
                 <Link href="/feed" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '28px', objectFit: 'contain' }} />
+                    <img src="/logo/logo-white.png" alt="LYVO" style={{ height: '28px', objectFit: 'contain' }} />
                 </Link>
                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>Vídeo compartido</span>
                 <TopBarDownload accentColor={accentColor} />

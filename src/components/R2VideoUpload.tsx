@@ -32,9 +32,9 @@ export default function R2VideoUpload({ initialToken = '' }: R2VideoUploadProps)
         setErrorMessage('');
         setUploadedData(null);
         
-        // Size validation: 100MB max
-        if (selectedFile.size > 100 * 1024 * 1024) {
-            setErrorMessage('El tamaño del archivo supera los 100 MB permitidos.');
+        // Size validation: 1GB max
+        if (selectedFile.size > 1024 * 1024 * 1024) {
+            setErrorMessage('El tamaño del archivo supera el límite de 1 GB.');
             setFile(null);
             return;
         }
@@ -87,18 +87,37 @@ export default function R2VideoUpload({ initialToken = '' }: R2VideoUploadProps)
 
         try {
             const cleanToken = token.replace('Bearer ', '').trim();
-            const response = await fetch('/api/upload', {
+            const response = await fetch('/api/upload/presign', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${cleanToken}`
+                    'Authorization': `Bearer ${cleanToken}`,
+                    'Content-Type': 'application/json'
                 },
-                body: formData
+                body: JSON.stringify({
+                    filename: file.name,
+                    fileType: file.type,
+                    fileSize: file.size
+                })
             });
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Error al subir el archivo');
+            if (!response.ok || !data.presignedUrl) {
+                throw new Error(data.error || 'Error al generar la url de subida');
+            }
+
+            setProgressMessage('Subiendo archivo al almacenamiento...');
+            
+            const r2Res = await fetch(data.presignedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type
+                }
+            });
+
+            if (!r2Res.ok) {
+                throw new Error('Error al subir el archivo al servidor R2');
             }
 
             setStatus('success');
@@ -241,7 +260,7 @@ export default function R2VideoUpload({ initialToken = '' }: R2VideoUploadProps)
                             Arrastra y suelta tu archivo de vídeo aquí
                         </p>
                         <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                            O haz clic para explorar tu dispositivo (Máx. 100MB)
+                            O haz clic para explorar tu dispositivo (Máx. 1GB)
                         </p>
                     </div>
                 )}

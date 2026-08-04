@@ -30,10 +30,10 @@ export default function Footer() {
                     <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
                         <Link href="/feed" style={{ display: 'inline-block', marginBottom: '15px' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '38px', objectFit: 'contain' }} />
+                            <img src="/logo/logo-white.png" alt="LYVO" style={{ height: '38px', objectFit: 'contain' }} />
                         </Link>
                         <p style={{ lineHeight: '1.6', color: '#666' }}>
-                            VOZ es la app de audio y vídeo social donde tu voz importa. Conecta con tu comunidad, comparte tus historias y monetiza tu contenido de forma segura y privada.
+                            LYVO es la app de audio y vídeo social donde tu voz importa. Conecta con tu comunidad, comparte tus historias y monetiza tu contenido de forma segura y privada.
                         </p>
                     </div>
 
@@ -88,7 +88,7 @@ export default function Footer() {
                     maxWidth: '1200px',
                     margin: '0 auto'
                 }}>
-                    &copy; {new Date().getFullYear()} VOZ. Todos los derechos reservados.
+                    &copy; {new Date().getFullYear()} LYVO. Todos los derechos reservados.
                 </div>
             </footer>
 
@@ -141,13 +141,13 @@ export default function Footer() {
                             <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold' }}>Quiénes Somos</h2>
                         </div>
                         <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', marginBottom: '15px' }}>
-                            VOZ es una plataforma social de audio y vídeo de última generación diseñada para dar voz a los creadores independientes de todo el mundo. Creemos en la libertad creativa y en una comunidad auténtica y libre de algoritmos manipuladores.
+                            LYVO es una plataforma social de audio y vídeo de última generación diseñada para dar voz a los creadores independientes de todo el mundo. Creemos en la libertad creativa y en una comunidad auténtica y libre de algoritmos manipuladores.
                         </p>
                         <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', marginBottom: '15px' }}>
                             Nuestra misión es empoderar a los creadores facilitando herramientas premium de interacción y una economía directa (a través de donaciones y regalos) que fluye sin intermediarios tradicionales, directamente a las carteras de los usuarios.
                         </p>
                         <p style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.95rem', margin: 0 }}>
-                            Con VOZ, compartes tus momentos, interactúas con notas de voz de alta fidelidad, transmites tus directos centralizados y construyes un verdadero valor con tu comunidad.
+                            Con LYVO, compartes tus momentos, interactúas con notas de voz de alta fidelidad, transmites tus directos centralizados y construyes un verdadero valor con tu comunidad.
                         </p>
                     </div>
                 </div>
@@ -206,7 +206,7 @@ export default function Footer() {
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
                             <div>
-                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Qué es VOZ?</h4>
+                                <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Qué es LYVO?</h4>
                                 <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>Es una comunidad social basada en audio y vídeo corto donde los usuarios interactúan y apoyan directamente a sus creadores favoritos.</p>
                             </div>
                             <div>
@@ -219,7 +219,7 @@ export default function Footer() {
                             </div>
                             <div>
                                 <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '0.95rem', fontWeight: 'bold' }}>¿Cómo conecto mis transmisiones en vivo?</h4>
-                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>En la sección de ajustes de tu perfil, puedes asociar tu canal de Twitch, Kick o YouTube para que tus seguidores en VOZ vean tu directo al instante.</p>
+                                <p style={{ color: '#aaa', margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>En la sección de ajustes de tu perfil, puedes asociar tu canal de Twitch, Kick o YouTube para que tus seguidores en LYVO vean tu directo al instante.</p>
                             </div>
                         </div>
                     </div>

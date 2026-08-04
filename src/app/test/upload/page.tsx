@@ -2,7 +2,7 @@ import React from 'react';
 import R2VideoUpload from '@/components/R2VideoUpload';
 
 export const metadata = {
-    title: 'Prueba de Almacenamiento R2 - VOZ',
+    title: 'Prueba de Almacenamiento R2 - LYVO',
     description: 'Página de verificación de subida de vídeos a Cloudflare R2 utilizando AWS S3 SDK.',
 };
 

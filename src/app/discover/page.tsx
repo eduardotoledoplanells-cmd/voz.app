@@ -90,7 +90,7 @@ export default function DiscoverPage() {
                 {/* Mobile Top Bar */}
                 <div className="mobile-top-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px', borderBottom: '1px solid #222' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '30px', objectFit: 'contain' }} />
+                    <img src="/logo/logo-white.png" alt="LYVO" style={{ height: '30px', objectFit: 'contain' }} />
                     <span style={{ fontWeight: '700', fontSize: '15px' }}>Descubrir</span>
                     <div style={{ width: '30px' }} />
                 </div>
@@ -106,7 +106,7 @@ export default function DiscoverPage() {
                         <Search size={18} color="#888" />
                         <input
                             type="text"
-                            placeholder="Buscar en VOZ..."
+                            placeholder="Buscar en LYVO..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{

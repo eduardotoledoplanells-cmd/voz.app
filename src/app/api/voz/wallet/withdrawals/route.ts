@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Debes configurar tu cuenta bancaria (Stripe) primero' }, { status: 403 });
         }
 
-        // 2. Cálculos de comisión (25% VOZ, 75% Creador)
+        // 2. Cálculos de comisión (25% LYVO, 75% Creador)
         vozFee = parseFloat((amount * 0.25).toFixed(2));
         creatorNet = parseFloat((amount * 0.75).toFixed(2));
         const transferAmountCents = Math.round(creatorNet * 100);
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
                 amount: transferAmountCents,
                 currency: 'usd',
                 destination: user.stripe_account_id,
-                description: `Retiro de fondos VOZ - ${user.handle || user.name}`,
+                description: `Retiro de fondos LYVO - ${user.handle || user.name}`,
                 metadata: {
                     withdrawal_id: requestRow.id
                 }

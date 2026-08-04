@@ -3,11 +3,11 @@ import React from 'react';
 export default function PrivacyPolicy() {
   return (
     <div style={{ padding: '40px', fontFamily: 'system-ui, sans-serif', maxWidth: '800px', margin: '0 auto', color: '#fff', backgroundColor: '#000', minHeight: '100vh' }}>
-      <h1 style={{ color: '#8E2DE2' }}>Política de Privacidad de VOZ</h1>
+      <h1 style={{ color: '#8E2DE2' }}>Política de Privacidad de LYVO</h1>
       <p><strong>Última actualización:</strong> 5 de Mayo de 2026</p>
 
       <h2>1. Información que recopilamos</h2>
-      <p>VOZ recopila información necesaria para el funcionamiento de la red social, incluyendo:</p>
+      <p>LYVO recopila información necesaria para el funcionamiento de la red social, incluyendo:</p>
       <ul>
         <li>Información de la cuenta (nombre de usuario, correo electrónico, número de teléfono).</li>
         <li>Contenido generado por el usuario (vídeos, audios, comentarios, transcripciones).</li>
@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
       <p>No vendemos tus datos a terceros. Compartimos información estrictamente necesaria con proveedores de servicios esenciales (ej. Stripe para pagos, Supabase para almacenamiento de base de datos) bajo estrictos acuerdos de confidencialidad.</p>
 
       <h2>6. Contacto</h2>
-      <p>Para dudas sobre privacidad, puedes contactar al soporte de VOZ dentro de la aplicación o a través de nuestros canales oficiales.</p>
+      <p>Para dudas sobre privacidad, puedes contactar al soporte de LYVO dentro de la aplicación o a través de nuestros canales oficiales.</p>
     </div>
   );
 }

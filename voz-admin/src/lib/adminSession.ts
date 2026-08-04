@@ -1,5 +1,5 @@
 /**
- * Admin Auth Helper — VOZ Admin Panel
+ * Admin Auth Helper — LYVO Admin Panel
  * 
  * Centralises header generation for authenticated API calls.
  * Use getAdminHeaders() instead of manually building auth headers.

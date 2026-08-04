@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         console.log(`
         === VERIFICATION EMAIL ===
         To: ${email}
-        Subject: Verifica tu cuenta en VOZ
+        Subject: Verifica tu cuenta en LYVO
         
         Hola ${name},
         

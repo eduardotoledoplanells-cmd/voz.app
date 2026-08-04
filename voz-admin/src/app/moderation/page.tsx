@@ -1,7 +1,7 @@
 'use client';import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
 
 import { useState, useEffect, useRef } from 'react';
-import '98.css';
+
 
 interface ModerationItem {
     id: string;
@@ -395,14 +395,14 @@ export default function VozModerationPage() {
             {/* Dashboard de Productividad */}
             <div className="window" style={{ marginBottom: 5 }}>
                 <div className="title-bar">
-                    <div className="title-bar-text">Panel de Moderación - VOZ {currentShift && `[Turno de ${currentShift}]`}</div>
+                    <div className="title-bar-text">Panel de Moderación - LYVO {currentShift && `[Turno de ${currentShift}]`}</div>
                 </div>
                 <menu role="tablist" style={{ margin: '5px 5px 0 5px' }}>
                     <li role="tab" aria-selected={viewMode === 'moderation'} onClick={() => { setViewMode('moderation'); setSelectedItem(null); }}>
                         <a href="#moderation">📹 Cola de Trabajo</a>
                     </li>
                     <li role="tab" aria-selected={viewMode === 'audio'} onClick={() => { setViewMode('audio'); setSelectedItem(null); }}>
-                        <a href="#audio">🔊 Notas de Voz</a>
+                        <a href="#audio">🔊 Notas de Lyvo</a>
                     </li>
                     <li role="tab" aria-selected={viewMode === 'profiles'} onClick={() => { setViewMode('profiles'); setSelectedItem(null); }}>
                         <a href="#profiles">👤 Perfiles Denunciados</a>
@@ -647,7 +647,7 @@ export default function VozModerationPage() {
                                                 )}
                                             </div>
                                             <div className="status-bar" style={{ marginTop: 10 }}>
-                                                <p className="status-bar-field">Matrícula: {selectedItem.matricula || 'VOZ-NEW'}</p>
+                                                <p className="status-bar-field">Matrícula: {selectedItem.matricula || 'LYVO-NEW'}</p>
                                                 <p className="status-bar-field">ID: {selectedItem.id}</p>
                                                 <p className="status-bar-field">Usuario: {selectedItem.userHandle}</p>
                                                 <p className="status-bar-field">Fecha: {new Date(selectedItem.timestamp).toLocaleString()}</p>

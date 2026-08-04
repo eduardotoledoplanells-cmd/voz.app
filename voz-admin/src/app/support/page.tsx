@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function SupportInbox() {
     const [messages, setMessages] = useState<any[]>([]);
@@ -142,7 +142,7 @@ export default function SupportInbox() {
             <div className="window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="title-bar">
                     <div className="title-bar-text">
-                        {selectedUser ? `Conversación: ${selectedUser}` : 'Centro de Soporte VOZ'}
+                        {selectedUser ? `Conversación: ${selectedUser}` : 'Centro de Soporte LYVO'}
                     </div>
                 </div>
                 <div className="window-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -165,7 +165,7 @@ export default function SupportInbox() {
                                             borderRadius: '4px'
                                         }}>
                                             <div style={{ fontSize: '10px', color: 'gray', marginBottom: '4px', fontWeight: 'bold' }}>
-                                                {isSelf ? 'Equipo VOZ' : msg.user_handle} - {new Date(msg.created_at).toLocaleString()}
+                                                {isSelf ? 'Equipo LYVO' : msg.user_handle} - {new Date(msg.created_at).toLocaleString()}
                                             </div>
                                             <div style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
                                                 {msg.message}

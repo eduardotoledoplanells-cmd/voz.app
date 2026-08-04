@@ -50,7 +50,7 @@ export default function DatabasePage() {
                     <div className="title-bar-text">Gestión de Base de Datos - Supabase</div>
                 </div>
                 <div className="window-body">
-                    <p>Usa esta herramienta para inicializar las tablas necesarias de VOZ (Followers, Fans, etc.)</p>
+                    <p>Usa esta herramienta para inicializar las tablas necesarias de LYVO (Followers, Fans, etc.)</p>
 
                     <div className="field-row-stacked" style={{ marginBottom: '15px' }}>
                         <label htmlFor="dbPass">Contraseña de Base de Datos (PostgreSQL):</label>

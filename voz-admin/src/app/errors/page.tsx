@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import '98.css';
+
 
 interface AlertItem {
     id: number;
@@ -147,7 +147,7 @@ export default function ErrorsPage() {
     const handleCopyForAI = (alertItem: AlertItem) => {
         const { title } = parseError(alertItem.mensaje_error);
         const text = `======================================================================
-REPORTE DE ERROR — APLICACIÓN VOZ V2
+REPORTE DE ERROR — APLICACIÓN LYVO V2
 ======================================================================
 SERVICIO: ${alertItem.servicio}
 NIVEL: ${alertItem.nivel || 'error'}

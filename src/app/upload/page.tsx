@@ -174,42 +174,59 @@ export default function UploadPage() {
                 }
             }
             
-            // 3. Upload video to storage via server route
-            setStatusMsg('Subiendo contenido...');
-            
-            const formData = new FormData();
-            formData.append('file', file);
+            // 3. Get presigned URL for direct upload
+            setStatusMsg('Generando enlace seguro de subida...');
             
             const uploadHeaders: Record<string, string> = {
                 'x-user-handle': userHandle,
-                'x-user-id': userId
+                'x-user-id': userId,
+                'Content-Type': 'application/json'
             };
             if (token) {
                 uploadHeaders['Authorization'] = `Bearer ${token}`;
             }
 
-            const uploadRes = await fetch('/api/upload', {
+            const presignRes = await fetch('/api/upload/presign', {
                 method: 'POST',
                 headers: uploadHeaders,
-                body: formData,
+                body: JSON.stringify({
+                    filename: file.name,
+                    fileType: file.type,
+                    fileSize: file.size
+                }),
             });
 
-            const uploadText = await uploadRes.text();
-            let uploadData: any = {};
+            const presignText = await presignRes.text();
+            let presignData: any = {};
             try { 
-                uploadData = JSON.parse(uploadText); 
+                presignData = JSON.parse(presignText); 
             } catch (e) {
-                console.error('[Upload API Response parse error]:', uploadText);
+                console.error('[Presign API Response parse error]:', presignText);
             }
 
-            if (!uploadRes.ok || !uploadData.url) {
-                throw new Error(uploadData.error || 'No se pudo subir el archivo. Inténtalo de nuevo.');
+            if (!presignRes.ok || !presignData.presignedUrl) {
+                throw new Error(presignData.error || 'No se pudo generar la ruta de subida. Inténtalo de nuevo.');
             }
 
-            const videoUrl = uploadData.url;
+            // 4. Upload video to storage directly via presigned URL
+            setStatusMsg('Subiendo contenido...');
+            
+            const r2Res = await fetch(presignData.presignedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type
+                }
+            });
+
+            if (!r2Res.ok) {
+                throw new Error('Error al subir el archivo al almacenamiento. Inténtalo de nuevo.');
+            }
+
+            const videoUrl = presignData.url;
 
             // 5. Register video in the database
-            setStatusMsg('Registrando vídeo en VOZ...');
+            setStatusMsg('Registrando vídeo en LYVO...');
             const videoRes = await fetch('/api/voz/videos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -261,7 +278,7 @@ export default function UploadPage() {
                     {status === 'success' ? '¡Publicado! 🎉' : 'Nueva publicación'}
                 </h2>
                 <p style={{ color: '#666', fontSize: '14px', marginBottom: '28px' }}>
-                    {status === 'success' ? 'Tu contenido ya está disponible en VOZ.' : 'Comparte tu vídeo o audio con la comunidad.'}
+                    {status === 'success' ? 'Tu contenido ya está disponible en LYVO.' : 'Comparte tu vídeo o audio con la comunidad.'}
                 </p>
 
                 {status === 'success' ? (
@@ -321,7 +338,67 @@ export default function UploadPage() {
                             ref={fileRef}
                             type="file"
                             accept="video/*,audio/*"
-                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            onChange={async (e) => {
+                                const selectedFile = e.target.files?.[0] || null;
+                                if (!selectedFile) return;
+
+                                if (selectedFile.size > 1024 * 1024 * 1024) {
+                                    setErrorMsg('Tu vídeo es demasiado pesado. El límite es de 1 GB.');
+                                    setStatus('error');
+                                    setFile(null);
+                                    return;
+                                }
+
+                                if (selectedFile.type.startsWith('video/')) {
+                                    const getVideoDuration = (f: File): Promise<number> => new Promise((resolve) => {
+                                        const video = document.createElement('video');
+                                        video.preload = 'metadata';
+                                        video.src = URL.createObjectURL(f);
+                                        video.onloadedmetadata = () => {
+                                            URL.revokeObjectURL(video.src);
+                                            resolve(video.duration);
+                                        };
+                                        video.onerror = () => {
+                                            URL.revokeObjectURL(video.src);
+                                            resolve(0);
+                                        }
+                                    });
+
+                                    const duration = await getVideoDuration(selectedFile);
+                                    
+                                    let user = authUser;
+                                    if (!user) {
+                                        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                                        if (storedUser) {
+                                            try { user = JSON.parse(storedUser); } catch (err) {}
+                                        }
+                                    }
+                                    let maxAllowed = 90;
+                                    const customLimit = user?.custom_video_duration || 0;
+                                    const followers = user?.followers_count || user?.followers || 0;
+                                    
+                                    if (customLimit > 0) {
+                                        maxAllowed = customLimit;
+                                    } else {
+                                        if (followers >= 10000) maxAllowed = 600;
+                                        else if (followers >= 5000) maxAllowed = 300;
+                                        else if (followers >= 3000) maxAllowed = 150;
+                                    }
+
+                                    if (duration > maxAllowed + 0.5) {
+                                        setErrorMsg(`Necesitas más seguidores para subir vídeos de esta duración. Tu límite actual es de ${maxAllowed >= 60 ? (maxAllowed/60) + ' minutos' : maxAllowed + ' segundos'}${customLimit > 0 ? '.' : ' por tener ' + followers + ' seguidores.'}`);
+                                        setStatus('error');
+                                        setFile(null);
+                                        return;
+                                    }
+                                }
+
+                                setFile(selectedFile);
+                                if (status === 'error') {
+                                    setStatus('idle');
+                                    setErrorMsg('');
+                                }
+                            }}
                             style={{ display: 'none' }}
                         />
 
@@ -397,7 +474,7 @@ export default function UploadPage() {
                             {status === 'uploading' ? (
                                 <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> {statusMsg || 'Publicando...'}</>
                             ) : (
-                                'Publicar en VOZ'
+                                'Publicar en LYVO'
                             )}
                         </button>
 

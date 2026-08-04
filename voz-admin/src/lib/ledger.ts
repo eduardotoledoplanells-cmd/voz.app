@@ -9,7 +9,7 @@ export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 // Official system wallets UUIDs
 export const SYSTEM_WALLETS = {
-    VOZ: {
+    LYVO: {
         id: '00000000-0000-0000-0000-000000000001',
         name: 'SYSTEM_WALLET_VOZ'
     },

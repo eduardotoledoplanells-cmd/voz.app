@@ -53,7 +53,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Saldo insuficiente' }, { status: 400 });
         }
 
-        // 3. Cálculos de comisión (25% VOZ, 75% Creador)
+        // 3. Cálculos de comisión (25% LYVO, 75% Creador)
         const vozFee = parseFloat((amount * 0.25).toFixed(2));
         const creatorNet = parseFloat((amount * 0.75).toFixed(2));
         const transferAmountCents = Math.round(creatorNet * 100);
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             amount: transferAmountCents,
             currency: 'usd',
             destination: user.stripe_account_id,
-            description: `Retiro de fondos VOZ - ${user.handle || user.name}`,
+            description: `Retiro de fondos LYVO - ${user.handle || user.name}`,
         });
 
         // 5. Restar fondos en la base de datos (ledger)

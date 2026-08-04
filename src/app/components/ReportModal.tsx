@@ -69,7 +69,7 @@ export default function ReportModal({ isOpen, onClose, video }: ReportModalProps
             if (res.ok && data.success) {
                 setStatusMessage({
                     type: 'success',
-                    text: 'Denuncia enviada. Gracias por ayudarnos a mantener VOZ seguro. Nuestro equipo revisará el contenido.'
+                    text: 'Denuncia enviada. Gracias por ayudarnos a mantener LYVO seguro. Nuestro equipo revisará el contenido.'
                 });
                 setTimeout(() => {
                     handleClose();
@@ -263,7 +263,7 @@ export default function ReportModal({ isOpen, onClose, video }: ReportModalProps
                     fontSize: '12px',
                     color: 'rgba(255, 255, 255, 0.4)'
                 }}>
-                    Tus denuncias son confidenciales y revisadas por el equipo de seguridad de VOZ.
+                    Tus denuncias son confidenciales y revisadas por el equipo de seguridad de LYVO.
                 </div>
             </div>
         </div>

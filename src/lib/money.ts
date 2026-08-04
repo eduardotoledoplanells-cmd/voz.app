@@ -1,7 +1,7 @@
 /**
  * Money Utility Class
  * Centralizes all microcoin calculations to prevent floating point inaccuracies
- * and scaling drift in the VOZ Ledger.
+ * and scaling drift in the LYVO Ledger.
  * 
  * 1 Coin = 1000 Microcoins.
  * Internal representation uses BigInt.

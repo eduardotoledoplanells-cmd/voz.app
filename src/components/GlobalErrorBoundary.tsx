@@ -15,7 +15,7 @@ interface State {
 
 /**
  * GlobalErrorBoundary — Captura cualquier error no manejado en el árbol
- * de componentes React y lo reporta al panel de administración de VOZ.
+ * de componentes React y lo reporta al panel de administración de LYVO.
  *
  * Reemplaza la "pantalla blanca" por una pantalla de error amigable y
  * envía el stack trace completo a /api/voz/client-error → tabla system_alerts.

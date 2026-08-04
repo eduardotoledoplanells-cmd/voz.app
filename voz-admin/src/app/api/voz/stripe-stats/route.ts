@@ -32,7 +32,7 @@ export async function GET() {
         return NextResponse.json({
             balance,
             paymentIntents: paymentIntents.data,
-            account: accountInfo || { id: STRIPE_ACCOUNT_ID, business_profile: { name: 'VOZ Platform' } },
+            account: accountInfo || { id: STRIPE_ACCOUNT_ID, business_profile: { name: 'LYVO Platform' } },
             syncTime: new Date().toISOString()
         });
     } catch (error: any) {

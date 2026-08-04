@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
         if (live_url_twitch !== undefined) updates.live_url_twitch = live_url_twitch;
         if (live_url_youtube !== undefined) updates.live_url_youtube = live_url_youtube;
 
+        // Logout timestamp for cross-platform session invalidation
+        const logoutVal = (body as any).last_logout || (body as any).lastLogout;
+        if (logoutVal !== undefined) {
+            updates.last_logout = logoutVal;
+        }
+
         const updated = await updateAppUser(id, updates);
 
         if (!updated) {

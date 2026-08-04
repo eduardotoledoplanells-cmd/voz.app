@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import '98.css';
+
 
 export default function VozAdsPage() {
     const [activeTab, setActiveTab] = useState<'campaigns' | 'clients' | 'impressions' | 'payments'>('campaigns');
@@ -267,7 +267,7 @@ export default function VozAdsPage() {
         }, 'Borrar Cliente');
     };
 
-    if (loading) return <div style={{ padding: 10, background: 'white', height: '100%' }}>⏳ Cargando AdManager de VOZ (Windows 98)...</div>;
+    if (loading) return <div style={{ padding: 10, background: 'white', height: '100%' }}>⏳ Cargando AdManager de LYVO (Windows 98)...</div>;
 
     return (
         <div style={{ padding: 10, height: '85vh', display: 'flex', flexDirection: 'column' }}>
@@ -449,7 +449,7 @@ export default function VozAdsPage() {
                         <>
                             <p className="status-bar-field">Total Campañas: {campaigns.length}</p>
                             <p className="status-bar-field">Total Impactos: {campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0)}</p>
-                            <p className="status-bar-field">Sistema de Seguimiento VOZ Shield v2.4</p>
+                            <p className="status-bar-field">Sistema de Seguimiento LYVO Shield v2.4</p>
                         </>
                     )}
                 </div>

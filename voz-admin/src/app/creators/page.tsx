@@ -2,7 +2,7 @@
 import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
 
 import React, { useState, useEffect } from 'react';
-import '98.css';
+
 
 interface CreatorVerification {
     id: string;
@@ -73,7 +73,7 @@ export default function CreatorsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'folders' | 'details'>('folders');
     const [activeTab, setActiveTab] = useState('general');
-    const [currentPath, setCurrentPath] = useState('C:\\Red\\VOZ\\Creadores');
+    const [currentPath, setCurrentPath] = useState('C:\\Red\\LYVO\\Creadores');
 
     interface ModalConfig {
         show: boolean;
@@ -225,7 +225,7 @@ export default function CreatorsPage() {
         }
     };
 
-    const isAtRoot = currentPath === 'C:\\Red\\VOZ\\Creadores';
+    const isAtRoot = currentPath === 'C:\\Red\\LYVO\\Creadores';
     const displayedCreators = isAtRoot 
         ? creators.filter(c => c.isCreator || c.verificationData?.status === 'pending') 
         : creators.filter(c => c.verificationData?.status === 'pending');
@@ -237,7 +237,7 @@ export default function CreatorsPage() {
             <div className="window" style={{ marginBottom: 5 }}>
                 <div className="window-body" style={{ padding: '2px 5px', display: 'flex', gap: 10, alignItems: 'center' }}>
                     <button 
-                        onClick={() => { setCurrentPath('C:\\Red\\VOZ\\Creadores'); setViewMode('folders'); }}
+                        onClick={() => { setCurrentPath('C:\\Red\\LYVO\\Creadores'); setViewMode('folders'); }}
                         style={{ display: 'flex', alignItems: 'center', gap: 5 }}
                         disabled={isAtRoot}
                     >

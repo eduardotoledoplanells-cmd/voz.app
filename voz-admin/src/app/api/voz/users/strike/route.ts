@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         const notifResult = await addNotification({
             recipientId: handle,
             type: 'moderation',
-            title: 'VOZ',
+            title: 'LYVO',
             message: `Has sido penalizado con un strike debido a un incumplimiento de las normas de la comunidad (${reason}). Recuerda que al acumular 3 strikes, tu cuenta será suspendida permanentemente.`,
             timestamp: new Date().toISOString(),
             readStatus: false

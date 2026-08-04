@@ -57,7 +57,7 @@ export async function POST(request: Request) {
                 body: JSON.stringify({
                     recipientId: userHandle,
                     type: 'admin_message',
-                    title: '📢 Mensaje de VOZ',
+                    title: '📢 Mensaje de LYVO',
                     message: message
                 })
             }).catch(e => console.warn('Push error on support message:', e));

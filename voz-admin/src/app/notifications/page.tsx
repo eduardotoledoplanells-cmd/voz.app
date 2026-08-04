@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function NotificationsPage() {
     const [title, setTitle] = useState('');
@@ -64,7 +64,7 @@ export default function NotificationsPage() {
                     <div className="title-bar-text">Broadcaster Master v1.0 - Envío Masivo</div>
                 </div>
                 <div className="window-body">
-                    <p>Utiliza esta herramienta para enviar comunicaciones oficiales a todos los usuarios de la aplicación VOZ.</p>
+                    <p>Utiliza esta herramienta para enviar comunicaciones oficiales a todos los usuarios de la aplicación LYVO.</p>
                     <div className="field-row-stacked" style={{ marginBottom: '15px' }}>
                         <label>Título de la Notificación (Máximo 50 caracteres)</label>
                         <input 

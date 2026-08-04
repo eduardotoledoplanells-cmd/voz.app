@@ -726,18 +726,49 @@ export default function VozUsersPage() {
 
                                             {activeTab === 'demografia' && (
                                                 <div>
-                                                    <h4>Distribución Demográfica de Usuarios</h4>
+                                                    <h4 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <span>Distribución Demográfica de Usuarios</span>
+                                                        <span style={{ fontSize: 14, fontWeight: 'bold', background: '#000080', color: 'white', padding: '2px 8px', borderRadius: 4 }}>TOTAL: {users.length}</span>
+                                                    </h4>
                                                     {(() => {
                                                         const regions = users.reduce((acc, user) => {
                                                             if (user.region) {
-                                                                const parts = user.region.split(' - ');
-                                                                const community = parts[0] ? parts[0].trim() : 'Desconocido';
-                                                                const municipality = parts[1] ? parts[1].trim() : 'Desconocido';
+                                                                let community = 'Desconocido';
+                                                                let municipality = 'Desconocido';
+                                                                
+                                                                if (user.region.includes(' - ')) {
+                                                                    const parts = user.region.split(' - ');
+                                                                    community = parts[0].trim();
+                                                                    municipality = parts[1] ? parts[1].trim() : 'Desconocido';
+                                                                } else {
+                                                                    const val = user.region.trim();
+                                                                    const foundCcaaByMuni = spainLocations.find(ccaa => ccaa.municipalities.some(m => m.trim() === val));
+                                                                    if (foundCcaaByMuni) {
+                                                                        community = foundCcaaByMuni.name.trim();
+                                                                        municipality = val;
+                                                                    } else {
+                                                                        const foundCcaaByName = spainLocations.find(ccaa => ccaa.name.trim() === val);
+                                                                        if (foundCcaaByName) {
+                                                                            community = foundCcaaByName.name.trim();
+                                                                        } else {
+                                                                            municipality = val;
+                                                                        }
+                                                                    }
+                                                                }
                                                                 
                                                                 if (!acc[community]) acc[community] = { total: 0, municipalities: {} };
                                                                 acc[community].total += 1;
-                                                                if (!acc[community].municipalities[municipality]) acc[community].municipalities[municipality] = 0;
-                                                                acc[community].municipalities[municipality] += 1;
+                                                                
+                                                                // Find the exact municipality name from spainLocations if possible to match formatting (e.g. trailing spaces)
+                                                                const exactCcaa = spainLocations.find(c => c.name.trim() === community);
+                                                                let exactMuni = municipality;
+                                                                if (exactCcaa) {
+                                                                    const foundMatch = exactCcaa.municipalities.find(m => m.trim() === municipality);
+                                                                    if (foundMatch) exactMuni = foundMatch; // Use the one with trailing space if it exists
+                                                                }
+                                                                
+                                                                if (!acc[community].municipalities[exactMuni]) acc[community].municipalities[exactMuni] = 0;
+                                                                acc[community].municipalities[exactMuni] += 1;
                                                             }
                                                             return acc;
                                                         }, {} as Record<string, { total: number, municipalities: Record<string, number> }>);

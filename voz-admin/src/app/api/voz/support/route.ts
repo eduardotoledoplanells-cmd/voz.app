@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             const newNotification = {
                 recipient_id: userHandle.startsWith('@') ? userHandle.slice(1) : userHandle,
                 type: 'admin_message',
-                title: '📢 Mensaje de VOZ',
+                title: '📢 Mensaje de LYVO',
                 message: message,
                 timestamp: new Date().toISOString(),
                 read_status: false
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
                     body: JSON.stringify({
                         to: userData.push_token,
                         sound: 'default',
-                        title: '📢 Mensaje de VOZ',
+                        title: '📢 Mensaje de LYVO',
                         body: message,
                         data: { type: 'admin_message' }
                     })

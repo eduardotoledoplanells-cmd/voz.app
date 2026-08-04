@@ -10,20 +10,20 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-    title: 'VOZ — Tu voz. Tu comunidad. Sin límites.',
+    title: 'LYVO — Tu voz. Tu comunidad. Sin límites.',
     description: 'La app de audio y vídeo social donde tu voz importa. Crea, comparte y conecta con creadores de todo el mundo.',
     keywords: ['voz app', 'audio social', 'creadores', 'directos', 'kick', 'twitch', 'youtube', 'comunidad'],
     openGraph: {
-        title: 'VOZ — Tu voz. Tu comunidad. Sin límites.',
+        title: 'LYVO — Tu voz. Tu comunidad. Sin límites.',
         description: 'La app de audio y vídeo social donde tu voz importa.',
-        images: [{ url: '/logo/logo-voz.png', width: 512, height: 512, alt: 'VOZ App' }],
+        images: [{ url: '/logo/logo-voz.png', width: 512, height: 512, alt: 'LYVO App' }],
         type: 'website',
-        siteName: 'VOZ App',
+        siteName: 'LYVO App',
         url: 'https://appvoz.com',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'VOZ App',
+        title: 'LYVO App',
         description: 'La app de audio y vídeo social donde tu voz importa.',
         images: ['/logo/logo-voz.png'],
     },
@@ -66,7 +66,7 @@ async function getLandingData() {
 const features = [
     {
         emoji: '🎙️',
-        name: 'Vídeos y Audio de Voz',
+        name: 'Vídeos y Audio de Lyvo',
         desc: 'Crea contenido de audio y vídeo corto auténtico. Tu voz, tus historias. Sin filtros artificiales ni algoritmos que te censuren.',
         tag: '🔥 Núcleo de la app',
         large: true,
@@ -81,7 +81,7 @@ const features = [
     {
         emoji: '📡',
         name: 'Tus Directos, Centralizados',
-        desc: 'Conecta tus canales de Kick, Twitch y YouTube. Tus seguidores verán tu directo en tiempo real desde VOZ con un solo toque.',
+        desc: 'Conecta tus canales de Kick, Twitch y YouTube. Tus seguidores verán tu directo en tiempo real desde LYVO con un solo toque.',
         tag: '🔴 Streaming integrado',
         large: false,
     },
@@ -102,7 +102,7 @@ const steps = [
     },
     {
         n: '02',
-        title: 'Crea tu Perfil de Voz',
+        title: 'Crea tu Perfil de Lyvo',
         desc: 'Personaliza tu perfil, conecta tus plataformas de streaming y empieza a explorar el feed de contenido.',
     },
     {
@@ -139,7 +139,7 @@ export default async function LandingPage() {
             ════════════════════════════════ */}
             <nav className={styles.navbar}>
                 <Link href="/" className={styles.navLogo}>
-                    <img src="/logo/logo-short.png" alt="VOZ" className={styles.navLogoImg} />
+                    <img src="/logo/logo-short.png" alt="LYVO" className={styles.navLogoImg} />
                 </Link>
                 <ul className={styles.navLinks}>
                     <li><a href="#features" className={styles.navLink}>Características</a></li>
@@ -217,7 +217,7 @@ export default async function LandingPage() {
                                     ))}
                                 </div>
                                 <p className={styles.heroSocialText}>
-                                    <strong>{fmt(stats.users)}</strong> personas ya forman parte de la comunidad VOZ
+                                    <strong>{fmt(stats.users)}</strong> personas ya forman parte de la comunidad LYVO
                                 </p>
                             </div>
                         )}
@@ -229,7 +229,7 @@ export default async function LandingPage() {
                             <div className={styles.mockupGlow} />
                             <img
                                 src="/images/app-mockup.png"
-                                alt="Vista previa de la app VOZ"
+                                alt="Vista previa de la app LYVO"
                                 className={styles.mockupImg}
                             />
                             {/* Floating Live Card */}
@@ -239,7 +239,7 @@ export default async function LandingPage() {
                             </div>
                             {/* Floating Gift Card */}
                             <div className={`${styles.mockupCard} ${styles.mockupCardGift}`}>
-                                <div className={styles.mockupCardGiftText}>🎁 +250 VOZ Coins</div>
+                                <div className={styles.mockupCardGiftText}>🎁 +250 LYVO Coins</div>
                                 <div className={styles.mockupCardGiftSub}>De @fan_increíble</div>
                             </div>
                         </div>
@@ -273,7 +273,7 @@ export default async function LandingPage() {
                     <p className={styles.sectionLabel}>✦ Características</p>
                     <h2 className={styles.sectionTitle}>Todo lo que necesitas en un solo lugar</h2>
                     <p className={styles.sectionSubtitle}>
-                        VOZ está construida para los creadores. Sin complicaciones, sin barreras. 
+                        LYVO está construida para los creadores. Sin complicaciones, sin barreras. 
                         Solo tú, tu voz y tu comunidad.
                     </p>
 
@@ -320,7 +320,7 @@ export default async function LandingPage() {
                         <p className={styles.sectionLabel}>✦ Comunidad</p>
                         <h2 className={styles.sectionTitle}>Conoce a nuestros creadores</h2>
                         <p className={styles.sectionSubtitle}>
-                            Personas reales con voces reales. Estas son algunas de las voces que ya forman parte de VOZ.
+                            Personas reales con voces reales. Estas son algunas de las voces que ya forman parte de LYVO.
                         </p>
                         <div className={styles.creatorsGrid}>
                             {creators.slice(0, 8).map((c: any) => (
@@ -338,7 +338,7 @@ export default async function LandingPage() {
                                     </div>
                                     <div className={styles.creatorHandle}>{c.handle}</div>
                                     <div className={styles.creatorBio}>
-                                        {c.bio || 'Creador de VOZ'}
+                                        {c.bio || 'Creador de LYVO'}
                                     </div>
                                     {c.is_live && (
                                         <div className={styles.creatorLiveBadge}>
@@ -397,7 +397,7 @@ export default async function LandingPage() {
                 <div className={styles.footerInner}>
                     <div className={styles.footerTop}>
                         <div>
-                            <img src="/logo/logo-short.png" alt="VOZ" className={styles.footerBrandLogo} />
+                            <img src="/logo/logo-short.png" alt="LYVO" className={styles.footerBrandLogo} />
                             <p className={styles.footerBrandDesc}>
                                 La plataforma de audio y vídeo social donde los creadores conectan con 
                                 sus comunidades de una manera completamente nueva.
@@ -430,7 +430,7 @@ export default async function LandingPage() {
                         </div>
                     </div>
                     <div className={styles.footerBottom}>
-                        <span className={styles.footerCopyright}>© {year} VOZ App. Todos los derechos reservados.</span>
+                        <span className={styles.footerCopyright}>© {year} LYVO App. Todos los derechos reservados.</span>
                         <span className={styles.footerMade}>Hecho con 🎙️ para creadores de todo el mundo</span>
                     </div>
                 </div>

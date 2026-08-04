@@ -16,7 +16,7 @@ export async function GET() {
             const company = companies.find(c => c.id === camp.companyId);
             return {
                 ...camp,
-                companyName: company ? company.name : 'Voz Promoción',
+                companyName: company ? company.name : 'Lyvo Promoción',
                 companyHandle: company ? `@${company.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}` : '@voz_promocion'
             };
         });

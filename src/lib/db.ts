@@ -233,6 +233,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
+        custom_video_duration: u.privacy_settings?.custom_video_duration || null,
         country: u.country,
         region: u.region,
         interests: u.interests,
@@ -366,6 +367,7 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
+        custom_video_duration: u.privacy_settings?.custom_video_duration || null,
         is_live: u.is_live,
         live_url: u.live_url,
         country: u.country,
@@ -576,7 +578,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'nationality', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'nationality', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id', 'last_logout'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -605,10 +607,23 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
     if (updates.notificationSettings !== undefined) dbUpdates.notification_settings = updates.notificationSettings;
     if (updates.privacySettings !== undefined) dbUpdates.privacy_settings = updates.privacySettings;
+    
+    if ((updates as any).custom_video_duration !== undefined) {
+        if (!dbUpdates.privacy_settings && id) {
+            const { data: curr } = await supabaseAdmin.from('app_users').select('privacy_settings').eq('id', id).single();
+            dbUpdates.privacy_settings = curr?.privacy_settings || {};
+        } else if (!dbUpdates.privacy_settings) {
+            dbUpdates.privacy_settings = {};
+        }
+        dbUpdates.privacy_settings.custom_video_duration = (updates as any).custom_video_duration;
+    }
     if ((updates as any).pushToken !== undefined) dbUpdates.push_token = (updates as any).pushToken;
     if ((updates as any).profile_color !== undefined) dbUpdates.profile_color = (updates as any).profile_color;
     if ((updates as any).is_live !== undefined) dbUpdates.is_live = (updates as any).is_live;
     if ((updates as any).live_url !== undefined) dbUpdates.live_url = (updates as any).live_url;
+    if ((updates as any).last_logout !== undefined || (updates as any).lastLogout !== undefined) {
+        dbUpdates.last_logout = (updates as any).last_logout || (updates as any).lastLogout;
+    }
     // Segmentación publicitaria / País
     if ((updates as any).nationality !== undefined) dbUpdates.nationality = (updates as any).nationality;
     if ((updates as any).country !== undefined) {
@@ -1768,7 +1783,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             const likes = v.likes || 0;
             const commentsCount = v.comments_count || 0;
             const shares = v.shares || 0;
-            // Algoritmo de Prioridad: Me Gusta (10x - Máximo privilegio) > Comentarios de Voz (7x) > Compartidos (5x) > Visualizaciones (1x)
+            // Algoritmo de Prioridad: Me Gusta (10x - Máximo privilegio) > Comentarios de Lyvo (7x) > Compartidos (5x) > Visualizaciones (1x)
             let score = ((views * 1.0) + (shares * 5.0) + (commentsCount * 7.0) + (likes * 10.0)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.4);
             if (ageInHours < 2 && score < 1) score = 1 + Math.random();
             return { ...v, _score: score, _seq: seq };

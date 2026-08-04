@@ -99,7 +99,8 @@ export async function GET(request: NextRequest) {
             activeEscrows: escrowSummary.activeEscrows,
             fans: fansCount.toString(),
             following: followingCount.toString(),
-            likes: totalLikes.toString()
+            likes: totalLikes.toString(),
+            last_logout: (user as any).last_logout || (user as any).lastLogout || null
         };
 
         return NextResponse.json({ 

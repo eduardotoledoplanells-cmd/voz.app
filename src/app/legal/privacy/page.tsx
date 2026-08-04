@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
                     le informamos que los datos personales que nos proporcione serán tratados por:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Titular:</strong> VOZ</li>
+                    <li><strong>Titular:</strong> LYVO</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
                     <li><strong>Email:</strong> voz@appvoz.com</li>

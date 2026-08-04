@@ -20,7 +20,7 @@ export function roundToTwo(num: number): number {
 
 // Official system wallets UUIDs
 export const SYSTEM_WALLETS = {
-    VOZ: {
+    LYVO: {
         id: '00000000-0000-0000-0000-000000000001',
         name: 'SYSTEM_WALLET_VOZ'
     },
@@ -221,9 +221,9 @@ export async function processCoinPurchase(
             entry_type: 'AVAILABLE' as const,
             amount: tax.toMicrocoinsNumber()
         },
-        // 3. VOZ Platform Net Revenue
+        // 3. LYVO Platform Net Revenue
         {
-            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            wallet_id: SYSTEM_WALLETS.LYVO.id,
             entry_type: 'AVAILABLE' as const,
             amount: coins.toMicrocoinsNumber()
         },
@@ -266,7 +266,7 @@ export async function processCoinPurchase(
 /**
  * Premium Message (PM) Operation.
  * Cost: 5 coins = 5000 microcoins.
- * Split: 40% VOZ platform (+2000 microcoins), 60% Creator (+3000 microcoins in pending hold).
+ * Split: 40% LYVO platform (+2000 microcoins), 60% Creator (+3000 microcoins in pending hold).
  */
 export async function processPremiumMessage(
     senderHandleOrId: string,
@@ -277,7 +277,7 @@ export async function processPremiumMessage(
     const receiverWalletId = await getOrCreateUserWallet(receiverHandleOrId);
 
     const total = Money.fromCoins(5); // Fixed cost: 5 coins
-    const [vozShare, creatorShare] = total.calculateSplit(0.40); // 40% VOZ, 60% Creator
+    const [vozShare, creatorShare] = total.calculateSplit(0.40); // 40% LYVO, 60% Creator
 
     const entries = [
         // User pays coins
@@ -286,9 +286,9 @@ export async function processPremiumMessage(
             entry_type: 'AVAILABLE' as const,
             amount: -total.toMicrocoinsNumber()
         },
-        // VOZ Platform revenue (available immediately)
+        // LYVO Platform revenue (available immediately)
         {
-            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            wallet_id: SYSTEM_WALLETS.LYVO.id,
             entry_type: 'AVAILABLE' as const,
             amount: vozShare.toMicrocoinsNumber()
         },
@@ -316,7 +316,7 @@ export async function processPremiumMessage(
 /**
  * Refund Premium Message (PM) Operation.
  * Reverts the 5 coins locked when a PM thread expires (30 days without completion).
- * Sender receives +5 coins back, VOZ returns -2 coins, Creator pending hold -3 coins.
+ * Sender receives +5 coins back, LYVO returns -2 coins, Creator pending hold -3 coins.
  */
 export async function processRefundPM(
     senderHandleOrId: string,
@@ -336,9 +336,9 @@ export async function processRefundPM(
             entry_type: 'AVAILABLE' as const,
             amount: total.toMicrocoinsNumber()
         },
-        // VOZ Platform returns 2 coins
+        // LYVO Platform returns 2 coins
         {
-            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            wallet_id: SYSTEM_WALLETS.LYVO.id,
             entry_type: 'AVAILABLE' as const,
             amount: -vozShare.toMicrocoinsNumber()
         },
@@ -365,7 +365,7 @@ export async function processRefundPM(
 /**
  * Send Gift Operation.
  * Cost: Custom coins amount.
- * Split: 35% VOZ platform, 65% Creator (in pending hold).
+ * Split: 35% LYVO platform, 65% Creator (in pending hold).
  */
 export async function processGift(
     senderHandleOrId: string,
@@ -377,7 +377,7 @@ export async function processGift(
     const receiverWalletId = await getOrCreateUserWallet(receiverHandleOrId);
 
     const total = Money.fromCoins(coinsAmount);
-    const [vozShare, creatorShare] = total.calculateSplit(0.35); // 35% VOZ, 65% Creator
+    const [vozShare, creatorShare] = total.calculateSplit(0.35); // 35% LYVO, 65% Creator
 
     const entries = [
         // User pays
@@ -386,9 +386,9 @@ export async function processGift(
             entry_type: 'AVAILABLE' as const,
             amount: -total.toMicrocoinsNumber()
         },
-        // VOZ platform share
+        // LYVO platform share
         {
-            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            wallet_id: SYSTEM_WALLETS.LYVO.id,
             entry_type: 'AVAILABLE' as const,
             amount: vozShare.toMicrocoinsNumber()
         },
@@ -416,7 +416,7 @@ export async function processGift(
 /**
  * Donation Operation.
  * Cost: Custom coins amount.
- * Split: 25% VOZ platform, 75% Creator (in pending hold).
+ * Split: 25% LYVO platform, 75% Creator (in pending hold).
  */
 export async function processDonation(
     senderHandleOrId: string,
@@ -428,7 +428,7 @@ export async function processDonation(
     const receiverWalletId = await getOrCreateUserWallet(receiverHandleOrId);
 
     const total = Money.fromCoins(coinsAmount);
-    const [vozShare, creatorShare] = total.calculateSplit(0.25); // 25% VOZ, 75% Creator
+    const [vozShare, creatorShare] = total.calculateSplit(0.25); // 25% LYVO, 75% Creator
 
     const entries = [
         // User pays
@@ -437,9 +437,9 @@ export async function processDonation(
             entry_type: 'AVAILABLE' as const,
             amount: -total.toMicrocoinsNumber()
         },
-        // VOZ platform share
+        // LYVO platform share
         {
-            wallet_id: SYSTEM_WALLETS.VOZ.id,
+            wallet_id: SYSTEM_WALLETS.LYVO.id,
             entry_type: 'AVAILABLE' as const,
             amount: vozShare.toMicrocoinsNumber()
         },

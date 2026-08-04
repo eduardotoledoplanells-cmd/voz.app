@@ -351,7 +351,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
             });
             const data = await res.json();
             if (data.success) {
-                alert("El equipo de VOZ ha recibido tu mensaje. Te responderemos pronto.");
+                alert("El equipo de LYVO ha recibido tu mensaje. Te responderemos pronto.");
                 setShowContactModal(false);
                 setContactMessage('');
             } else {
@@ -709,7 +709,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                             {pack.coins === 500 ? '💎' : '💳'}
                                         </div>
                                         <div>
-                                            <div style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>{pack.name} - {pack.coins} Monedas VOZ</div>
+                                            <div style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>{pack.name} - {pack.coins} Monedas LYVO</div>
                                             <div style={{ color: '#aaa', fontSize: '0.75rem', marginTop: '2px' }}>{pack.priceBase || `${(pack.price / 1.21).toFixed(2).replace('.', ',')} €`} base</div>
                                             <div style={{ color: '#888', fontSize: '0.7rem', fontStyle: 'italic', marginTop: '1px' }}>+ Impuestos</div>
                                         </div>
@@ -869,7 +869,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 disabled={isSendingContact}
                                 style={{ width: '100%', backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '15px', borderRadius: '15px', fontWeight: 'bold', fontSize: '1rem', cursor: isSendingContact ? 'default' : 'pointer', opacity: isSendingContact ? 0.6 : 1 }}
                             >
-                                {isSendingContact ? 'Enviando...' : 'Enviar Mensaje a VOZ'}
+                                {isSendingContact ? 'Enviando...' : 'Enviar Mensaje a LYVO'}
                             </button>
                         </div>
                     </div>

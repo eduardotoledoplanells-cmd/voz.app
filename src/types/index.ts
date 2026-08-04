@@ -92,7 +92,7 @@ export interface User {
     points?: number;
     lastRobCoinEarned?: number; // Timestamp of last earned coin
 
-    // VOZ App Specific properties
+    // LYVO App Specific properties
     handle?: string;
     bio?: string;
     profileColor?: string;

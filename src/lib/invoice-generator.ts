@@ -7,7 +7,7 @@ export function generateInvoice(order: Order) {
     // Company header
     doc.setFontSize(20);
     doc.setTextColor(220, 38, 38); // Red color
-    doc.text('VOZ', 105, 20, { align: 'center' });
+    doc.text('LYVO', 105, 20, { align: 'center' });
 
     doc.setFontSize(10);
     doc.setTextColor(100);

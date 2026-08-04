@@ -769,7 +769,7 @@ export default function FeedPage() {
             {/* Mobile top bar */}
             <div className="mobile-top-bar">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo/logo-white.png" alt="VOZ" style={{ height: '32px', objectFit: 'contain' }} />
+                <img src="/logo/logo-white.png" alt="LYVO" style={{ height: '32px', objectFit: 'contain' }} />
                 <div style={{ fontSize: '11px', color: '#555', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>Feed</div>
                 <div style={{ width: '32px' }} />
             </div>

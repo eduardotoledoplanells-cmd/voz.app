@@ -45,7 +45,7 @@ async function sendTestNotification() {
                 body: JSON.stringify({
                     to: user.push_token,
                     sound: 'default',
-                    title: '¡Hola desde VOZ!',
+                    title: '¡Hola desde LYVO!',
                     body: 'Esta es una notificación de prueba para verificar que el sistema funciona correctamente. 🎉',
                     data: { type: 'system', test: true }
                 })

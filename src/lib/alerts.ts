@@ -162,11 +162,11 @@ async function maybeTriggerCriticalAlert(
   if (!resendKey) return;
 
   const subject = ocurrenciasAntes === 0
-    ? `🚨 [VOZ] Error CRÍTICO nuevo: ${servicio}`
-    : `🔴 [VOZ] Error CRÍTICO repetido x5: ${servicio}`;
+    ? `🚨 [LYVO] Error CRÍTICO nuevo: ${servicio}`
+    : `🔴 [LYVO] Error CRÍTICO repetido x5: ${servicio}`;
 
   const html = `
-    <h2 style="color:#d32f2f">⚠️ Alerta Crítica — VOZ Platform</h2>
+    <h2 style="color:#d32f2f">⚠️ Alerta Crítica — LYVO Platform</h2>
     <table style="border-collapse:collapse;font-family:monospace;font-size:14px">
       <tr><td style="padding:4px 12px;font-weight:bold">Servicio:</td><td>${servicio}</td></tr>
       <tr><td style="padding:4px 12px;font-weight:bold">Error:</td><td>${mensaje.slice(0, 300)}</td></tr>
@@ -185,7 +185,7 @@ async function maybeTriggerCriticalAlert(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'VOZ Alerts <alerts@voz.app>',
+        from: 'LYVO Alerts <alerts@voz.app>',
         to: ['admin@voz.app'],      // Cambiar por el email real del admin
         subject,
         html,

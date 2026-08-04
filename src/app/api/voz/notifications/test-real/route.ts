@@ -5,7 +5,7 @@ import { sendNativePush } from '@/lib/firebaseAdmin';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { userId, title = "🚀 ¡PRUEBA NATIVA REAL VOZ v1.2.6!", message = "¡Esta es la notificación 100% nativa con sonido y vibración en Android!" } = body;
+        const { userId, title = "🚀 ¡PRUEBA NATIVA REAL LYVO v1.2.6!", message = "¡Esta es la notificación 100% nativa con sonido y vibración en Android!" } = body;
 
         if (!userId) {
             return NextResponse.json({ error: 'Falta el parámetro userId en el cuerpo' }, { status: 400 });

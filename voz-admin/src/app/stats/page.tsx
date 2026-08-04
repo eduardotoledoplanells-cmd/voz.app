@@ -419,7 +419,7 @@ export default function ViralRankingPage() {
                             fontSize: '12px',
                             color: '#222'
                         }}>
-                            <strong>Nota del Sistema:</strong> Los datos mostrados corresponden al periodo seleccionado y se actualizan cada vez que sincroniza la App. El algoritmo VOZ Shield prioritiza contenido de alta calidad y evita penalizaciones injustas.
+                            <strong>Nota del Sistema:</strong> Los datos mostrados corresponden al periodo seleccionado y se actualizan cada vez que sincroniza la App. El algoritmo LYVO Shield prioritiza contenido de alta calidad y evita penalizaciones injustas.
                         </div>
                     </div>
                 )}

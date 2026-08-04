@@ -11,7 +11,7 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabase = createClient(supabaseUrl!, serviceKey!);
 
-const VIDEO_FILE_PATH = 'c:/Users/Mis Documentos.RETROTIENDAS-HO/Desktop/APP/VOZ/Countdown8 (1).mp4';
+const VIDEO_FILE_PATH = 'c:/Users/Mis Documentos.RETROTIENDAS-HO/Desktop/APP/LYVO/Countdown8 (1).mp4';
 const VIDEO_ID = 'e6c44e7d-3a76-4841-bc49-b2e935ac4d56';
 
 async function updateVideo() {

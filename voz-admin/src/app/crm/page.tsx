@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function VozCrmPage() {
     const [companies, setCompanies] = useState<any[]>([]);

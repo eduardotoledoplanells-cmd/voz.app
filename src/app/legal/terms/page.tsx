@@ -12,7 +12,7 @@ export default function TermsPage() {
                     operada por:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Titular:</strong> VOZ</li>
+                    <li><strong>Titular:</strong> LYVO</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
                     <li><strong>Email:</strong> voz@appvoz.com</li>
@@ -21,7 +21,7 @@ export default function TermsPage() {
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>2. Objeto del Contrato</h2>
                 <p>
                     El presente contrato tiene por objeto regular la relación contractual de compraventa que surge entre
-                    VOZ y el usuario al realizar un pedido a través de nuestra plataforma web.
+                    LYVO y el usuario al realizar un pedido a través de nuestra plataforma web.
                 </p>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>3. Proceso de Compra</h2>
@@ -40,7 +40,7 @@ export default function TermsPage() {
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>3.3. Confirmación del Pedido</h3>
                 <p>
                     Una vez completado el pago, el usuario recibirá un email de confirmación con los detalles del pedido.
-                    Este email constituye la aceptación del pedido por parte de VOZ.
+                    Este email constituye la aceptación del pedido por parte de LYVO.
                 </p>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>4. Precios y Formas de Pago</h2>
@@ -67,7 +67,7 @@ export default function TermsPage() {
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
                     <li>El plazo estimado de entrega es de 3-7 días laborables</li>
                     <li>Los plazos pueden variar según la disponibilidad del producto y la zona de entrega</li>
-                    <li>Los retrasos por causas ajenas a VOZ no generarán derecho a indemnización</li>
+                    <li>Los retrasos por causas ajenas a LYVO no generarán derecho a indemnización</li>
                 </ul>
 
                 <h3 style={{ marginTop: '20px', marginBottom: '10px' }}>5.3. Gastos de Envío</h3>
@@ -104,7 +104,7 @@ export default function TermsPage() {
                 </ul>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>8. Responsabilidad</h2>
-                <p>VOZ no se hace responsable de:</p>
+                <p>LYVO no se hace responsable de:</p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
                     <li>Errores en los datos proporcionados por el usuario</li>
                     <li>Retrasos en la entrega por causas ajenas a nuestra voluntad</li>
@@ -114,7 +114,7 @@ export default function TermsPage() {
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>9. Propiedad Intelectual</h2>
                 <p>
-                    Todos los contenidos de este sitio web (textos, imágenes, logos, diseños) son propiedad de VOZ
+                    Todos los contenidos de este sitio web (textos, imágenes, logos, diseños) son propiedad de LYVO
                     o de terceros que han autorizado su uso. Queda prohibida su reproducción sin autorización expresa.
                 </p>
 
@@ -137,7 +137,7 @@ export default function TermsPage() {
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>12. Modificaciones</h2>
                 <p>
-                    VOZ se reserva el derecho a modificar estos Términos y Condiciones. Los cambios serán efectivos
+                    LYVO se reserva el derecho a modificar estos Términos y Condiciones. Los cambios serán efectivos
                     desde su publicación en el sitio web.
                 </p>
 

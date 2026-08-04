@@ -17,7 +17,7 @@ const ALLOWED_DOC_TYPES = ['application/pdf'];
 
 export async function POST(request: Request) {
     try {
-        // Autenticación estricta con Token Bearer de Supabase Auth o Headers de usuario VOZ
+        // Autenticación estricta con Token Bearer de Supabase Auth o Headers de usuario LYVO
         let authenticatedUserId: string | null = null;
         const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
         const userHandleHeader = request.headers.get('x-user-handle') || request.headers.get('x-user-id');

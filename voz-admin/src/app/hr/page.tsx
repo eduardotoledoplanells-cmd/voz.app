@@ -1,7 +1,7 @@
 'use client';import { getAdminHeaders, getAdminJsonHeaders, getEmployeeSession } from '@/lib/adminSession';
 
 import { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function VozHrPage() {
     const [employees, setEmployees] = useState<any[]>([]);

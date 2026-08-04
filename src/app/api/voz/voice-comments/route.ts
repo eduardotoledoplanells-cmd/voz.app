@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
                 id: Date.now().toString(),
                 recipientId: recipient,
                 type: 'comment',
-                title: 'Nuevo Comentario de Voz 🎙️',
+                title: 'Nuevo Comentario de Lyvo 🎙️',
                 message: `${userHandle} ha comentado en tu publicación.`,
                 timestamp: new Date().toISOString(),
                 readStatus: false,

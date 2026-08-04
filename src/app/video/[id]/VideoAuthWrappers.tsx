@@ -33,7 +33,7 @@ export const BottomDownload = ({ accentColor }: { accentColor: string }) => {
     return (
         <>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginBottom: '14px' }}>
-                Para dar me gusta, comentar y participar en VOZ, descarga la app gratuita
+                Para dar me gusta, comentar y participar en LYVO, descarga la app gratuita
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

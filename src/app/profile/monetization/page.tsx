@@ -170,7 +170,7 @@ export default function MonetizationPage() {
                         <div style={{ fontSize: '60px', marginBottom: '20px' }}>💰</div>
                         <h3 style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '15px' }}>Activa tu Monetización</h3>
                         <p style={{ color: 'gray', lineHeight: '1.5', marginBottom: '30px' }}>
-                            Conviértete en un Creador Verificado de VOZ para recibir ingresos por tus videos y transmisiones. Pagos rápidos y seguros impulsados por Stripe.
+                            Conviértete en un Creador Verificado de LYVO para recibir ingresos por tus videos y transmisiones. Pagos rápidos y seguros impulsados por Stripe.
                         </p>
                         
                         {isPending ? (
@@ -215,7 +215,7 @@ export default function MonetizationPage() {
                         <span style={{ marginRight: '10px' }}>📢</span> Campañas de Publicidad
                     </h4>
                     <p style={{ color: 'gray', fontSize: '14px', marginBottom: '15px' }}>
-                        Promociona tus publicaciones de VOZ para llegar a más audiencia geolocalizada en España.
+                        Promociona tus publicaciones de LYVO para llegar a más audiencia geolocalizada en España.
                     </p>
                     <Link 
                         href="/profile/creator-panel" 
@@ -236,7 +236,7 @@ export default function MonetizationPage() {
                         <span style={{ marginRight: '10px' }}>🔗</span> Conexión de Directos
                     </h4>
                     <p style={{ color: 'gray', fontSize: '14px', marginBottom: '15px' }}>
-                        Vincula tu canal de Twitch para que VOZ te detecte automáticamente cuando inicies transmisión en OBS.
+                        Vincula tu canal de Twitch para que LYVO te detecte automáticamente cuando inicies transmisión en OBS.
                     </p>
 
                     {user?.live_url ? (

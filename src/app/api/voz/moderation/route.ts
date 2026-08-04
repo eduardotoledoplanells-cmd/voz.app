@@ -77,8 +77,8 @@ export async function PATCH(request: NextRequest) {
             const isApproved = status === 'approved';
             try {
                 let notifMessage = isApproved
-                    ? 'Tu contenido ha sido revisado y aprobado por el equipo de moderación de VOZ.'
-                    : `Tu contenido ha sido eliminado por incumplir las normas de la comunidad VOZ.${employeeName ? ` Moderador: ${employeeName}.` : ''}`;
+                    ? 'Tu contenido ha sido revisado y aprobado por el equipo de moderación de LYVO.'
+                    : `Tu contenido ha sido eliminado por incumplir las normas de la comunidad LYVO.${employeeName ? ` Moderador: ${employeeName}.` : ''}`;
 
                 if (result.type === 'video' && result.url) {
                     const videoId = await getVideoIdByUrl(result.url);

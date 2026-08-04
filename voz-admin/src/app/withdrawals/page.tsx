@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import '98.css';
+
 
 export default function WithdrawalsPage() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -54,7 +54,7 @@ export default function WithdrawalsPage() {
                                         <th style={{ padding: '8px' }}>Usuario</th>
                                         <th style={{ padding: '8px' }}>Bruto Retirado</th>
                                         <th style={{ padding: '8px' }}>Neto Creador (75%)</th>
-                                        <th style={{ padding: '8px' }}>Comisión VOZ (25%)</th>
+                                        <th style={{ padding: '8px' }}>Comisión LYVO (25%)</th>
                                         <th style={{ padding: '8px' }}>Transfer ID</th>
                                         <th style={{ padding: '8px' }}>Fecha</th>
                                         <th style={{ padding: '8px' }}>Estado Payout</th>

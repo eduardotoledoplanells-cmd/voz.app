@@ -345,7 +345,7 @@ export default function VoiceCommentsModal({ isOpen, onClose, videoId, currentUs
             <div style={{ width: '100%', maxWidth: '450px', height: '100vh', backgroundColor: '#111', borderRadius: '20px 0 0 20px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderBottom: '1px solid #333' }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Comentarios de Voz</h2>
+                        <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>Comentarios de Lyvo</h2>
                         <div style={{ display: 'flex', alignItems: 'center', marginTop: '5px', gap: '5px' }}>
                             <input type="checkbox" id="autoplay-toggle" checked={autoPlay} onChange={(e) => setAutoPlay(e.target.checked)} style={{ accentColor: '#8E2DE2', cursor: 'pointer' }} />
                             <label htmlFor="autoplay-toggle" style={{ color: 'gray', fontSize: '0.8rem', cursor: 'pointer' }}>Reproducción automática</label>

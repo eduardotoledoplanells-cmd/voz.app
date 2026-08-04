@@ -13,7 +13,7 @@ if (!stripeSecretKey) {
 export const stripe = new Stripe(stripeSecretKey || 'sk_test_dummy', {
     apiVersion: '2025-01-27.acacia' as any, // Latest stable version
     appInfo: {
-        name: 'VOZ-Server',
+        name: 'LYVO-Server',
         version: '1.0.0',
     },
 });
