@@ -116,6 +116,7 @@ export default function VozAdminDashboard() {
                 // Save session with JWT (NO plaintext password)
                 localStorage.setItem('vozEmployee', JSON.stringify(sessionData));
                 setCurrentEmployee(sessionData);
+                window.dispatchEvent(new Event('vozEmployeeLogin'));
 
                 // Register login log using Bearer token auth
                 fetch('/api/voz/logs', {
@@ -171,7 +172,7 @@ export default function VozAdminDashboard() {
             }}>
                 <div className="window" style={{ width: '350px' }}>
                     <div className="title-bar">
-                        <div className="title-bar-text">Control de Acceso - VOZ OS 98</div>
+                        <div className="title-bar-text">Control de Acceso - LYVO OS 98</div>
                     </div>
                     <div className="window-body">
                         <p>Identifícate para registrar tu actividad en el sistema.</p>
@@ -226,7 +227,7 @@ export default function VozAdminDashboard() {
     return (
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', overflowY: 'auto' }}>
             <div>
-                <h4 style={{ marginBottom: '5px' }}>Bienvenido al centro de control de la app Voz:</h4>
+                <h4 style={{ marginBottom: '5px' }}>Bienvenido al centro de control de la app Lyvo:</h4>
                 <p>Centro de mando operativo. Datos actualizados en tiempo real desde la DB Central.</p>
             </div>
 
@@ -257,7 +258,7 @@ export default function VozAdminDashboard() {
                                 </h2>
                             </div>
                             <div style={{ textAlign: 'center', borderTop: '1px solid #808080', paddingTop: '10px', gridColumn: 'span 2' }}>
-                                <p style={{ margin: 0, fontSize: '12px' }}>Actividad App VOZ (Regalos/PM)</p>
+                                <p style={{ margin: 0, fontSize: '12px' }}>Actividad App LYVO (Regalos/PM)</p>
                                 <h2 style={{ margin: '5px 0', color: '#8A2BE2' }}>
                                     {stats.vozInteractions} <span style={{ fontSize: '0.6em', color: 'black' }}>({stats.vozDistributed.toFixed(2)}€ Repartidos)</span>
                                 </h2>

@@ -49,10 +49,22 @@ function VozAdminContent({
 
 
     useEffect(() => {
-        const storedEmployee = localStorage.getItem('vozEmployee');
-        if (storedEmployee) {
-            setEmployee(JSON.parse(storedEmployee));
-        }
+        const checkStorage = () => {
+            const storedEmployee = localStorage.getItem('vozEmployee');
+            if (storedEmployee) {
+                setEmployee(JSON.parse(storedEmployee));
+            } else {
+                setEmployee(null);
+            }
+        };
+        checkStorage();
+        window.addEventListener('storage', checkStorage);
+        // Custom event for same-tab login updates
+        window.addEventListener('vozEmployeeLogin', checkStorage);
+        return () => {
+            window.removeEventListener('storage', checkStorage);
+            window.removeEventListener('vozEmployeeLogin', checkStorage);
+        };
     }, [pathname]);
 
     useEffect(() => {
@@ -60,7 +72,7 @@ function VozAdminContent({
             if (!user || user.role !== 'admin') {
                 // If not admin, you shouldn't be here. 
                 // In a separate project, maybe redirect to a login page or just show unauthorized
-                console.warn('Unauthorized access to VOZ Admin');
+                console.warn('Unauthorized access to LYVO Admin');
             }
         }
     }, [user, isLoading, router]);
@@ -117,10 +129,10 @@ function VozAdminContent({
     // Roles: 1: Director, 2: Admin, 3: Moderator, 4: Ads, 5: Tech, 6: Dev
     const allNavItems = [
         { href: '/', label: '📊 Dashboard', roles: [1, 2, 5, 6] },
-        { href: '/billing', label: '💰 Facturación Voz', roles: [1, 2] },
-        { href: '/creators', label: '📂 Creadores Voz', roles: [1, 2, 3, 5, 6] },
+        { href: '/billing', label: '💰 Facturación Lyvo', roles: [1, 2] },
+        { href: '/creators', label: '📂 Creadores Lyvo', roles: [1, 2, 3, 5, 6] },
         { href: '/users', label: '👥 Usuarios App', roles: [1, 3, 5, 6] },
-        { href: '/moderation', label: '🛡️ Moderación Voz', roles: [1, 3, 5, 6] },
+        { href: '/moderation', label: '🛡️ Moderación Lyvo', roles: [1, 3, 5, 6] },
         { href: '/notifications', label: '✉️ Notificaciones App', roles: [1, 2, 5, 6] },
         { href: '/ads', label: '📢 Publicidad App', roles: [1, 4, 5, 6] },
         { href: '/stats', label: '📈 Ranking Viral', roles: [1, 5, 6] },
@@ -158,7 +170,7 @@ function VozAdminContent({
 
     const getWindowTitle = () => {
         const item = allNavItems.find(i => i.href === pathname);
-        return item ? item.label : 'VOZ Control Center';
+        return item ? item.label : 'LYVO Control Center';
     }
 
     const activeItem = allNavItems.find(i => i.href === pathname);
@@ -207,7 +219,7 @@ function VozAdminContent({
                 {isStartOpen && (
                     <div className={styles.startMenu}>
                         <div className={styles.startMenuItem} style={{ background: 'navy', color: 'white', fontWeight: 'bold' }}>
-                            VOZ OS 98
+                            LYVO OS 98
                         </div>
                         {navItems.map((item) => (
                             <Link
