@@ -1029,6 +1029,7 @@ export async function getNotifications(recipientId?: string): Promise<Notificati
 }
 
 export async function addNotification(n: Notification): Promise<Notification | null> {
+    let insertedData: any = null;
     try {
         const cleanHandle = n.recipientId.startsWith('@') ? n.recipientId : `@${n.recipientId}`;
         const rawHandle = cleanHandle.replace('@', '');
@@ -1069,6 +1070,8 @@ export async function addNotification(n: Notification): Promise<Notification | n
             read_status: n.readStatus
         }]).select().single();
 
+        insertedData = data;
+
         if (error) {
             console.error('[DB] Error adding notification:', error);
             return null;
@@ -1097,7 +1100,7 @@ export async function addNotification(n: Notification): Promise<Notification | n
         console.warn("[Push] Failed to send push notification:", e.message);
     }
 
-    return data;
+    return insertedData;
 }
 
 // --- Campaigns ---
