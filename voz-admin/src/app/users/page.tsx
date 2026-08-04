@@ -165,6 +165,7 @@ export default function VozUsersPage() {
                 status: tempUser.status,
                 strikes: tempUser.strikes,
                 phone: tempUser.phone,
+                custom_video_duration: tempUser.custom_video_duration,
                 employeeName: empLogName
             })
         })
@@ -181,7 +182,7 @@ export default function VozUsersPage() {
                             body: JSON.stringify({
                                 recipientId: userHandle,
                                 type: 'moderation',
-                                title: 'VOZ',
+                                title: 'LYVO',
                                 message: isIncrease 
                                     ? `Has recibido una nueva penalización por incumplimiento de normas. Recuerda que al acumular 3 strikes serás baneado.`
                                     : `Una de tus penalizaciones ha sido retirada por el equipo de moderación. Gracias por cumplir las normas.`
@@ -507,6 +508,21 @@ export default function VozUsersPage() {
                                             <option value="banned">Baneado</option>
                                         </select>
                                     </div>
+                                    <div className="field-row">
+                                        <label>Límite de Vídeo:</label>
+                                        <select
+                                            value={tempUser?.custom_video_duration || 0}
+                                            onChange={(e) => setTempUser({ ...tempUser, custom_video_duration: parseInt(e.target.value) })}
+                                            style={{ marginLeft: 5 }}
+                                        >
+                                            <option value={0}>Por defecto (Seguidores)</option>
+                                            <option value={90}>1:30 minutos</option>
+                                            <option value={150}>2:30 minutos</option>
+                                            <option value={300}>5:00 minutos</option>
+                                            <option value={600}>10:00 minutos</option>
+                                            <option value={3600}>60:00 minutos (Especial)</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -626,7 +642,7 @@ export default function VozUsersPage() {
                 }}>
                     <div className="window" style={{ width: 600 }}>
                         <div className="title-bar">
-                            <div className="title-bar-text">Estadísticas Reales - VOZ Analytics</div>
+                            <div className="title-bar-text">Estadísticas Reales - LYVO Analytics</div>
                             <div className="title-bar-controls">
                                 <button aria-label="Close" onClick={() => setShowStats(false)}></button>
                             </div>
