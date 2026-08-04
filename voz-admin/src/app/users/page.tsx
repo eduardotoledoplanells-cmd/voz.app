@@ -515,7 +515,7 @@ export default function VozUsersPage() {
                                             onChange={(e) => setTempUser({ ...tempUser, custom_video_duration: parseInt(e.target.value) })}
                                             style={{ marginLeft: 5 }}
                                         >
-                                            <option value={0}>Por defecto (Seguidores)</option>
+                                            <option value={0}>Por defecto</option>
                                             <option value={90}>1:30 minutos</option>
                                             <option value={150}>2:30 minutos</option>
                                             <option value={300}>5:00 minutos</option>
