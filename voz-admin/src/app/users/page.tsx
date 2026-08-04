@@ -20,6 +20,7 @@ export default function VozUsersPage() {
     const [showStats, setShowStats] = useState(false);
     const [statsData, setStatsData] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('registros');
+    const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null);
 
     // Strike Modal State
     const [showStrikeModal, setShowStrikeModal] = useState(false);
@@ -655,6 +656,7 @@ export default function VozUsersPage() {
                                     <menu role="tablist">
                                         <li role="tab" aria-selected={activeTab === 'registros'} onClick={() => setActiveTab('registros')}><a href="#registros">Registros Diarios</a></li>
                                         <li role="tab" aria-selected={activeTab === 'actividad'} onClick={() => setActiveTab('actividad')}><a href="#actividad">Actividad Real</a></li>
+                                        <li role="tab" aria-selected={activeTab === 'demografia'} onClick={() => setActiveTab('demografia')}><a href="#demografia">Demografía (España)</a></li>
                                         <li role="tab" aria-selected={activeTab === 'sistema'} onClick={() => setActiveTab('sistema')}><a href="#sistema">Infraestructura</a></li>
                                     </menu>
                                     <div className="window" role="tabpanel" style={{ height: 350, overflowY: 'auto' }}>
@@ -718,6 +720,74 @@ export default function VozUsersPage() {
                                                             ))}
                                                         </tbody>
                                                     </table>
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'demografia' && (
+                                                <div>
+                                                    <h4>Distribución Demográfica de Usuarios</h4>
+                                                    {(() => {
+                                                        const regions = users.reduce((acc, user) => {
+                                                            if (user.region) {
+                                                                const parts = user.region.split(' - ');
+                                                                const community = parts[0] ? parts[0].trim() : 'Desconocido';
+                                                                const municipality = parts[1] ? parts[1].trim() : 'Desconocido';
+                                                                
+                                                                if (!acc[community]) acc[community] = { total: 0, municipalities: {} };
+                                                                acc[community].total += 1;
+                                                                if (!acc[community].municipalities[municipality]) acc[community].municipalities[municipality] = 0;
+                                                                acc[community].municipalities[municipality] += 1;
+                                                            }
+                                                            return acc;
+                                                        }, {} as Record<string, { total: number, municipalities: Record<string, number> }>);
+                                                        
+                                                        const sortedCommunities = Object.entries(regions).sort((a: any, b: any) => b[1].total - a[1].total);
+                                                        
+                                                        return (
+                                                            <div style={{ display: 'flex', gap: 15, marginTop: 15 }}>
+                                                                <div className="sunken-panel" style={{ flex: 1, padding: 10, background: '#fff', maxHeight: 250, overflowY: 'auto' }}>
+                                                                    <p style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: 5, margin: 0, marginBottom: 5 }}>Comunidades Autónomas</p>
+                                                                    {sortedCommunities.map(([comm, data]: any) => (
+                                                                        <div 
+                                                                            key={comm} 
+                                                                            onClick={() => setSelectedCommunity(comm)}
+                                                                            style={{ 
+                                                                                padding: 5, 
+                                                                                cursor: 'pointer', 
+                                                                                backgroundColor: selectedCommunity === comm ? '#000080' : 'transparent',
+                                                                                color: selectedCommunity === comm ? 'white' : 'black',
+                                                                                display: 'flex',
+                                                                                justifyContent: 'space-between',
+                                                                                fontSize: 13
+                                                                            }}
+                                                                        >
+                                                                            <span>{comm}</span>
+                                                                            <span style={{ fontWeight: 'bold' }}>{data.total}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {sortedCommunities.length === 0 && <p style={{ fontSize: 13, color: '#666' }}>No hay datos de ubicación registrados.</p>}
+                                                                </div>
+                                                                
+                                                                <div className="sunken-panel" style={{ flex: 1, padding: 10, background: '#fff', maxHeight: 250, overflowY: 'auto' }}>
+                                                                    <p style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: 5, margin: 0, marginBottom: 5 }}>
+                                                                        Municipios {selectedCommunity ? `en ${selectedCommunity}` : ''}
+                                                                    </p>
+                                                                    {selectedCommunity && regions[selectedCommunity] ? (
+                                                                        Object.entries(regions[selectedCommunity].municipalities)
+                                                                            .sort((a: any, b: any) => b[1] - a[1])
+                                                                            .map(([mun, count]: any) => (
+                                                                            <div key={mun} style={{ padding: 5, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', fontSize: 13 }}>
+                                                                                <span>{mun}</span>
+                                                                                <span style={{ fontWeight: 'bold', color: '#008000' }}>{count}</span>
+                                                                            </div>
+                                                                        ))
+                                                                    ) : (
+                                                                        <p style={{ color: '#666', fontStyle: 'italic', padding: 5, fontSize: 13 }}>Seleccione una comunidad para ver sus municipios.</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
 
