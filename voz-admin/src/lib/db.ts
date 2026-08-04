@@ -48,6 +48,7 @@ export interface AppUser {
     resetPin?: string;
     strikes?: number;
     phone?: string;
+    custom_video_duration?: number;
     earningsBalance?: number;
     userHandle?: string; // For compatibility
     live_url_kick?: string | null;
@@ -226,6 +227,7 @@ function mapUserRowToAppUser(u: any): AppUser {
         resetPin: u.reset_pin,
         strikes: u.strikes || 0,
         phone: u.phone,
+        custom_video_duration: u.custom_video_duration || 0,
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         stripeAccountId: u.stripe_account_id,
         stripeOnboardingComplete: u.stripe_onboarding_complete
@@ -430,7 +432,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone'];
+    const allowedKeys = ['name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'custom_video_duration'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -456,6 +458,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.resetPin !== undefined) dbUpdates.reset_pin = updates.resetPin;
     if (updates.strikes !== undefined) dbUpdates.strikes = updates.strikes;
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+    if (updates.custom_video_duration !== undefined) dbUpdates.custom_video_duration = updates.custom_video_duration;
 
     // Filter only allowed keys and remove undefined
     Object.keys(dbUpdates).forEach(key => {
