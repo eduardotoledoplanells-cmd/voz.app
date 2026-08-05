@@ -390,19 +390,40 @@ export default function UploadPage() {
                                             URL.revokeObjectURL(video.src);
                                             resolve(0);
                                         }
-                                    });
-
-                                    const duration = await getVideoDuration(selectedFile);
+                                                  const duration = await getVideoDuration(selectedFile);
                                     
                                     let user = authUser;
-                                    if (!user) {
+                                    if (!user && typeof window !== 'undefined') {
                                         const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
                                         if (storedUser) {
                                             try { user = JSON.parse(storedUser); } catch (err) {}
                                         }
                                     }
+
+                                    // Fetch fresh profile data to get latest custom_video_duration set by admin
+                                    if (user && (user.id || user.handle)) {
+                                        try {
+                                            const query = user.id ? `id=${encodeURIComponent(user.id)}` : `handle=${encodeURIComponent(user.handle)}`;
+                                            const profileRes = await fetch(`/api/voz/users/profile?${query}&t=${Date.now()}`);
+                                            const profileData = await profileRes.json();
+                                            if (profileData.success && profileData.user) {
+                                                user = { ...user, ...profileData.user };
+                                                if (typeof window !== 'undefined') {
+                                                    localStorage.setItem('user', JSON.stringify(user));
+                                                }
+                                            }
+                                        } catch (e) {
+                                            console.warn('Failed to fetch fresh user profile limit:', e);
+                                        }
+                                    }
+
                                     let maxAllowed = 90;
-                                    const customLimit = user?.custom_video_duration || 0;
+                                    const customLimit = Number(
+                                        user?.custom_video_duration ||
+                                        user?.privacy_settings?.custom_video_duration ||
+                                        user?.privacySettings?.custom_video_duration ||
+                                        0
+                                    );
                                     const followers = user?.followers_count || user?.followers || 0;
                                     
                                     if (customLimit > 0) {
@@ -414,11 +435,15 @@ export default function UploadPage() {
                                     }
 
                                     if (duration > maxAllowed + 0.5) {
-                                        setErrorMsg(`Necesitas más seguidores para subir vídeos de esta duración. Tu límite actual es de ${maxAllowed >= 60 ? (maxAllowed/60) + ' minutos' : maxAllowed + ' segundos'}${customLimit > 0 ? '.' : ' por tener ' + followers + ' seguidores.'}`);
+                                        const limitStr = maxAllowed >= 60 ? (maxAllowed/60) + ' minutos' : maxAllowed + ' segundos';
+                                        setErrorMsg(customLimit > 0
+                                            ? `Tu límite especial configurado es de ${limitStr}. Tu vídeo dura ${(duration/60).toFixed(1)} minutos.`
+                                            : `Necesitas más seguidores para subir vídeos de esta duración. Tu límite actual es de ${limitStr} por tener ${followers} seguidores.`
+                                        );
                                         setStatus('error');
                                         setFile(null);
                                         return;
-                                    }
+                                    }                               }
                                 }
 
                                 setFile(selectedFile);
