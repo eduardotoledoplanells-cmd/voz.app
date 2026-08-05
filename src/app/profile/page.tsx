@@ -679,16 +679,13 @@ function ProfilePageContent() {
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
                     {isOwnProfile ? (
                         <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-                            <button onClick={() => router.push('/upload')} style={{ flex: 1, maxWidth: '125px', padding: '10px 8px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                📹 Subir vídeo
-                            </button>
-                            <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '105px', padding: '10px 8px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                            <button onClick={() => setIsSettingsOpen(true)} style={{ flex: 1, maxWidth: '120px', padding: '10px 10px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                                 Editar perfil
                             </button>
-                            <button onClick={() => router.push('/messages')} style={{ flex: 1, maxWidth: '105px', padding: '10px 8px', backgroundColor: '#222', color: 'white', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                            <button onClick={() => router.push('/messages')} style={{ flex: 1, maxWidth: '130px', padding: '10px 10px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                 💬 Mensajes
                             </button>
-                            <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '90px', padding: '10px 8px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                            <button onClick={() => router.push('/profile/creator-panel')} style={{ flex: 1, maxWidth: '100px', padding: '10px 10px', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
                                 Anuncios
                             </button>
                         </div>
@@ -741,21 +738,11 @@ function ProfilePageContent() {
                 {loadingVideos ? (
                     <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>Cargando vídeos...</div>
                 ) : videos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                        <p style={{ margin: 0 }}>
-                            {activeTab === 'likes' ? "No has dado Me gusta a ningún vídeo aún." :
-                             activeTab === 'bookmarks' ? "No tienes vídeos guardados en favoritos." :
-                             activeTab === 'drafts' ? "No tienes vídeos privados." :
-                             "No hay vídeos publicados aún."}
-                        </p>
-                        {isOwnProfile && activeTab === 'grid' && (
-                            <button onClick={() => router.push('/upload')} style={{
-                                padding: '12px 24px', background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)',
-                                color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer'
-                            }}>
-                                📹 ¡Sube tu primer vídeo!
-                            </button>
-                        )}
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
+                        {activeTab === 'likes' ? "No has dado Me gusta a ningún vídeo aún." :
+                         activeTab === 'bookmarks' ? "No tienes vídeos guardados en favoritos." :
+                         activeTab === 'drafts' ? "No tienes vídeos privados." :
+                         "No hay vídeos publicados aún."}
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
