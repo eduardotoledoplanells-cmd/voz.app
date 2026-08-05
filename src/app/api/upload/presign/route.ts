@@ -88,7 +88,6 @@ export async function POST(request: Request) {
             Bucket: R2_BUCKET_NAME,
             Key: key,
             ContentType: sanitizedFileType,
-            CacheControl: 'public, max-age=31536000, immutable',
         });
 
         // URL expira en 1 hora
