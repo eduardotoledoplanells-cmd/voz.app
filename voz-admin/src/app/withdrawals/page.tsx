@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-
+import { getAdminHeaders } from '@/lib/adminSession';
 
 export default function WithdrawalsPage() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -15,7 +15,8 @@ export default function WithdrawalsPage() {
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Pragma': 'no-cache',
+                    ...getAdminHeaders()
                 }
             });
             const data = await res.json();

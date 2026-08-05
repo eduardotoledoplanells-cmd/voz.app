@@ -1,6 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
-import '../98-nobitmap.css';
+import { getAdminHeaders, getAdminJsonHeaders } from '@/lib/adminSession';
 import spainLocations from '@/lib/spainLocations.json';
 
 export default function VozUsersPage() {
@@ -8,6 +7,7 @@ export default function VozUsersPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [tempUser, setTempUser] = useState<any>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -61,16 +61,26 @@ export default function VozUsersPage() {
 
     const fetchUsers = () => {
         setLoading(true);
+        setAuthError(null);
+        const headers = getAdminHeaders();
+
         Promise.all([
-            fetch('/api/voz/users').then(res => res.json()),
-            fetch('/api/voz/stats').then(res => res.json()),
-            fetch('/api/voz/wallet/withdrawals?t=' + Date.now()).then(res => res.json())
+            fetch('/api/voz/users', { headers }).then(res => res.json()),
+            fetch('/api/voz/stats', { headers }).then(res => res.json()),
+            fetch('/api/voz/wallet/withdrawals?t=' + Date.now(), { headers }).then(res => res.json())
         ])
             .then(([usersData, statsRes, wRes]) => {
                 if (Array.isArray(usersData)) {
                     setUsers(usersData);
                     setFilteredUsers(usersData);
+                    setAuthError(null);
+                } else if (usersData && usersData.error) {
+                    console.error('API Error fetching users:', usersData.error);
+                    setAuthError(usersData.error);
+                } else {
+                    setAuthError('Fallo al obtener la lista de usuarios. Verifica tus credenciales de empleado.');
                 }
+
                 if (statsRes && !statsRes.error) {
                     setStatsData(statsRes);
                 }
@@ -81,13 +91,14 @@ export default function VozUsersPage() {
             })
             .catch(err => {
                 console.error('Fetch error:', err);
+                setAuthError('Error de conexión al cargar la lista de usuarios.');
                 setLoading(false);
             });
     };
 
     const handleDeleteUser = (id: string) => {
         showConfirm('¿Seguro que quieres borrar este usuario permanentemente?', () => {
-            fetch(`/api/voz/users?id=${id}&employeeName=Admin`, { method: 'DELETE' })
+            fetch(`/api/voz/users?id=${id}&employeeName=Admin`, { method: 'DELETE', headers: getAdminHeaders() })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -114,7 +125,7 @@ export default function VozUsersPage() {
     const handleNameChange = (userId: string, newName: string) => {
         fetch('/api/voz/users', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAdminJsonHeaders(),
             body: JSON.stringify({ id: userId, name: newName, employeeName: 'Admin' })
         })
             .then(res => res.json())
@@ -132,7 +143,7 @@ export default function VozUsersPage() {
         setOpenMenuId(null);
         fetch('/api/voz/users', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAdminJsonHeaders(),
             body: JSON.stringify({ id: userId, status: newStatus, employeeName: 'Admin' })
         })
             .then(res => res.json())
@@ -159,7 +170,7 @@ export default function VozUsersPage() {
 
         fetch('/api/voz/users', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAdminJsonHeaders(),
             body: JSON.stringify({
                 id: tempUser.id,
                 name: tempUser.name,
@@ -180,7 +191,7 @@ export default function VozUsersPage() {
                         
                         fetch('/api/voz/notifications', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getAdminJsonHeaders(),
                             body: JSON.stringify({
                                 recipientId: userHandle,
                                 type: 'moderation',
@@ -203,7 +214,7 @@ export default function VozUsersPage() {
         setLoadingVideos(true);
         setShowVideosModal(true);
         setCurrentVideoUser(handle);
-        fetch(`/api/voz/users?handle=${encodeURIComponent(handle)}`)
+        fetch(`/api/voz/users?handle=${encodeURIComponent(handle)}`, { headers: getAdminHeaders() })
             .then(res => res.json())
             .then(data => {
                 setUserVideos(data);
@@ -218,7 +229,7 @@ export default function VozUsersPage() {
             const emp = stored ? JSON.parse(stored) : null;
             const empLogName = emp ? `[${emp.worker_number || '???'}] ${emp.username}` : 'Admin';
 
-            fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(userHandle)}&employeeName=${encodeURIComponent(empLogName)}`, { method: 'DELETE' })
+            fetch(`/api/voz/videos?id=${videoId}&userHandle=${encodeURIComponent(userHandle)}&employeeName=${encodeURIComponent(empLogName)}`, { method: 'DELETE', headers: getAdminHeaders() })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -249,7 +260,7 @@ export default function VozUsersPage() {
 
         fetch('/api/voz/users/strike', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAdminJsonHeaders(),
             body: JSON.stringify({ handle: targetHandle, reason: strikeReason, employeeName: empLogName })
         })
             .then(res => res.json())
@@ -279,10 +290,21 @@ export default function VozUsersPage() {
         }
     };
 
-    if (loading) return <div style={{ padding: 10 }}>Cargando base de datos...</div>;
+    if (loading) return <div style={{ padding: 10 }}>Cargando base de datos de usuarios...</div>;
 
     return (
         <div style={{ padding: 10, height: '85vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {authError && (
+                <div className="sunken-panel" style={{ padding: '12px 16px', marginBottom: 12, backgroundColor: '#fff0f0', border: '2px solid #ff3b30', color: '#d00000', borderRadius: 6 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>⚠️ Error de Autenticación / Acceso denegado:</div>
+                    <div style={{ fontSize: 13, marginBottom: 8 }}>{authError}</div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <button onClick={fetchUsers} style={{ fontWeight: 'bold' }}>🔄 Reintentar Carga</button>
+                        <button onClick={() => window.location.href = '/'} style={{ fontWeight: 'bold' }}>🔑 Ir al Login de Administrador</button>
+                    </div>
+                </div>
+            )}
+
             <div className="field-row" style={{ marginBottom: 10 }}>
                 <label htmlFor="search">Buscar Usuario:</label>
                 <input
