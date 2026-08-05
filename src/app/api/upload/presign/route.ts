@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { filename, fileType, fileSize } = body;
 
-        if (!filename || !fileType || !fileSize) {
+        if (!filename || !fileSize) {
             return NextResponse.json(
                 { error: 'Faltan metadatos del archivo.' },
                 { status: 400 }
@@ -64,11 +64,20 @@ export async function POST(request: Request) {
             );
         }
 
-        if (!ALLOWED_VIDEO_TYPES.includes(fileType)) {
-            return NextResponse.json(
-                { error: `Tipo de archivo inválido (${fileType}). Solo se permiten formatos de vídeo o audio permitidos.` },
-                { status: 400 }
-            );
+        let sanitizedFileType = (fileType || '').toLowerCase();
+
+        // Infer from file extension if fileType is missing, generic or octet-stream
+        if (!ALLOWED_VIDEO_TYPES.includes(sanitizedFileType)) {
+            const ext = filename.split('.').pop()?.toLowerCase();
+            if (ext === 'mp4' || ext === 'm4v') sanitizedFileType = 'video/mp4';
+            else if (ext === 'mov') sanitizedFileType = 'video/quicktime';
+            else if (ext === 'webm') sanitizedFileType = 'video/webm';
+            else if (ext === 'mkv') sanitizedFileType = 'video/x-matroska';
+            else if (ext === 'avi') sanitizedFileType = 'video/avi';
+            else if (ext === 'mp3') sanitizedFileType = 'audio/mpeg';
+            else if (ext === 'm4a') sanitizedFileType = 'audio/m4a';
+            else if (ext === 'wav') sanitizedFileType = 'audio/wav';
+            else sanitizedFileType = 'video/mp4'; // Default fallback for video files
         }
 
         const timestamp = Date.now();
@@ -78,7 +87,7 @@ export async function POST(request: Request) {
         const command = new PutObjectCommand({
             Bucket: R2_BUCKET_NAME,
             Key: key,
-            ContentType: fileType,
+            ContentType: sanitizedFileType,
             CacheControl: 'public, max-age=31536000, immutable',
         });
 

@@ -253,9 +253,16 @@ export default function UploadPage() {
                     body: formData
                 });
 
-                const mediaData = await mediaRes.json();
+                const mediaText = await mediaRes.text();
+                let mediaData: any = {};
+                try {
+                    mediaData = JSON.parse(mediaText);
+                } catch {
+                    console.error('[Fallback Upload Response non-JSON]:', mediaText);
+                }
+
                 if (!mediaRes.ok || !mediaData.url) {
-                    throw new Error(mediaData.error || mediaData.message || 'No se pudo subir el archivo. Inténtalo de nuevo.');
+                    throw new Error(mediaData.error || mediaData.message || (mediaRes.status === 413 ? 'El archivo es demasiado grande para el servidor secundario. Revisa la conexión con R2.' : 'No se pudo subir el archivo. Inténtalo de nuevo.'));
                 }
                 videoUrl = mediaData.url;
             }
