@@ -191,12 +191,14 @@ export default function UploadPage() {
                     uploadHeaders['Authorization'] = `Bearer ${token}`;
                 }
 
+                const mimeType = file.type || 'video/mp4';
+
                 const presignRes = await fetch('/api/upload/presign', {
                     method: 'POST',
                     headers: uploadHeaders,
                     body: JSON.stringify({
                         filename: file.name,
-                        fileType: file.type,
+                        fileType: mimeType,
                         fileSize: file.size
                     }),
                 });
@@ -210,18 +212,23 @@ export default function UploadPage() {
                 }
 
                 if (presignRes.ok && presignData.presignedUrl) {
-                    setStatusMsg('Subiendo contenido...');
+                    setStatusMsg('Subiendo vídeo...');
                     const r2Res = await fetch(presignData.presignedUrl, {
                         method: 'PUT',
                         body: file,
                         headers: {
-                            'Content-Type': file.type
+                            'Content-Type': mimeType
                         }
                     });
 
                     if (r2Res.ok) {
                         videoUrl = presignData.url;
+                    } else {
+                        const errTxt = await r2Res.text().catch(() => '');
+                        console.error('[Upload] R2 upload status:', r2Res.status, errTxt);
                     }
+                } else {
+                    console.warn('[Upload] Presign non-ok:', presignRes.status, presignData);
                 }
             } catch (presignErr) {
                 console.warn('[Upload] R2 Presign failed, trying direct media upload fallback:', presignErr);
