@@ -396,8 +396,10 @@ export default function UploadPage() {
                                         video.onerror = () => {
                                             URL.revokeObjectURL(video.src);
                                             resolve(0);
-                                        }
-                                                  const duration = await getVideoDuration(selectedFile);
+                                        };
+                                    });
+
+                                    const duration = await getVideoDuration(selectedFile);
                                     
                                     let user = authUser;
                                     if (!user && typeof window !== 'undefined') {
@@ -450,7 +452,7 @@ export default function UploadPage() {
                                         setStatus('error');
                                         setFile(null);
                                         return;
-                                    }                               }
+                                    }
                                 }
 
                                 setFile(selectedFile);
