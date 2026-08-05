@@ -144,7 +144,7 @@ export default function UploadPage() {
             // 2. Get user from AuthContext or localStorage / sessionStorage
             let user = authUser;
             if (!user) {
-                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                const storedUser = typeof window !== 'undefined' ? (localStorage.getItem('user') || sessionStorage.getItem('user')) : null;
                 if (storedUser) {
                     try {
                         user = JSON.parse(storedUser);
@@ -152,17 +152,19 @@ export default function UploadPage() {
                 }
             }
 
-            if (!user || !user.handle) {
+            if (!user) {
                 throw new Error('Debes iniciar sesión para subir contenido.');
             }
 
-            const userHandle = user.handle.startsWith('@') ? user.handle : `@${user.handle}`;
+            const rawHandle = user.handle || (user.name ? `@${user.name.toLowerCase().replace(/\s+/g, '')}` : '') || user.email?.split('@')[0] || 'usuario';
+            const userHandle = rawHandle.startsWith('@') ? rawHandle : `@${rawHandle}`;
             const userId = user.id || (user as any).userId || userHandle;
-            const userToken = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+            const userToken = (typeof window !== 'undefined' ? localStorage.getItem('token') || sessionStorage.getItem('token') : '') || '';
 
-            const supabaseSession =
+            const supabaseSession = typeof window !== 'undefined' ? (
                 localStorage.getItem('supabase_session') ||
-                localStorage.getItem('sb-thiftwzubmvcrdhuwcwm-auth-token');
+                localStorage.getItem('sb-thiftwzubmvcrdhuwcwm-auth-token')
+            ) : null;
 
             let token = userToken;
             if (!token && supabaseSession) {
@@ -174,56 +176,82 @@ export default function UploadPage() {
                 }
             }
             
-            // 3. Get presigned URL for direct upload
-            setStatusMsg('Generando enlace seguro de subida...');
-            
-            const uploadHeaders: Record<string, string> = {
-                'x-user-handle': userHandle,
-                'x-user-id': userId,
-                'Content-Type': 'application/json'
-            };
-            if (token) {
-                uploadHeaders['Authorization'] = `Bearer ${token}`;
-            }
+            let videoUrl = '';
 
-            const presignRes = await fetch('/api/upload/presign', {
-                method: 'POST',
-                headers: uploadHeaders,
-                body: JSON.stringify({
-                    filename: file.name,
-                    fileType: file.type,
-                    fileSize: file.size
-                }),
-            });
-
-            const presignText = await presignRes.text();
-            let presignData: any = {};
-            try { 
-                presignData = JSON.parse(presignText); 
-            } catch (e) {
-                console.error('[Presign API Response parse error]:', presignText);
-            }
-
-            if (!presignRes.ok || !presignData.presignedUrl) {
-                throw new Error(presignData.error || 'No se pudo generar la ruta de subida. Inténtalo de nuevo.');
-            }
-
-            // 4. Upload video to storage directly via presigned URL
-            setStatusMsg('Subiendo contenido...');
-            
-            const r2Res = await fetch(presignData.presignedUrl, {
-                method: 'PUT',
-                body: file,
-                headers: {
-                    'Content-Type': file.type
+            // Try R2 Presigned Upload first, fallback to FormData media upload
+            try {
+                setStatusMsg('Generando enlace seguro de subida...');
+                
+                const uploadHeaders: Record<string, string> = {
+                    'x-user-handle': userHandle,
+                    'x-user-id': userId,
+                    'Content-Type': 'application/json'
+                };
+                if (token) {
+                    uploadHeaders['Authorization'] = `Bearer ${token}`;
                 }
-            });
 
-            if (!r2Res.ok) {
-                throw new Error('Error al subir el archivo al almacenamiento. Inténtalo de nuevo.');
+                const presignRes = await fetch('/api/upload/presign', {
+                    method: 'POST',
+                    headers: uploadHeaders,
+                    body: JSON.stringify({
+                        filename: file.name,
+                        fileType: file.type,
+                        fileSize: file.size
+                    }),
+                });
+
+                const presignText = await presignRes.text();
+                let presignData: any = {};
+                try { 
+                    presignData = JSON.parse(presignText); 
+                } catch (e) {
+                    console.error('[Presign API Response parse error]:', presignText);
+                }
+
+                if (presignRes.ok && presignData.presignedUrl) {
+                    setStatusMsg('Subiendo contenido...');
+                    const r2Res = await fetch(presignData.presignedUrl, {
+                        method: 'PUT',
+                        body: file,
+                        headers: {
+                            'Content-Type': file.type
+                        }
+                    });
+
+                    if (r2Res.ok) {
+                        videoUrl = presignData.url;
+                    }
+                }
+            } catch (presignErr) {
+                console.warn('[Upload] R2 Presign failed, trying direct media upload fallback:', presignErr);
             }
 
-            const videoUrl = presignData.url;
+            // Fallback: Direct FormData upload via /api/media/upload
+            if (!videoUrl) {
+                setStatusMsg('Subiendo archivo al servidor...');
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('subDir', 'videos');
+
+                const fallbackHeaders: Record<string, string> = {
+                    'x-user-handle': userHandle,
+                    'x-user-id': userId
+                };
+                if (token) fallbackHeaders['Authorization'] = `Bearer ${token}`;
+
+                const mediaRes = await fetch('/api/media/upload', {
+                    method: 'POST',
+                    headers: fallbackHeaders,
+                    body: formData
+                });
+
+                const mediaData = await mediaRes.json();
+                if (!mediaRes.ok || !mediaData.url) {
+                    throw new Error(mediaData.error || mediaData.message || 'No se pudo subir el archivo. Inténtalo de nuevo.');
+                }
+                videoUrl = mediaData.url;
+            }
 
             // 5. Register video in the database
             setStatusMsg('Registrando vídeo en LYVO...');
