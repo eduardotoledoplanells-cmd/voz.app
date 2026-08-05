@@ -213,11 +213,12 @@ export default function UploadPage() {
 
                 if (presignRes.ok && presignData.presignedUrl) {
                     setStatusMsg('Subiendo vídeo...');
+                    const uploadContentType = presignData.type || mimeType;
                     const r2Res = await fetch(presignData.presignedUrl, {
                         method: 'PUT',
                         body: file,
                         headers: {
-                            'Content-Type': mimeType
+                            'Content-Type': uploadContentType
                         }
                     });
 
@@ -226,12 +227,17 @@ export default function UploadPage() {
                     } else {
                         const errTxt = await r2Res.text().catch(() => '');
                         console.error('[Upload] R2 upload status:', r2Res.status, errTxt);
+                        throw new Error(`R2 Error (${r2Res.status}): ${errTxt || 'Error al guardar archivo en R2.'}`);
                     }
                 } else {
                     console.warn('[Upload] Presign non-ok:', presignRes.status, presignData);
+                    throw new Error(presignData.error || `Error al generar la clave de subida (${presignRes.status}).`);
                 }
-            } catch (presignErr) {
-                console.warn('[Upload] R2 Presign failed, trying direct media upload fallback:', presignErr);
+            } catch (presignErr: any) {
+                console.warn('[Upload] R2 Presign error:', presignErr);
+                if (file.size > 4.5 * 1024 * 1024) {
+                    throw new Error(presignErr.message || 'Error de conexión durante la subida directa del vídeo.');
+                }
             }
 
             // Fallback: Direct FormData upload via /api/media/upload

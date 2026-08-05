@@ -110,7 +110,7 @@ export async function POST(request: Request) {
             key,
             bucket: R2_BUCKET_NAME,
             size: fileSize,
-            type: fileType,
+            type: sanitizedFileType,
         });
 
     } catch (error: any) {
