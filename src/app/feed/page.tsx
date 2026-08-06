@@ -9,7 +9,7 @@ import LiveStreamModal from '../components/LiveStreamModal';
 import ReportModal from '../components/ReportModal';
 import { isUserBlocked } from '@/utils/blockedUsers';
 
-const FeedItem = ({ 
+export const FeedItem = ({ 
     v, 
     autoScroll, 
     scrollNext, 

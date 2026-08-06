@@ -6,8 +6,10 @@ import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import ReportModal from '../components/ReportModal';
+import VoiceCommentsModal from '../components/VoiceCommentsModal';
+import { FeedItem } from '../feed/page';
 import { isUserBlocked, blockUser, unblockUser } from '@/utils/blockedUsers';
-import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical, Share2, Trash2 } from 'lucide-react';
+import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical, Share2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const getFlagUri = (country: any) => {
     if (!country) return 'https://flagcdn.com/w80/es.png';
@@ -89,6 +91,8 @@ function ProfilePageContent() {
 
     const [activeTab, setActiveTab] = useState('grid');
     const [activeProfileVideoIndex, setActiveProfileVideoIndex] = useState<number | null>(null);
+    const [activeCommentVideoId, setActiveCommentVideoId] = useState<string | null>(null);
+    const [reportingVideo, setReportingVideo] = useState<any>(null);
 
     const [hasMoreVideos, setHasMoreVideos] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -848,74 +852,81 @@ function ProfilePageContent() {
                 onLogout={logout} 
             />
 
-            {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY */}
+            {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY (PIXEL-PERFECT MATCH WITH APPVOZ.COM/FEED) */}
             {activeProfileVideoIndex !== null && videos[activeProfileVideoIndex] && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', backgroundColor: '#000', zIndex: 99999, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 20px', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}>
-                        <button 
-                            onClick={() => setActiveProfileVideoIndex(null)}
-                            style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                        >
-                            <X size={24} />
-                        </button>
-                        <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>
-                            Vídeos de {displayUser.handle || '@' + displayUser.name}
-                        </span>
-                        <div style={{ width: '40px' }} />
-                    </div>
-
-                    <div 
-                        style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-                                if (activeProfileVideoIndex < videos.length - 1) setActiveProfileVideoIndex(activeProfileVideoIndex + 1);
-                            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-                                if (activeProfileVideoIndex > 0) setActiveProfileVideoIndex(activeProfileVideoIndex - 1);
-                            } else if (e.key === 'Escape') {
-                                setActiveProfileVideoIndex(null);
-                            }
-                        }}
-                        tabIndex={0}
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', backgroundColor: '#000', zIndex: 99999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    {/* Close Button X */}
+                    <button 
+                        onClick={() => setActiveProfileVideoIndex(null)}
+                        style={{ position: 'absolute', top: '20px', left: '20px', width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                        title="Volver al perfil"
                     >
-                        <video 
-                            src={videos[activeProfileVideoIndex].videoUrl || videos[activeProfileVideoIndex].video_url}
-                            controls
-                            autoPlay
-                            loop
-                            playsInline
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }}
+                        <X size={24} color="white" />
+                    </button>
+
+                    {/* Left Navigation Arrow */}
+                    {activeProfileVideoIndex > 0 && (
+                        <button 
+                            onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex - 1)}
+                            style={{ position: 'absolute', left: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                        >
+                            <ChevronLeft size={32} color="white" />
+                        </button>
+                    )}
+
+                    {/* Right Navigation Arrow */}
+                    {activeProfileVideoIndex < videos.length - 1 && (
+                        <button 
+                            onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex + 1)}
+                            style={{ position: 'absolute', right: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                        >
+                            <ChevronRight size={32} color="white" />
+                        </button>
+                    )}
+
+                    <div style={{ width: '100%', maxWidth: '480px', height: '100%', position: 'relative' }}>
+                        <FeedItem 
+                            v={{
+                                ...videos[activeProfileVideoIndex],
+                                user: videos[activeProfileVideoIndex].user || displayUser.handle || '@' + displayUser.name,
+                                userName: displayUser.name,
+                                userImage: displayUser.profile_image || displayUser.profileImage,
+                                is_live: displayUser.is_live || displayUser.isLive,
+                                live_url: displayUser.live_url || displayUser.liveUrl
+                            }}
+                            autoScroll={false}
+                            scrollNext={() => {
+                                if (activeProfileVideoIndex < videos.length - 1) {
+                                    setActiveProfileVideoIndex(activeProfileVideoIndex + 1);
+                                }
+                            }}
+                            currentUserHandle={user?.handle}
+                            onCommentClick={(vidId) => setActiveCommentVideoId(vidId)}
+                            onReportClick={(vid) => setReportingVideo(vid)}
+                            isActive={true}
                         />
-
-                        <div style={{ position: 'absolute', bottom: '80px', right: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 900 }}>
-                            <button 
-                                onClick={() => setShowDonateModal(true)}
-                                style={{ background: 'none', border: 'none', color: '#FFD700', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                            >
-                                <Gift size={28} color="#FFD700" />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Regalar</span>
-                            </button>
-                        </div>
-
-                        <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '20px', zIndex: 900 }}>
-                            {activeProfileVideoIndex > 0 && (
-                                <button 
-                                    onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex - 1)}
-                                    style={{ padding: '8px 16px', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.25)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
-                                >
-                                    ▲ Anterior
-                                </button>
-                            )}
-                            {activeProfileVideoIndex < videos.length - 1 && (
-                                <button 
-                                    onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex + 1)}
-                                    style={{ padding: '8px 16px', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.25)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
-                                >
-                                    ▼ Siguiente
-                                </button>
-                            )}
-                        </div>
                     </div>
                 </div>
+            )}
+
+            {/* Voice Comments Modal */}
+            {activeCommentVideoId && (
+                <VoiceCommentsModal 
+                    videoId={activeCommentVideoId}
+                    isOpen={!!activeCommentVideoId}
+                    onClose={() => setActiveCommentVideoId(null)}
+                    currentUserHandle={user?.handle || '@Eduardo'}
+                />
+            )}
+
+            {/* Report Modal */}
+            {reportingVideo && (
+                <ReportModal 
+                    video={reportingVideo}
+                    isOpen={!!reportingVideo}
+                    onClose={() => setReportingVideo(null)}
+                    currentUserHandle={user?.handle || '@Eduardo'}
+                />
             )}
 
             {showDonateModal && (
