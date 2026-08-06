@@ -88,6 +88,7 @@ function ProfilePageContent() {
     const [loadingFollow, setLoadingFollow] = useState(false);
 
     const [activeTab, setActiveTab] = useState('grid');
+    const [activeProfileVideoIndex, setActiveProfileVideoIndex] = useState<number | null>(null);
 
     const [hasMoreVideos, setHasMoreVideos] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -746,14 +747,6 @@ function ProfilePageContent() {
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
-                        {videos.map(v => (
-                            <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#222' }}>
-                                <Link href={`/video/${v.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
-                                    <div style={{ height: '100%' }}>
-                                        {v.videoUrl ? (
-                                            <video src={v.videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        ) : (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
                                         )}
                                         {/* Likes Badge top-left matching mobile app */}
                                         <div style={{ 
@@ -779,9 +772,7 @@ function ProfilePageContent() {
                                         }}>
                                             <Share2 size={11} color="white" />
                                             <span>{v.shares || v.sharesCount || v.shares_count || v.share_count || 0}</span>
-                                        </div>
-
-                                        {/* Views Badge bottom-left */}
+                                            {/* Views Badge bottom-left */}
                                         <div style={{ 
                                             position: 'absolute', bottom: '6px', left: '6px', 
                                             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
@@ -794,6 +785,7 @@ function ProfilePageContent() {
                                             <span>{v.views || 0}</span>
                                         </div>
                                     </div>
+                                    </div>/div>
                                 </Link>
                                 {isOwnProfile && activeTab === 'grid' && (
                                     <button 
@@ -855,6 +847,76 @@ function ProfilePageContent() {
                 profile={user} 
                 onLogout={logout} 
             />
+
+            {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY */}
+            {activeProfileVideoIndex !== null && videos[activeProfileVideoIndex] && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', backgroundColor: '#000', zIndex: 99999, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 20px', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}>
+                        <button 
+                            onClick={() => setActiveProfileVideoIndex(null)}
+                            style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        >
+                            <X size={24} />
+                        </button>
+                        <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>
+                            Vídeos de {displayUser.handle || '@' + displayUser.name}
+                        </span>
+                        <div style={{ width: '40px' }} />
+                    </div>
+
+                    <div 
+                        style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                                if (activeProfileVideoIndex < videos.length - 1) setActiveProfileVideoIndex(activeProfileVideoIndex + 1);
+                            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                                if (activeProfileVideoIndex > 0) setActiveProfileVideoIndex(activeProfileVideoIndex - 1);
+                            } else if (e.key === 'Escape') {
+                                setActiveProfileVideoIndex(null);
+                            }
+                        }}
+                        tabIndex={0}
+                    >
+                        <video 
+                            src={videos[activeProfileVideoIndex].videoUrl || videos[activeProfileVideoIndex].video_url}
+                            controls
+                            autoPlay
+                            loop
+                            playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }}
+                        />
+
+                        <div style={{ position: 'absolute', bottom: '80px', right: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 900 }}>
+                            <button 
+                                onClick={() => setShowDonateModal(true)}
+                                style={{ background: 'none', border: 'none', color: '#FFD700', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                            >
+                                <Gift size={28} color="#FFD700" />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Regalar</span>
+                            </button>
+                        </div>
+
+                        <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '20px', zIndex: 900 }}>
+                            {activeProfileVideoIndex > 0 && (
+                                <button 
+                                    onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex - 1)}
+                                    style={{ padding: '8px 16px', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.25)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    ▲ Anterior
+                                </button>
+                            )}
+                            {activeProfileVideoIndex < videos.length - 1 && (
+                                <button 
+                                    onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex + 1)}
+                                    style={{ padding: '8px 16px', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.25)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    ▼ Siguiente
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showDonateModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
