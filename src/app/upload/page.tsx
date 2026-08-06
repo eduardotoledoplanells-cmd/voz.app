@@ -179,7 +179,7 @@ export default function UploadPage() {
             let videoUrl = '';
 
             // 1. Pedir la URL firmada a nuestro backend de Next.js (/api/upload/presign)
-            setStatusMsg('Generando enlace seguro de subida a Cloudflare R2...');
+            setStatusMsg('Generando enlace seguro de subida...');
             const mimeType = file.type || 'video/mp4';
 
             const presignRes = await fetch('/api/upload/presign', {
@@ -192,25 +192,52 @@ export default function UploadPage() {
             });
 
             const presignData = await presignRes.json();
-            if (!presignRes.ok || !presignData.success || !presignData.presignedUrl) {
-                throw new Error(presignData.error || 'No se pudo generar la clave de subida a Cloudflare R2');
+            if (!presignRes.ok || !presignData.success) {
+                throw new Error(presignData.error || 'No se pudo generar la clave de subida');
             }
 
-            // 2. Subir el archivo binario DIRECTAMENTE a Cloudflare R2 (Sin pasar por Vercel)
-            setStatusMsg('Subiendo archivo directamente a Cloudflare R2...');
-            const uploadRes = await fetch(presignData.presignedUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': mimeType },
-                body: file
-            });
-
-            if (!uploadRes.ok) {
-                const errText = await uploadRes.text().catch(() => '');
-                console.error('[Upload R2 Error]:', uploadRes.status, errText);
-                throw new Error(`Fallo al subir el archivo a Cloudflare R2 (${uploadRes.status}). Revisa la política CORS en el panel de Cloudflare.`);
+            // 2a. Intento 1: Subida directa a Supabase Storage (100% Garantizada sin CORS en navegadores)
+            if (presignData.supabaseSignedUrl) {
+                setStatusMsg('Subiendo vídeo...');
+                try {
+                    const supaRes = await fetch(presignData.supabaseSignedUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': mimeType },
+                        body: file
+                    });
+                    if (supaRes.ok) {
+                        videoUrl = presignData.supabasePublicUrl || presignData.publicUrl;
+                    }
+                } catch (e) {
+                    console.warn('[Upload Supabase direct error]:', e);
+                }
             }
 
-            videoUrl = presignData.publicUrl;
+            // 2b. Intento 2: Subida directa a Cloudflare R2
+            if (!videoUrl && presignData.presignedUrl) {
+                setStatusMsg('Subiendo archivo directamente a Cloudflare R2...');
+                try {
+                    const uploadRes = await fetch(presignData.presignedUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': mimeType },
+                        body: file
+                    });
+                    if (uploadRes.ok) {
+                        videoUrl = presignData.publicUrl;
+                    } else {
+                        const errText = await uploadRes.text().catch(() => '');
+                        console.error('[Upload R2 Error]:', uploadRes.status, errText);
+                        throw new Error(`Fallo al subir el archivo a Cloudflare R2 (${uploadRes.status}).`);
+                    }
+                } catch (e: any) {
+                    console.error('[Upload R2 Fetch Error]:', e);
+                    throw new Error('Error de red al conectar con Cloudflare R2 (Failed to fetch). Revisa la política CORS en el panel de Cloudflare.');
+                }
+            }
+
+            if (!videoUrl) {
+                throw new Error('No se pudo subir el archivo de vídeo. Por favor comprueba tu conexión e inténtalo de nuevo.');
+            }
 
             // 3. Registrar la publicación en tu base de datos (PostgreSQL / Supabase solo para los metadatos)
             setStatusMsg('Registrando vídeo en LYVO...');
