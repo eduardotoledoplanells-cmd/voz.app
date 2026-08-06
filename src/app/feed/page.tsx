@@ -488,20 +488,32 @@ export const FeedItem = ({
                         </>
                     )}
                     <div style={{ textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', transform: `scale(${giftScale})` }} onClick={handleGift}>
-                        <Gift size={32} color="#D4AF37" fill="#8E2DE2" />
-                        <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Regalo</span>
+                        <Gift size={30} color="#D4AF37" fill="#8E2DE2" />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>Regalo</span>
                     </div>
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleLike}>
-                        <Heart size={32} color={isLiked ? '#FF3B30' : 'white'} fill={isLiked ? '#FF3B30' : 'none'} />
-                        <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>{likesCount}</span>
+                        <Heart size={30} color={isLiked ? '#FF3B30' : 'white'} fill={isLiked ? '#FF3B30' : 'none'} />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>{likesCount}</span>
                     </div>
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleComment}>
-                        <Mic size={32} color="white" />
-                        <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>{v.commentsCount || 0}</span>
+                        <Mic size={30} color="white" />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>{v.commentsCount || 0}</span>
                     </div>
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleBookmark}>
-                        <Bookmark size={32} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
-                        <span style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>Favoritos</span>
+                        <Bookmark size={30} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>Favoritos</span>
+                    </div>
+                    <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={(e) => {
+                        e.stopPropagation();
+                        if (navigator.share) {
+                            navigator.share({ title: 'LYVO App', url: window.location.origin + '/video/' + v.id }).catch(() => {});
+                        } else {
+                            navigator.clipboard.writeText(window.location.origin + '/video/' + v.id);
+                            alert("¡Enlace copiado al portapapeles!");
+                        }
+                    }}>
+                        <Share2 size={28} color="white" />
+                        <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>Compartir</span>
                     </div>
                 </div>
 
@@ -894,8 +906,8 @@ export default function FeedPage() {
                 @media (min-width: 768px) {
                     .action-icons {
                         bottom: 50%;
-                        transform: translateY(50%);
-                        right: -80px;
+                        transform: translateY(-50%);
+                        right: 15px;
                     }
                     .nav-arrow {
                         display: flex;
