@@ -594,7 +594,7 @@ export const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Top Left Overlay: Ad badge, Report button, Landscape Toggle */}
+                {/* Top Left Overlay: Ad badge & Report button */}
                 <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30, display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {v.isAd && (
                         <div style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
@@ -610,49 +610,55 @@ export const FeedItem = ({
                             backgroundColor: 'rgba(0, 0, 0, 0.65)',
                             border: '1px solid rgba(255, 59, 48, 0.4)',
                             color: '#FF3B30',
-                            padding: '5px 10px',
-                            borderRadius: '20px',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '600',
                             cursor: 'pointer',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                            backdropFilter: 'blur(6px)',
+                            WebkitBackdropFilter: 'blur(6px)',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
                             transition: 'all 0.2s'
                         }}
                         title="Denunciar vídeo"
                     >
-                        <ShieldAlert size={14} color="#FF3B30" />
+                        <ShieldAlert size={12} color="#FF3B30" />
                         <span>Denunciar</span>
                     </button>
-                    {isLandscapeDetected && (
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsManualHorizontalMode(!isManualHorizontalMode);
-                            }}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                                border: '1px solid rgba(255, 215, 0, 0.5)',
-                                color: '#FFD700',
-                                padding: '5px 10px',
-                                borderRadius: '20px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            {isManualHorizontalMode ? '📱 Vertical' : '🖥️ Ver en Horizontal'}
-                        </button>
-                    )}
                 </div>
+
+                {/* Top Right Overlay: Small Landscape toggle button */}
+                {isLandscapeDetected && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsManualHorizontalMode(!isManualHorizontalMode);
+                        }}
+                        style={{
+                            position: 'absolute',
+                            top: '20px',
+                            right: '15px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            border: '1px solid rgba(255, 215, 0, 0.5)',
+                            color: '#FFD700',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(6px)',
+                            WebkitBackdropFilter: 'blur(6px)',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                            transition: 'all 0.2s',
+                            zIndex: 35
+                        }}
+                    >
+                        {isManualHorizontalMode ? '📱 Vertical' : '🖥️ Ver en Horizontal'}
+                    </button>
+                )}
 
                 {/* Live stream modal */}
                 {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
