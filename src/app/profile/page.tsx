@@ -751,46 +751,61 @@ function ProfilePageContent() {
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px', marginTop: '2px' }}>
-                                        )}
-                                        {/* Likes Badge top-left matching mobile app */}
-                                        <div style={{ 
-                                            position: 'absolute', top: '6px', left: '6px', 
-                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                            padding: '3px 7px', borderRadius: '10px', 
-                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
-                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
-                                        }}>
-                                            <Heart size={11} color="#FF3B30" fill="#FF3B30" />
-                                            <span>{v.likes || 0}</span>
-                                        </div>
+                        {videos.map((v, idx) => (
+                            <div key={v.id} style={{ position: 'relative', aspectRatio: '9/16', backgroundColor: '#111', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div 
+                                    onClick={() => setActiveProfileVideoIndex(idx)}
+                                    style={{ width: '100%', height: '100%', cursor: 'pointer', position: 'relative' }}
+                                >
+                                    {v.videoUrl || v.video_url ? (
+                                        <video src={v.videoUrl || v.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : v.thumbnailUrl || v.thumbnail_url ? (
+                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                        <img src={v.thumbnailUrl || v.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Video thumbnail" />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }}>🎙️</div>
+                                    )}
 
-                                        {/* Shares Badge top-right matching mobile app */}
-                                        <div style={{ 
-                                            position: 'absolute', top: '6px', right: '6px', 
-                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                            padding: '3px 7px', borderRadius: '10px', 
-                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
-                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
-                                        }}>
-                                            <Share2 size={11} color="white" />
-                                            <span>{v.shares || v.sharesCount || v.shares_count || v.share_count || 0}</span>
-                                            {/* Views Badge bottom-left */}
-                                        <div style={{ 
-                                            position: 'absolute', bottom: '6px', left: '6px', 
-                                            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                            padding: '3px 7px', borderRadius: '10px', 
-                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                            color: 'white', fontSize: '11px', fontWeight: 'bold',
-                                            zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
-                                        }}>
-                                            <Play size={10} color="white" fill="white" />
-                                            <span>{v.views || 0}</span>
-                                        </div>
+                                    {/* Likes Badge top-left */}
+                                    <div style={{ 
+                                        position: 'absolute', top: '6px', left: '6px', 
+                                        backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                        padding: '3px 7px', borderRadius: '10px', 
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                        zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                    }}>
+                                        <Heart size={11} color="#FF3B30" fill="#FF3B30" />
+                                        <span>{v.likes || 0}</span>
                                     </div>
-                                    </div>/div>
-                                </Link>
+
+                                    {/* Shares Badge top-right */}
+                                    <div style={{ 
+                                        position: 'absolute', top: '6px', right: '6px', 
+                                        backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                        padding: '3px 7px', borderRadius: '10px', 
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                        zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                    }}>
+                                        <Share2 size={11} color="white" />
+                                        <span>{v.shares || v.sharesCount || v.shares_count || v.share_count || 0}</span>
+                                    </div>
+
+                                    {/* Views Badge bottom-left */}
+                                    <div style={{ 
+                                        position: 'absolute', bottom: '6px', left: '6px', 
+                                        backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                        padding: '3px 7px', borderRadius: '10px', 
+                                        display: 'flex', alignItems: 'center', gap: '4px',
+                                        color: 'white', fontSize: '11px', fontWeight: 'bold',
+                                        zIndex: 5, boxShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                                    }}>
+                                        <Play size={10} color="white" fill="white" />
+                                        <span>{v.views || 0}</span>
+                                    </div>
+                                </div>
+
                                 {isOwnProfile && activeTab === 'grid' && (
                                     <button 
                                         onClick={async (e) => {
@@ -801,9 +816,7 @@ function ProfilePageContent() {
                                                 const token = localStorage.getItem('token') || '';
                                                 const res = await fetch(`/api/voz/videos?id=${v.id}&userHandle=${user?.handle || '@'+user?.name}`, {
                                                     method: 'DELETE',
-                                                    headers: {
-                                                        'Authorization': `Bearer ${token}`
-                                                    }
+                                                    headers: { 'Authorization': `Bearer ${token}` }
                                                 });
                                                 const data = await res.json();
                                                 if (data.success) {
