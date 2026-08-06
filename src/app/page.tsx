@@ -112,6 +112,8 @@ const steps = [
     },
 ];
 
+import LogoWeb from '@/components/LogoWeb';
+
 export default async function LandingPage() {
     // Si queremos que la raíz sea el feed por defecto, redireccionamos.
     // redirect('/feed');
@@ -139,7 +141,7 @@ export default async function LandingPage() {
             ════════════════════════════════ */}
             <nav className={styles.navbar}>
                 <Link href="/" className={styles.navLogo}>
-                    <img src="/logo/logo-short.png" alt="LYVO" className={styles.navLogoImg} />
+                    <LogoWeb size="large" />
                 </Link>
                 <ul className={styles.navLinks}>
                     <li><a href="#features" className={styles.navLink}>Características</a></li>

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { Home, Compass, Upload, User, LogOut, Shield, ChevronDown, Bell } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import LogoWeb from '@/components/LogoWeb';
 
 export default function Header() {
     const { user, logout } = useAuth();
@@ -40,8 +41,7 @@ export default function Header() {
             }}>
                 {/* Logo */}
                 <Link href="/feed" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo/logo-white.png" alt="LYVO" style={{ height: '44px', objectFit: 'contain' }} />
+                    <LogoWeb size="medium" />
                 </Link>
 
                 {/* Navigation Links */}
