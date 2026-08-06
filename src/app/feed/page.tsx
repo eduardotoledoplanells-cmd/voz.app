@@ -355,7 +355,7 @@ export const FeedItem = ({
     }, [v.id, v.videoUrl]);
 
     return (
-        <div style={{ width: '100vw', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
+        <div style={{ width: '100%', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
             <div style={{ width: '100%', maxWidth: isManualHorizontalMode ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
@@ -384,35 +384,7 @@ export const FeedItem = ({
                             }}
                         />
 
-                        {/* Discrete text option to view video in Horizontal mode */}
-                        {isLandscapeDetected && (
-                            <div 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsManualHorizontalMode(!isManualHorizontalMode);
-                                }}
-                                style={{
-                                    position: 'absolute',
-                                    top: '20px',
-                                    left: '20px',
-                                    backgroundColor: 'rgba(0,0,0,0.75)',
-                                    color: '#FFD700',
-                                    border: '1px solid rgba(255,215,0,0.4)',
-                                    padding: '6px 14px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
-                                    fontWeight: 'bold',
-                                    zIndex: 30,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    backdropFilter: 'blur(10px)'
-                                }}
-                            >
-                                {isManualHorizontalMode ? '📱 Volver a Vertical' : '🖥️ Ver este vídeo en Horizontal'}
-                            </div>
-                        )}
+                        />
                         {/* Sound Badge if Browser forced muted play */}
                         {isMuted && isPlaying && (
                             <div 
@@ -622,7 +594,7 @@ export const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Top Left Overlay: Ad badge & Report button */}
+                {/* Top Left Overlay: Ad badge, Report button, Landscape Toggle */}
                 <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30, display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {v.isAd && (
                         <div style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
@@ -653,6 +625,33 @@ export const FeedItem = ({
                         <ShieldAlert size={14} color="#FF3B30" />
                         <span>Denunciar</span>
                     </button>
+                    {isLandscapeDetected && (
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsManualHorizontalMode(!isManualHorizontalMode);
+                            }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                                border: '1px solid rgba(255, 215, 0, 0.5)',
+                                color: '#FFD700',
+                                padding: '5px 10px',
+                                borderRadius: '20px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {isManualHorizontalMode ? '📱 Vertical' : '🖥️ Ver en Horizontal'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Live stream modal */}
