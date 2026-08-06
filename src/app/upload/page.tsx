@@ -132,6 +132,80 @@ export default function UploadPage() {
         }
     };
 
+    const generateVideoThumbnail = async (videoFile: File): Promise<Blob | null> => {
+        return new Promise((resolve) => {
+            try {
+                if (!videoFile.type.startsWith('video/')) {
+                    return resolve(null);
+                }
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.muted = true;
+                video.playsInline = true;
+                const objectUrl = URL.createObjectURL(videoFile);
+                video.src = objectUrl;
+
+                let resolved = false;
+                const timeout = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(null);
+                    }
+                }, 6000);
+
+                video.onloadedmetadata = () => {
+                    const targetTime = Math.min(1.0, video.duration > 2 ? video.duration * 0.1 : 0.5);
+                    video.currentTime = targetTime;
+                };
+
+                video.onseeked = () => {
+                    if (resolved) return;
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 360;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            canvas.toBlob((blob) => {
+                                resolved = true;
+                                clearTimeout(timeout);
+                                URL.revokeObjectURL(objectUrl);
+                                resolve(blob);
+                            }, 'image/jpeg', 0.85);
+                        } else {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            URL.revokeObjectURL(objectUrl);
+                            resolve(null);
+                        }
+                    } catch (e) {
+                        console.warn('[Thumbnail Capture Canvas Error]:', e);
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            URL.revokeObjectURL(objectUrl);
+                            resolve(null);
+                        }
+                    }
+                };
+
+                video.onerror = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(null);
+                    }
+                };
+            } catch (e) {
+                console.warn('[Thumbnail Capture Setup Error]:', e);
+                resolve(null);
+            }
+        });
+    };
+
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) return;
@@ -141,14 +215,15 @@ export default function UploadPage() {
         setStatusMsg('Subiendo vídeo a los servidores...');
 
         try {
-            // 2. Get user from AuthContext or localStorage / sessionStorage
             let user = authUser;
             if (!user) {
                 const storedUser = typeof window !== 'undefined' ? (localStorage.getItem('user') || sessionStorage.getItem('user')) : null;
                 if (storedUser) {
                     try {
                         user = JSON.parse(storedUser);
-                    } catch (e) {}
+                    } catch {
+                        user = null;
+                    }
                 }
             }
 
@@ -156,8 +231,7 @@ export default function UploadPage() {
                 throw new Error('Debes iniciar sesión para subir contenido.');
             }
 
-            const rawHandle = user.handle || (user.name ? `@${user.name.toLowerCase().replace(/\s+/g, '')}` : '') || user.email?.split('@')[0] || 'usuario';
-            const userHandle = rawHandle.startsWith('@') ? rawHandle : `@${rawHandle}`;
+            const userHandle = user.handle || (user.name ? `@${user.name.toLowerCase().replace(/\s+/g, '')}` : '') || user.email?.split('@')[0] || 'usuario';
             const userId = user.id || (user as any).userId || userHandle;
             const userToken = (typeof window !== 'undefined' ? localStorage.getItem('token') || sessionStorage.getItem('token') : '') || '';
 
@@ -178,7 +252,6 @@ export default function UploadPage() {
             
             let videoUrl = '';
 
-            // 1. Pedir la URL firmada a nuestro backend de Next.js (/api/upload/presign)
             setStatusMsg('Generando enlace seguro de subida...');
             const mimeType = file.type || 'video/mp4';
 
@@ -196,7 +269,6 @@ export default function UploadPage() {
                 throw new Error(presignData.error || 'No se pudo generar la clave de subida');
             }
 
-            // 2. La subida directa a R2 debe ser limpia, solo con el ContentType del archivo
             setStatusMsg('Subiendo archivo directamente a Cloudflare R2...');
             try {
                 const uploadRes = await fetch(presignData.presignedUrl, {
@@ -216,7 +288,6 @@ export default function UploadPage() {
                 videoUrl = presignData.publicUrl;
             } catch (r2Err: any) {
                 console.warn('[R2 Direct Upload Fetch Warning]:', r2Err);
-                // Si la política CORS de Cloudflare R2 aún no está activa en el navegador, usar respaldo instantáneo
                 if (presignData.supabaseSignedUrl) {
                     setStatusMsg('Subiendo vídeo...');
                     const supaRes = await fetch(presignData.supabaseSignedUrl, {
@@ -234,7 +305,43 @@ export default function UploadPage() {
                 }
             }
 
-            // 3. Registrar la publicación en tu base de datos (PostgreSQL / Supabase solo para los metadatos)
+            let generatedThumbnailUrl = '';
+            if (file.type.startsWith('video/')) {
+                setStatusMsg('Generando fotograma automático para la carátula...');
+                try {
+                    const thumbBlob = await generateVideoThumbnail(file);
+                    if (thumbBlob) {
+                        const sanitizedBase = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                        const thumbFileName = `thumb_${Date.now()}_${sanitizedBase}.jpg`;
+                        const thumbPresignRes = await fetch('/api/upload/presign', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                filename: thumbFileName,
+                                contentType: 'image/jpeg'
+                            })
+                        });
+                        const thumbPresignData = await thumbPresignRes.json();
+                        if (thumbPresignData.success) {
+                            const targetUploadUrl = thumbPresignData.supabaseSignedUrl || thumbPresignData.presignedUrl;
+                            if (targetUploadUrl) {
+                                const thumbUpRes = await fetch(targetUploadUrl, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'image/jpeg' },
+                                    body: thumbBlob
+                                });
+                                if (thumbUpRes.ok) {
+                                    generatedThumbnailUrl = thumbPresignData.supabasePublicUrl || thumbPresignData.publicUrl;
+                                    console.log('✅ Carátula de vídeo generada con éxito:', generatedThumbnailUrl);
+                                }
+                            }
+                        }
+                    }
+                } catch (thumbErr) {
+                    console.warn('[Automatic Thumbnail Generation Warning]:', thumbErr);
+                }
+            }
+
             setStatusMsg('Registrando vídeo en LYVO...');
             const videoRes = await fetch('/api/voz/videos', {
                 method: 'POST',
@@ -243,7 +350,7 @@ export default function UploadPage() {
                     videoUrl,
                     user: userHandle,
                     description: title || 'Mi nuevo vídeo',
-                    thumbnailUrl: '',
+                    thumbnailUrl: generatedThumbnailUrl,
                     isMuted: false,
                 }),
             });
