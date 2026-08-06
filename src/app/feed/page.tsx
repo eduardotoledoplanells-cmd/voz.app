@@ -346,17 +346,18 @@ export const FeedItem = ({
         onCommentClick(v.id);
     };
 
-    const [isLandscape, setIsLandscape] = useState(false);
+    const [isLandscapeDetected, setIsLandscapeDetected] = useState(false);
+    const [isManualHorizontalMode, setIsManualHorizontalMode] = useState(false);
 
     return (
         <div style={{ width: '100vw', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
-            <div style={{ width: '100%', maxWidth: isLandscape ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
+            <div style={{ width: '100%', maxWidth: isManualHorizontalMode ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
                         <video 
                             ref={videoRef}
                             src={v.videoUrl} 
-                            style={{ width: '100%', height: '100%', objectFit: isLandscape ? 'contain' : 'cover' }}
+                            style={{ width: '100%', height: '100%', objectFit: isManualHorizontalMode ? 'contain' : 'cover' }}
                             controls={false}
                             loop={!autoScroll}
                             muted={isMuted}
@@ -368,24 +369,18 @@ export const FeedItem = ({
                                 if (videoRef.current) {
                                     if (videoRef.current.duration) setVideoDuration(videoRef.current.duration);
                                     if (videoRef.current.videoWidth > videoRef.current.videoHeight) {
-                                        setIsLandscape(true);
+                                        setIsLandscapeDetected(true);
                                     }
                                 }
                             }}
                         />
 
-                        {/* Floating button to toggle full horizontal mode */}
-                        {isLandscape && (
+                        {/* Discrete text option to view video in Horizontal mode */}
+                        {isLandscapeDetected && (
                             <div 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (videoRef.current) {
-                                        if (document.fullscreenElement) {
-                                            document.exitFullscreen().catch(() => {});
-                                        } else {
-                                            videoRef.current.requestFullscreen().catch(() => {});
-                                        }
-                                    }
+                                    setIsManualHorizontalMode(!isManualHorizontalMode);
                                 }}
                                 style={{
                                     position: 'absolute',
@@ -406,7 +401,7 @@ export const FeedItem = ({
                                     backdropFilter: 'blur(10px)'
                                 }}
                             >
-                                ↔️ Pantalla Completa Horizontal
+                                {isManualHorizontalMode ? '📱 Volver a Vertical' : '🖥️ Ver este vídeo en Horizontal'}
                             </div>
                         )}
                         {/* Sound Badge if Browser forced muted play */}
