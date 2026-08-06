@@ -178,94 +178,41 @@ export default function UploadPage() {
             
             let videoUrl = '';
 
-            // Direct Signed Upload (Supabase Storage Primary, R2 Secondary)
-            try {
-                setStatusMsg('Generando enlace seguro de subida...');
-                
-                const uploadHeaders: Record<string, string> = {
-                    'x-user-handle': userHandle,
-                    'x-user-id': userId,
-                    'Content-Type': 'application/json'
-                };
-                if (token) {
-                    uploadHeaders['Authorization'] = `Bearer ${token}`;
-                }
+            // 1. Pedir la URL firmada a nuestro backend de Next.js (/api/upload/presign)
+            setStatusMsg('Generando enlace seguro de subida a Cloudflare R2...');
+            const mimeType = file.type || 'video/mp4';
 
-                const mimeType = file.type || 'video/mp4';
+            const presignRes = await fetch('/api/upload/presign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: file.name,
+                    contentType: mimeType
+                })
+            });
 
-                const presignRes = await fetch('/api/upload/presign', {
-                    method: 'POST',
-                    headers: uploadHeaders,
-                    body: JSON.stringify({
-                        filename: file.name,
-                        fileType: mimeType,
-                        fileSize: file.size
-                    }),
-                });
-
-                const presignText = await presignRes.text();
-                let presignData: any = {};
-                try { 
-                    presignData = JSON.parse(presignText); 
-                } catch (e) {
-                    console.error('[Presign API Response parse error]:', presignText);
-                }
-
-                if (!presignRes.ok || (!presignData.supabaseSignedUrl && !presignData.presignedUrl)) {
-                    throw new Error(presignData.error || `Error al generar enlace seguro de subida (${presignRes.status}).`);
-                }
-
-                const uploadContentType = presignData.type || mimeType;
-
-                // Attempt 1: Direct PUT to Supabase Storage Signed Upload URL (guaranteed CORS for web)
-                if (presignData.supabaseSignedUrl) {
-                    setStatusMsg('Subiendo vídeo...');
-                    try {
-                        const supaRes = await fetch(presignData.supabaseSignedUrl, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': uploadContentType },
-                            body: file,
-                        });
-                        if (supaRes.ok) {
-                            videoUrl = presignData.supabasePublicUrl || presignData.url;
-                        } else {
-                            const supaErrTxt = await supaRes.text().catch(() => '');
-                            console.warn('[Upload] Supabase direct PUT failed:', supaRes.status, supaErrTxt);
-                        }
-                    } catch (e) {
-                        console.warn('[Upload] Supabase direct PUT network error:', e);
-                    }
-                }
-
-                // Attempt 2: Direct PUT to R2 Presigned URL
-                if (!videoUrl && presignData.presignedUrl) {
-                    setStatusMsg('Subiendo vídeo (almacenamiento R2)...');
-                    try {
-                        const r2Res = await fetch(presignData.presignedUrl, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': uploadContentType },
-                            body: file,
-                        });
-                        if (r2Res.ok) {
-                            videoUrl = presignData.r2Url || presignData.url;
-                        } else {
-                            const r2ErrTxt = await r2Res.text().catch(() => '');
-                            console.warn('[Upload] R2 PUT failed:', r2Res.status, r2ErrTxt);
-                        }
-                    } catch (e) {
-                        console.warn('[Upload] R2 PUT network error:', e);
-                    }
-                }
-
-                if (!videoUrl) {
-                    throw new Error('No se pudo subir el archivo de vídeo. Por favor comprueba tu conexión e inténtalo de nuevo.');
-                }
-            } catch (presignErr: any) {
-                console.warn('[Upload] Direct upload failed:', presignErr);
-                throw new Error(presignErr.message || 'Error durante la subida del vídeo.');
+            const presignData = await presignRes.json();
+            if (!presignRes.ok || !presignData.success || !presignData.presignedUrl) {
+                throw new Error(presignData.error || 'No se pudo generar la clave de subida a Cloudflare R2');
             }
 
-            // 5. Register video in the database
+            // 2. Subir el archivo binario DIRECTAMENTE a Cloudflare R2 (Sin pasar por Vercel)
+            setStatusMsg('Subiendo archivo directamente a Cloudflare R2...');
+            const uploadRes = await fetch(presignData.presignedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': mimeType },
+                body: file
+            });
+
+            if (!uploadRes.ok) {
+                const errText = await uploadRes.text().catch(() => '');
+                console.error('[Upload R2 Error]:', uploadRes.status, errText);
+                throw new Error(`Fallo al subir el archivo a Cloudflare R2 (${uploadRes.status}). Revisa la política CORS en el panel de Cloudflare.`);
+            }
+
+            videoUrl = presignData.publicUrl;
+
+            // 3. Registrar la publicación en tu base de datos (PostgreSQL / Supabase solo para los metadatos)
             setStatusMsg('Registrando vídeo en LYVO...');
             const videoRes = await fetch('/api/voz/videos', {
                 method: 'POST',
@@ -273,7 +220,7 @@ export default function UploadPage() {
                 body: JSON.stringify({
                     videoUrl,
                     user: userHandle,
-                    description: title || '',
+                    description: title || 'Mi nuevo vídeo',
                     thumbnailUrl: '',
                     isMuted: false,
                 }),
