@@ -349,6 +349,11 @@ export const FeedItem = ({
     const [isLandscapeDetected, setIsLandscapeDetected] = useState(false);
     const [isManualHorizontalMode, setIsManualHorizontalMode] = useState(false);
 
+    useEffect(() => {
+        setIsLandscapeDetected(false);
+        setIsManualHorizontalMode(false);
+    }, [v.id, v.videoUrl]);
+
     return (
         <div style={{ width: '100vw', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
             <div style={{ width: '100%', maxWidth: isManualHorizontalMode ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
@@ -368,8 +373,12 @@ export const FeedItem = ({
                             onLoadedMetadata={() => {
                                 if (videoRef.current) {
                                     if (videoRef.current.duration) setVideoDuration(videoRef.current.duration);
-                                    if (videoRef.current.videoWidth > videoRef.current.videoHeight) {
+                                    const w = videoRef.current.videoWidth || 0;
+                                    const h = videoRef.current.videoHeight || 0;
+                                    if (w > 0 && h > 0 && w > h * 1.1) {
                                         setIsLandscapeDetected(true);
+                                    } else {
+                                        setIsLandscapeDetected(false);
                                     }
                                 }
                             }}
