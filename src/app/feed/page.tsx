@@ -34,26 +34,25 @@ const FeedItem = ({
 
     useEffect(() => {
         let active = true;
-        if ((v.is_live || v.isLive) && v.live_url) {
-            fetch(`/api/voz/live?url=${encodeURIComponent(v.live_url)}`)
+        const liveActive = v.is_live || v.isLive;
+        const targetUrl = v.live_url || v.liveUrl;
+        if (liveActive && targetUrl) {
+            setHasLiveSignal(true);
+            fetch(`/api/voz/live?url=${encodeURIComponent(targetUrl)}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (active) {
-                        setHasLiveSignal(!!data.streamUrl);
+                    if (active && data.streamUrl) {
+                        // Extracted HLS stream URL available
                     }
                 })
-                .catch(() => {
-                    if (active) {
-                        setHasLiveSignal(false);
-                    }
-                });
+                .catch(() => {});
         } else {
             setHasLiveSignal(false);
         }
         return () => {
             active = false;
         };
-    }, [v.is_live, v.isLive, v.live_url]);
+    }, [v.is_live, v.isLive, v.live_url, v.liveUrl]);
     
     // Icon States
     const [isLiked, setIsLiked] = useState(v.isLikedByMe || false);
