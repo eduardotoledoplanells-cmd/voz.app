@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert } from 'lucide-react';
+import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';

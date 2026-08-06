@@ -933,6 +933,7 @@ function ProfilePageContent() {
                             onReportClick={(vid) => setReportingVideo(vid)}
                             isActive={true}
                         />
+                        <BottomNav />
                     </div>
                 </div>
             )}
