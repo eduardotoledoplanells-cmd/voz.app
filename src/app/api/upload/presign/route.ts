@@ -24,7 +24,7 @@ export async function POST(request: Request) {
                     authenticatedUserId = user.id;
                 }
             } catch (e) {
-                console.warn('[R2 Presign API] Token verification fallback:', e);
+                console.warn('[Presign API] Token verification fallback:', e);
             }
         }
 
@@ -82,39 +82,60 @@ export async function POST(request: Request) {
 
         const timestamp = Date.now();
         const sanitizedOriginalName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const key = `videos/${authenticatedUserId}/${timestamp}-${sanitizedOriginalName}`;
+        const storagePath = `videos/${authenticatedUserId}/${timestamp}-${sanitizedOriginalName}`;
 
-        const command = new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            ContentType: sanitizedFileType,
-        });
+        // 1. Primary: Supabase Storage Direct Signed Upload URL (CORS guaranteed for web browsers)
+        let supabaseSignedUrl = '';
+        let supabasePublicUrl = '';
+        try {
+            const { data: supaData, error: supaErr } = await supabaseAdmin.storage
+                .from('media')
+                .createSignedUploadUrl(storagePath);
+            if (supaData && !supaErr) {
+                supabaseSignedUrl = supaData.signedUrl;
+                const { data: pubData } = supabaseAdmin.storage.from('media').getPublicUrl(storagePath);
+                supabasePublicUrl = pubData?.publicUrl || '';
+            }
+        } catch (e) {
+            console.warn('[Presign API] Supabase signed URL error:', e);
+        }
 
-        // URL expira en 1 hora
-        const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
-
-        const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
-        let videoUrl = '';
-        if (publicBaseUrl) {
-            const formattedBase = publicBaseUrl.endsWith('/') ? publicBaseUrl.slice(0, -1) : publicBaseUrl;
-            videoUrl = `${formattedBase}/${key}`;
-        } else {
-            const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
-            videoUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${key}`;
+        // 2. Secondary: R2 Presigned Upload URL
+        let presignedUrl = '';
+        let r2PublicUrl = '';
+        try {
+            const command = new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: storagePath,
+                ContentType: sanitizedFileType,
+            });
+            presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+            const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+            if (publicBaseUrl) {
+                const formattedBase = publicBaseUrl.endsWith('/') ? publicBaseUrl.slice(0, -1) : publicBaseUrl;
+                r2PublicUrl = `${formattedBase}/${storagePath}`;
+            } else {
+                const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
+                r2PublicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${storagePath}`;
+            }
+        } catch (e) {
+            console.warn('[Presign API] R2 signed URL error:', e);
         }
 
         return NextResponse.json({
             success: true,
+            supabaseSignedUrl,
+            supabasePublicUrl,
             presignedUrl,
-            url: videoUrl,
-            key,
-            bucket: R2_BUCKET_NAME,
+            url: supabasePublicUrl || r2PublicUrl,
+            r2Url: r2PublicUrl,
+            key: storagePath,
             size: fileSize,
             type: sanitizedFileType,
         });
 
     } catch (error: any) {
-        console.error('[R2 Presign API] Error:', error);
+        console.error('[Presign API] Error:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor al procesar la subida.' },
             { status: 500 }

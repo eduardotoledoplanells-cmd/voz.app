@@ -178,7 +178,7 @@ export default function UploadPage() {
             
             let videoUrl = '';
 
-            // Try R2 Presigned Upload first, fallback to FormData media upload
+            // Direct Signed Upload (Supabase Storage Primary, R2 Secondary)
             try {
                 setStatusMsg('Generando enlace seguro de subida...');
                 
@@ -211,66 +211,58 @@ export default function UploadPage() {
                     console.error('[Presign API Response parse error]:', presignText);
                 }
 
-                if (presignRes.ok && presignData.presignedUrl) {
-                    setStatusMsg('Subiendo vídeo...');
-                    const uploadContentType = presignData.type || mimeType;
-                    const r2Res = await fetch(presignData.presignedUrl, {
-                        method: 'PUT',
-                        body: file,
-                        headers: {
-                            'Content-Type': uploadContentType
-                        }
-                    });
+                if (!presignRes.ok || (!presignData.supabaseSignedUrl && !presignData.presignedUrl)) {
+                    throw new Error(presignData.error || `Error al generar enlace seguro de subida (${presignRes.status}).`);
+                }
 
-                    if (r2Res.ok) {
-                        videoUrl = presignData.url;
-                    } else {
-                        const errTxt = await r2Res.text().catch(() => '');
-                        console.error('[Upload] R2 upload status:', r2Res.status, errTxt);
-                        throw new Error(`R2 Error (${r2Res.status}): ${errTxt || 'Error al guardar archivo en R2.'}`);
+                const uploadContentType = presignData.type || mimeType;
+
+                // Attempt 1: Direct PUT to Supabase Storage Signed Upload URL (guaranteed CORS for web)
+                if (presignData.supabaseSignedUrl) {
+                    setStatusMsg('Subiendo vídeo...');
+                    try {
+                        const supaRes = await fetch(presignData.supabaseSignedUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': uploadContentType },
+                            body: file,
+                        });
+                        if (supaRes.ok) {
+                            videoUrl = presignData.supabasePublicUrl || presignData.url;
+                        } else {
+                            const supaErrTxt = await supaRes.text().catch(() => '');
+                            console.warn('[Upload] Supabase direct PUT failed:', supaRes.status, supaErrTxt);
+                        }
+                    } catch (e) {
+                        console.warn('[Upload] Supabase direct PUT network error:', e);
                     }
-                } else {
-                    console.warn('[Upload] Presign non-ok:', presignRes.status, presignData);
-                    throw new Error(presignData.error || `Error al generar la clave de subida (${presignRes.status}).`);
+                }
+
+                // Attempt 2: Direct PUT to R2 Presigned URL
+                if (!videoUrl && presignData.presignedUrl) {
+                    setStatusMsg('Subiendo vídeo (almacenamiento R2)...');
+                    try {
+                        const r2Res = await fetch(presignData.presignedUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': uploadContentType },
+                            body: file,
+                        });
+                        if (r2Res.ok) {
+                            videoUrl = presignData.r2Url || presignData.url;
+                        } else {
+                            const r2ErrTxt = await r2Res.text().catch(() => '');
+                            console.warn('[Upload] R2 PUT failed:', r2Res.status, r2ErrTxt);
+                        }
+                    } catch (e) {
+                        console.warn('[Upload] R2 PUT network error:', e);
+                    }
+                }
+
+                if (!videoUrl) {
+                    throw new Error('No se pudo subir el archivo de vídeo. Por favor comprueba tu conexión e inténtalo de nuevo.');
                 }
             } catch (presignErr: any) {
-                console.warn('[Upload] R2 Presign error:', presignErr);
-                if (file.size > 4.5 * 1024 * 1024) {
-                    throw new Error(presignErr.message || 'Error de conexión durante la subida directa del vídeo.');
-                }
-            }
-
-            // Fallback: Direct FormData upload via /api/media/upload
-            if (!videoUrl) {
-                setStatusMsg('Subiendo archivo al servidor...');
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('subDir', 'videos');
-
-                const fallbackHeaders: Record<string, string> = {
-                    'x-user-handle': userHandle,
-                    'x-user-id': userId
-                };
-                if (token) fallbackHeaders['Authorization'] = `Bearer ${token}`;
-
-                const mediaRes = await fetch('/api/media/upload', {
-                    method: 'POST',
-                    headers: fallbackHeaders,
-                    body: formData
-                });
-
-                const mediaText = await mediaRes.text();
-                let mediaData: any = {};
-                try {
-                    mediaData = JSON.parse(mediaText);
-                } catch {
-                    console.error('[Fallback Upload Response non-JSON]:', mediaText);
-                }
-
-                if (!mediaRes.ok || !mediaData.url) {
-                    throw new Error(mediaData.error || mediaData.message || (mediaRes.status === 413 ? 'El archivo es demasiado grande para el servidor secundario. Revisa la conexión con R2.' : 'No se pudo subir el archivo. Inténtalo de nuevo.'));
-                }
-                videoUrl = mediaData.url;
+                console.warn('[Upload] Direct upload failed:', presignErr);
+                throw new Error(presignErr.message || 'Error durante la subida del vídeo.');
             }
 
             // 5. Register video in the database
