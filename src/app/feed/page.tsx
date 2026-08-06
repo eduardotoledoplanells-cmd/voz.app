@@ -383,8 +383,6 @@ export const FeedItem = ({
                                 }
                             }}
                         />
-
-                        />
                         {/* Sound Badge if Browser forced muted play */}
                         {isMuted && isPlaying && (
                             <div 
