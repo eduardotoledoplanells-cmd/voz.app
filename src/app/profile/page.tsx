@@ -867,11 +867,26 @@ function ProfilePageContent() {
 
             {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY (PIXEL-PERFECT MATCH WITH APPVOZ.COM/FEED) */}
             {activeProfileVideoIndex !== null && videos[activeProfileVideoIndex] && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100dvh', backgroundColor: '#000', zIndex: 99999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ 
+                    position: 'fixed', 
+                    top: 0, 
+                    left: 0, 
+                    right: 0,
+                    bottom: 0,
+                    width: '100vw', 
+                    height: '100dvh', 
+                    backgroundColor: '#000000', 
+                    zIndex: 999999, 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    margin: 0,
+                    padding: 0
+                }}>
                     {/* Close Button X */}
                     <button 
                         onClick={() => setActiveProfileVideoIndex(null)}
-                        style={{ position: 'absolute', top: '20px', left: '20px', width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                        style={{ position: 'absolute', top: '20px', left: '20px', width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000000 }}
                         title="Volver al perfil"
                     >
                         <X size={24} color="white" />
@@ -881,7 +896,7 @@ function ProfilePageContent() {
                     {activeProfileVideoIndex > 0 && (
                         <button 
                             onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex - 1)}
-                            style={{ position: 'absolute', left: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                            style={{ position: 'absolute', left: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000000 }}
                         >
                             <ChevronLeft size={32} color="white" />
                         </button>
@@ -891,13 +906,13 @@ function ProfilePageContent() {
                     {activeProfileVideoIndex < videos.length - 1 && (
                         <button 
                             onClick={() => setActiveProfileVideoIndex(activeProfileVideoIndex + 1)}
-                            style={{ position: 'absolute', right: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 100000 }}
+                            style={{ position: 'absolute', right: '25px', top: '50%', transform: 'translateY(-50%)', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000000 }}
                         >
                             <ChevronRight size={32} color="white" />
                         </button>
                     )}
 
-                    <div style={{ width: '100%', maxWidth: '480px', height: '100%', position: 'relative' }}>
+                    <div style={{ width: '100%', maxWidth: '450px', height: '100dvh', position: 'relative', margin: '0 auto' }}>
                         <FeedItem 
                             v={{
                                 ...videos[activeProfileVideoIndex],
