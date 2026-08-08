@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 export default function VozAdsPage() {
-    const [activeTab, setActiveTab] = useState<'campaigns' | 'clients' | 'impressions' | 'payments'>('campaigns');
+    const [activeTab, setActiveTab] = useState<'campaigns' | 'clients' | 'impressions' | 'analytics' | 'payments'>('campaigns');
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,6 +40,11 @@ export default function VozAdsPage() {
     const [newCampaignCountries, setNewCampaignCountries] = useState<string[]>([]);
     const [newCampaignRegions, setNewCampaignRegions] = useState<string[]>([]);
     const [newCampaignInterests, setNewCampaignInterests] = useState<string[]>([]);
+    
+    // Credenciales de portal
+    const [portalEmail, setPortalEmail] = useState('');
+    const [portalPassword, setPortalPassword] = useState('');
+    const [isCreatingCredentials, setIsCreatingCredentials] = useState(false);
 
     const AD_COUNTRIES = ['España','Francia','Alemania','Italia','Portugal','México','Argentina','Colombia','Chile','Perú'];
     const AD_REGIONS: Record<string,string[]> = {
@@ -249,6 +254,44 @@ export default function VozAdsPage() {
         }, 'Borrar Campaña');
     };
 
+    const handleCreateCredentials = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!selectedClientDetail) return;
+        if (portalPassword.length < 6) {
+            showAlert('La contraseña debe tener al menos 6 caracteres', 'Error');
+            return;
+        }
+
+        setIsCreatingCredentials(true);
+        try {
+            const res = await fetch('/api/voz/companies/credentials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    companyId: selectedClientDetail.id,
+                    email: portalEmail,
+                    password: portalPassword
+                })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                showAlert('Credenciales creadas correctamente. El anunciante ya puede acceder al portal.', 'Éxito');
+                setPortalEmail('');
+                setPortalPassword('');
+                // Actualizar localmente
+                setCompanies(companies.map(c => c.id === selectedClientDetail.id ? { ...c, contactEmail: portalEmail } : c));
+                setSelectedClientDetail({ ...selectedClientDetail, contactEmail: portalEmail });
+            } else {
+                showAlert(data.error || 'Ocurrió un error al crear credenciales', 'Error');
+            }
+        } catch (error) {
+            showAlert('Error de conexión con el servidor', 'Error');
+        } finally {
+            setIsCreatingCredentials(false);
+        }
+    };
+
     const handleDeleteClient = (id: string) => {
         const hasCampaigns = campaigns.some(c => c.companyId === id);
         if (hasCampaigns) {
@@ -292,6 +335,13 @@ export default function VozAdsPage() {
                     onClick={() => setActiveTab('impressions')}
                 >
                     Impresiones 📊
+                </button>
+                <button
+                    role="tab"
+                    aria-selected={activeTab === 'analytics'}
+                    onClick={() => setActiveTab('analytics')}
+                >
+                    Estadísticas 📈
                 </button>
             </menu>
 
@@ -609,6 +659,12 @@ export default function VozAdsPage() {
                     </table>
                 </div>
             </div>
+            {/* ANALYTICS TAB */}
+            <div style={{ flex: 1, display: activeTab === 'analytics' ? 'flex' : 'none', flexDirection: 'column' }}>
+                <div style={{ flex: 1, border: '2px solid #808080', borderTopColor: '#fff', borderLeftColor: '#fff', padding: 2, background: 'white', overflow: 'hidden' }}>
+                    <AnalyticsDashboard campaigns={campaigns} companies={companies} />
+                </div>
+            </div>
 
             {/* MODALS & DIALOGS (OUTSIDE CONDITIONAL TABS) */}
             {showCampaignModal && (
@@ -848,6 +904,43 @@ export default function VozAdsPage() {
                                     </div>
                                 </fieldset>
                             </div>
+
+                            <fieldset style={{ marginBottom: 15 }}>
+                                <legend>Credenciales del Portal de Anunciantes</legend>
+                                <form onSubmit={handleCreateCredentials}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+                                        <div className="field-row-stacked">
+                                            <label>Email de Acceso:</label>
+                                            <input 
+                                                type="email" 
+                                                value={portalEmail} 
+                                                onChange={e => setPortalEmail(e.target.value)} 
+                                                placeholder="anunciante@empresa.com" 
+                                                required 
+                                            />
+                                        </div>
+                                        <div className="field-row-stacked">
+                                            <label>Contraseña (Mín. 6):</label>
+                                            <input 
+                                                type="password" 
+                                                value={portalPassword} 
+                                                onChange={e => setPortalPassword(e.target.value)} 
+                                                placeholder="******" 
+                                                required 
+                                            />
+                                        </div>
+                                        <button type="submit" disabled={isCreatingCredentials} style={{ height: 26, fontWeight: 'bold' }}>
+                                            {isCreatingCredentials ? 'Creando...' : 'Guardar Acceso'}
+                                        </button>
+                                    </div>
+                                    <div style={{ fontSize: '0.85em', color: '#555', marginTop: 8 }}>
+                                        💡 Una vez creadas, el cliente podrá acceder a <b>ads.lyvo.media/login</b> con estos datos para ver sus métricas. 
+                                        {selectedClientDetail.contactEmail && (
+                                            <span style={{ color: 'green', marginLeft: 5 }}>✓ Email configurado: {selectedClientDetail.contactEmail}</span>
+                                        )}
+                                    </div>
+                                </form>
+                            </fieldset>
 
                             <p style={{ margin: '10px 0 5px 0', fontWeight: 'bold' }}>📢 Campañas asociadas:</p>
                             <div className="sunken-panel" style={{ backgroundColor: 'white', marginBottom: 15 }}>

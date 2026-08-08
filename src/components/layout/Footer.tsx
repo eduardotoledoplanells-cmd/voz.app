@@ -72,7 +72,7 @@ export default function Footer() {
                                 </a>
                             </li>
                             <li style={{ color: '#666', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
-                                <Mail size={14} /> Soporte: voz@appvoz.com
+                                <Mail size={14} /> Soporte: lyvo@lyvo.media
                             </li>
                         </ul>
                     </div>

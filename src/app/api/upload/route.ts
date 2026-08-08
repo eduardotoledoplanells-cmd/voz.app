@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         );
 
         // 6. Construct Video Public URL
-        // Cloudflare R2 public domains are either custom domains (e.g. video.voz.app) or pub-*.r2.dev subdomains.
+        // Cloudflare R2 public domains are either custom domains (e.g. video.lyvo.media) or pub-*.r2.dev subdomains.
         // If NEXT_PUBLIC_R2_PUBLIC_URL is not set, we construct a default compatible format or return the bucket key.
         const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
         let videoUrl = '';

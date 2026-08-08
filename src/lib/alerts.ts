@@ -185,8 +185,8 @@ async function maybeTriggerCriticalAlert(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'LYVO Alerts <alerts@voz.app>',
-        to: ['admin@voz.app'],      // Cambiar por el email real del admin
+        from: 'LYVO <lyvo@lyvo.media>',
+        to: ['lyvo@lyvo.media'],      // Cambiar por el email real del admin
         subject,
         html,
       }),

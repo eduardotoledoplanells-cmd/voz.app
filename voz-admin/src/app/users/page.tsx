@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { getAdminHeaders, getAdminJsonHeaders } from '@/lib/adminSession';
 import spainLocations from '@/lib/spainLocations.json';
 

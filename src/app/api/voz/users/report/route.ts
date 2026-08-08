@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
             .insert([{
                 id: moderationId,
                 type: type, // 'profile'
-                url: `https://voz.app/profile/${reportedHandle.replace('@', '')}`,
+                url: `https://lyvo.media/profile/${reportedHandle.replace('@', '')}`,
                 user_handle: reportedHandle,
                 report_reason: `Reportado por ${reporterHandle}: ${reason}`,
                 content: `Perfil de usuario`,

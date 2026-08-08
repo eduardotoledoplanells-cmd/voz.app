@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export const config = {
-    // Interceptar todas las rutas de /api/voz y subrutas
-    matcher: '/api/voz/:path*',
+    // Interceptar todas las rutas excepto estáticos
+    matcher: [
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
 };
 
 // Rutas públicas dentro de /api/voz que NO requieren token Bearer
@@ -16,6 +18,25 @@ const PUBLIC_ROUTES = [
 export async function middleware(request: NextRequest) {
     const url = new URL(request.url);
     const pathname = url.pathname;
+    
+    // 0. SUBDOMINIOS Y REESCRITURAS DE HOST
+    const host = request.headers.get('host') || '';
+    if (host.includes('ads.lyvo.media') || host.includes('ads.libo.media')) {
+        // Redirigir la ruta raíz a /login
+        if (pathname === '/') {
+            return NextResponse.rewrite(new URL('/ads-portal/login', request.url));
+        }
+        // Reescribir resto de rutas al subdirectorio ads-portal si no son de API
+        if (!pathname.startsWith('/api/') && !pathname.startsWith('/ads-portal')) {
+            return NextResponse.rewrite(new URL(`/ads-portal${pathname}`, request.url));
+        }
+    }
+    
+    // Si no es una ruta de API y no ha sido interceptada por el subdominio, dejamos que fluya normal.
+    // La validación JWT actual es solo para /api/voz/
+    if (!pathname.startsWith('/api/voz/')) {
+        return NextResponse.next();
+    }
 
     // 1. CLONAR CABECERAS Y ELIMINAR CUALQUIER CABECERA DE SEGURIDAD INYECTADA POR EL CLIENTE (Header Spoofing Prevention)
     const requestHeaders = new Headers(request.headers);

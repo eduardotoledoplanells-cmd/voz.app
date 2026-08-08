@@ -73,3 +73,4 @@ send_*.js
 env.vercel
 
 .env*
+.vercel

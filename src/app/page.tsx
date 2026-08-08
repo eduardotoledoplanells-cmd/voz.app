@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         images: [{ url: '/logo/logo-voz.png', width: 512, height: 512, alt: 'LYVO App' }],
         type: 'website',
         siteName: 'LYVO App',
-        url: 'https://appvoz.com',
+        url: 'https://lyvo.media',
     },
     twitter: {
         card: 'summary_large_image',

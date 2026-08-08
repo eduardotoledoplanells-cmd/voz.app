@@ -11,7 +11,7 @@ export function generateInvoice(order: Order) {
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('voz@appvoz.com', 105, 27, { align: 'center' });
+    doc.text('lyvo@lyvo.media', 105, 27, { align: 'center' });
 
     // Invoice title
     doc.setFontSize(16);
@@ -83,7 +83,7 @@ export function generateInvoice(order: Order) {
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text('Gracias por tu compra', 105, 280, { align: 'center' });
-    doc.text('voz@appvoz.com', 105, 285, { align: 'center' });
+    doc.text('lyvo@lyvo.media', 105, 285, { align: 'center' });
 
     return doc;
 }

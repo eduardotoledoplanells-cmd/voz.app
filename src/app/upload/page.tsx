@@ -3,38 +3,40 @@ import { useState, useRef } from 'react';
 import BottomNav from '../components/BottomNav';
 import { Upload, Music, FileVideo, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { VideoEditor, EditorSettings } from '../components/VideoEditor';
 
 export default function UploadPage() {
     const { user: authUser } = useAuth();
-    const [title, setTitle] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
     const [uploadedUrl, setUploadedUrl] = useState('');
     const [statusMsg, setStatusMsg] = useState('');
+    const [showEditor, setShowEditor] = useState(false);
+    const [editorSettings, setEditorSettings] = useState<EditorSettings | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
-    const compressWebVideo = async (inputFile: File): Promise<File> => {
-        if (!inputFile.type.startsWith('video/') || inputFile.size <= 5 * 1024 * 1024) {
+    const compressWebVideo = async (inputFile: File, settings: EditorSettings | null): Promise<File> => {
+        if (!settings && (!inputFile.type.startsWith('video/') || inputFile.size <= 5 * 1024 * 1024)) {
             return inputFile;
         }
 
         try {
-            setStatusMsg('Optimizando y comprimiendo vídeo en el navegador (0%)...');
-            console.log(`[WebCompressor] Iniciando compresión de ${inputFile.name} (${(inputFile.size / 1024 / 1024).toFixed(1)} MB)...`);
+            setStatusMsg('Procesando vídeo en el navegador (0%)...');
+            console.log(`[WebCompressor] Iniciando compresión de ${inputFile.name}...`);
 
             return await new Promise((resolve) => {
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 video.src = URL.createObjectURL(inputFile);
-                video.muted = true;
+                video.muted = false; // Need it unmuted to capture audio, but we won't connect it to output unless we want it playing
                 video.playsInline = true;
 
                 const timeout = setTimeout(() => {
                     console.warn("[WebCompressor] Timeout en compresión, utilizando vídeo original.");
                     URL.revokeObjectURL(video.src);
                     resolve(inputFile);
-                }, 40000);
+                }, 60000);
 
                 video.onloadedmetadata = async () => {
                     try {
@@ -67,7 +69,51 @@ export default function UploadPage() {
                             return resolve(inputFile);
                         }
 
-                        const stream = canvas.captureStream(30);
+                        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                        const dest = audioCtx.createMediaStreamDestination();
+                        let hasAudio = false;
+
+                        if (!settings?.isMuted) {
+                            try {
+                                const source = audioCtx.createMediaElementSource(video);
+                                source.connect(dest);
+                                hasAudio = true;
+                            } catch (e) {
+                                console.warn('[WebCompressor] Cannot create media element source', e);
+                            }
+                        } else {
+                            video.muted = true;
+                        }
+
+                        if (settings?.selectedMusic) {
+                            try {
+                                const response = await fetch(settings.selectedMusic.previewUrl);
+                                const arrayBuffer = await response.arrayBuffer();
+                                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                                const source = audioCtx.createBufferSource();
+                                source.buffer = audioBuffer;
+                                source.loop = true;
+                                
+                                const gainNode = audioCtx.createGain();
+                                gainNode.gain.value = settings.musicVolume !== undefined ? settings.musicVolume : 0.5;
+                                
+                                source.connect(gainNode);
+                                gainNode.connect(dest);
+                                
+                                source.start(0);
+                                hasAudio = true;
+                            } catch (e) {
+                                console.warn('[WebCompressor] Could not load background music:', e);
+                            }
+                        }
+
+                        const videoStream = canvas.captureStream(30);
+                        const streamTracks = [videoStream.getVideoTracks()[0]];
+                        if (hasAudio && dest.stream.getAudioTracks().length > 0) {
+                            streamTracks.push(dest.stream.getAudioTracks()[0]);
+                        }
+                        const stream = new MediaStream(streamTracks);
+
                         const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
                             ? 'video/mp4;codecs=avc1'
                             : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
@@ -87,8 +133,9 @@ export default function UploadPage() {
                         recorder.onstop = () => {
                             clearTimeout(timeout);
                             URL.revokeObjectURL(video.src);
+                            if (audioCtx.state !== 'closed') audioCtx.close();
                             const blob = new Blob(chunks, { type: mimeType });
-                            if (blob.size > 0 && blob.size < inputFile.size) {
+                            if (blob.size > 0) {
                                 console.log(`[WebCompressor] Compresión exitosa: ${(inputFile.size / 1024 / 1024).toFixed(1)} MB -> ${(blob.size / 1024 / 1024).toFixed(1)} MB`);
                                 const ext = mimeType.includes('mp4') ? '.mp4' : '.webm';
                                 const compressedFile = new File([blob], inputFile.name.replace(/\.[^/.]+$/, "") + "_opt" + ext, { type: mimeType });
@@ -98,17 +145,41 @@ export default function UploadPage() {
                             }
                         };
 
+                        const startTime = settings ? (duration * settings.trimRange[0] / 100) : 0;
+                        const endTime = settings ? (duration * settings.trimRange[1] / 100) : duration;
+                        video.currentTime = startTime;
+
                         recorder.start();
-                        await video.play();
+                        await video.play().catch(() => {
+                            // Autoplay block fallback
+                            video.muted = true;
+                            return video.play();
+                        });
 
                         const draw = () => {
-                            if (!video.paused && !video.ended) {
-                                const pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
-                                setStatusMsg(`Optimizando y comprimiendo vídeo en el navegador (${pct}%)...`);
+                            if (!video.paused && !video.ended && video.currentTime <= endTime) {
+                                const pct = Math.min(99, Math.round(((video.currentTime - startTime) / (endTime - startTime)) * 100));
+                                setStatusMsg(`Procesando vídeo en el navegador (${pct}%)...`);
+                                
+                                if (settings?.selectedFilter && settings.selectedFilter.id !== 'none') {
+                                    if (settings.selectedFilter.id === 'bw') ctx.filter = 'grayscale(100%)';
+                                    else if (settings.selectedFilter.id === 'sepia') ctx.filter = 'sepia(100%)';
+                                    else if (settings.selectedFilter.id === 'vintage') ctx.filter = 'sepia(50%) contrast(1.2)';
+                                    else ctx.filter = `brightness(${settings.filterBrightness * 2}) contrast(${1 + settings.filterIntensity})`;
+                                } else {
+                                    ctx.filter = 'none';
+                                }
+                                
                                 ctx.drawImage(video, 0, 0, width, height);
+                                
+                                if (settings?.selectedFilter?.color && settings.selectedFilter.color !== 'transparent') {
+                                    ctx.fillStyle = settings.selectedFilter.color;
+                                    ctx.fillRect(0, 0, width, height);
+                                }
+                                
                                 requestAnimationFrame(draw);
                             } else {
-                                setStatusMsg('Compresión completada (100%). Preparando envío...');
+                                setStatusMsg('Procesamiento completado (100%). Preparando envío...');
                                 recorder.stop();
                             }
                         };
@@ -206,9 +277,8 @@ export default function UploadPage() {
         });
     };
 
-    const handleUpload = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!file) return;
+    const executeUpload = async (uploadFile: File, settings: EditorSettings | null) => {
+        if (!uploadFile) return;
 
         setStatus('uploading');
         setErrorMsg('');
@@ -252,14 +322,19 @@ export default function UploadPage() {
             
             let videoUrl = '';
 
+            let finalFile = uploadFile;
+            if (uploadFile.type.startsWith('video/')) {
+                finalFile = await compressWebVideo(uploadFile, settings);
+            }
+
             setStatusMsg('Generando enlace seguro de subida...');
-            const mimeType = file.type || 'video/mp4';
+            const mimeType = finalFile.type || 'video/mp4';
 
             const presignRes = await fetch('/api/upload/presign', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    filename: file.name,
+                    filename: finalFile.name,
                     contentType: mimeType
                 })
             });
@@ -276,7 +351,7 @@ export default function UploadPage() {
                     headers: {
                         'Content-Type': mimeType,
                     },
-                    body: file
+                    body: finalFile
                 });
 
                 if (!uploadRes.ok) {
@@ -293,7 +368,7 @@ export default function UploadPage() {
                     const supaRes = await fetch(presignData.supabaseSignedUrl, {
                         method: 'PUT',
                         headers: { 'Content-Type': mimeType },
-                        body: file
+                        body: finalFile
                     });
                     if (supaRes.ok) {
                         videoUrl = presignData.supabasePublicUrl || presignData.publicUrl;
@@ -306,12 +381,12 @@ export default function UploadPage() {
             }
 
             let generatedThumbnailUrl = '';
-            if (file.type.startsWith('video/')) {
+            if (uploadFile.type.startsWith('video/')) {
                 setStatusMsg('Generando fotograma automático para la carátula...');
                 try {
-                    const thumbBlob = await generateVideoThumbnail(file);
+                    const thumbBlob = await generateVideoThumbnail(finalFile);
                     if (thumbBlob) {
-                        const sanitizedBase = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                        const sanitizedBase = finalFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                         const thumbFileName = `thumb_${Date.now()}_${sanitizedBase}.jpg`;
                         const thumbPresignRes = await fetch('/api/upload/presign', {
                             method: 'POST',
@@ -349,9 +424,9 @@ export default function UploadPage() {
                 body: JSON.stringify({
                     videoUrl,
                     user: userHandle,
-                    description: title || 'Mi nuevo vídeo',
+                    description: settings?.description || 'Mi nuevo vídeo',
                     thumbnailUrl: generatedThumbnailUrl,
-                    isMuted: false,
+                    isMuted: settings?.isMuted || false,
                 }),
             });
 
@@ -382,6 +457,20 @@ export default function UploadPage() {
     return (
         <div style={{ backgroundColor: '#000', color: 'white', minHeight: '100dvh', width: '100%', paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))' }}>
 
+            {showEditor && file && (
+                <VideoEditor 
+                    file={file} 
+                    onApply={(settings) => {
+                        setShowEditor(false);
+                        executeUpload(file, settings);
+                    }}
+                    onCancel={() => {
+                        setFile(null);
+                        setShowEditor(false);
+                    }}
+                />
+            )}
+
             {/* Mobile Top Bar */}
             <div className="mobile-top-bar">
                 <div style={{ width: '30px' }} />
@@ -389,11 +478,11 @@ export default function UploadPage() {
                 <div style={{ width: '30px' }} />
             </div>
 
-            <div style={{ padding: '24px 20px', maxWidth: '500px', margin: '0 auto' }}>
+            <div style={{ padding: '12px 20px', maxWidth: '500px', margin: '0 auto' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '6px' }}>
                     {status === 'success' ? '¡Publicado! 🎉' : 'Nueva publicación'}
                 </h2>
-                <p style={{ color: '#666', fontSize: '14px', marginBottom: '28px' }}>
+                <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
                     {status === 'success' ? 'Tu contenido ya está disponible en LYVO.' : 'Comparte tu vídeo o audio con la comunidad.'}
                 </p>
 
@@ -404,7 +493,7 @@ export default function UploadPage() {
                         {uploadedUrl && (
                             <video src={uploadedUrl} controls style={{ width: '100%', borderRadius: '12px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#111' }} />
                         )}
-                        <button onClick={() => { setStatus('idle'); setFile(null); setTitle(''); setUploadedUrl(''); }} style={{
+                        <button onClick={() => { setStatus('idle'); setFile(null); setUploadedUrl(''); }} style={{
                             padding: '13px 28px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
                             color: 'white', borderRadius: '14px', fontWeight: '600', cursor: 'pointer', fontSize: '15px'
                         }}>
@@ -412,7 +501,7 @@ export default function UploadPage() {
                         </button>
                     </div>
                 ) : (
-                    <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
                         {/* File Upload Area */}
                         <div
@@ -420,7 +509,7 @@ export default function UploadPage() {
                             style={{
                                 border: `2px dashed ${file ? 'rgba(142,45,226,0.6)' : 'rgba(255,255,255,0.1)'}`,
                                 borderRadius: '20px',
-                                padding: '40px 20px',
+                                padding: '24px 20px',
                                 textAlign: 'center',
                                 cursor: 'pointer',
                                 background: file ? 'rgba(142,45,226,0.05)' : 'rgba(255,255,255,0.02)',
@@ -537,33 +626,15 @@ export default function UploadPage() {
                                 }
 
                                 setFile(selectedFile);
+                                if (selectedFile.type.startsWith('video/')) {
+                                    setShowEditor(true);
+                                }
                                 if (status === 'error') {
                                     setStatus('idle');
                                     setErrorMsg('');
                                 }
                             }}
                             style={{ display: 'none' }}
-                        />
-
-                        {/* Description */}
-                        <textarea
-                            placeholder="Escribe una descripción... #hashtag @mención"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            rows={3}
-                            style={{
-                                width: '100%',
-                                padding: '14px 16px',
-                                borderRadius: '14px',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                backgroundColor: 'rgba(255,255,255,0.04)',
-                                color: 'white',
-                                fontSize: '16px',
-                                fontFamily: 'inherit',
-                                resize: 'none',
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                            }}
                         />
 
                         {/* Error message */}
@@ -600,29 +671,14 @@ export default function UploadPage() {
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={!file || status === 'uploading'}
-                            style={{
-                                padding: '16px',
-                                background: file ? 'linear-gradient(135deg, #8E2DE2, #4A00E0)' : 'rgba(255,255,255,0.06)',
-                                color: file ? 'white' : '#333',
-                                border: 'none', borderRadius: '14px',
-                                fontWeight: '700', cursor: file ? 'pointer' : 'not-allowed',
-                                fontSize: '16px', transition: 'all 0.2s',
-                                boxShadow: file ? '0 4px 16px rgba(142,45,226,0.35)' : 'none',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                            }}
-                        >
-                            {status === 'uploading' ? (
-                                <><Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> {statusMsg || 'Publicando...'}</>
-                            ) : (
-                                'Publicar en LYVO'
-                            )}
-                        </button>
-
+                        {status === 'uploading' && (
+                            <div style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                                <Loader2 size={32} color="#8E2DE2" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 10px' }} />
+                                <div style={{ color: 'white', fontWeight: 'bold' }}>{statusMsg}</div>
+                            </div>
+                        )}
                         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                    </form>
+                    </div>
                 )}
             </div>
 

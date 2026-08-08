@@ -8,6 +8,7 @@ import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import ReportModal from '../components/ReportModal';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import { FeedItem } from '../feed/page';
+import '../feeditem.css';
 import { isUserBlocked, blockUser, unblockUser } from '@/utils/blockedUsers';
 import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical, Share2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -865,7 +866,7 @@ function ProfilePageContent() {
                 onLogout={logout} 
             />
 
-            {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY (PIXEL-PERFECT MATCH WITH APPVOZ.COM/FEED) */}
+            {/* FULL-SCREEN PROFILE VIDEO VIEWER OVERLAY (PIXEL-PERFECT MATCH WITH LYVO.MEDIA/FEED) */}
             {activeProfileVideoIndex !== null && videos[activeProfileVideoIndex] && (
                 <div style={{ 
                     position: 'fixed', 
@@ -932,8 +933,9 @@ function ProfilePageContent() {
                             onCommentClick={(vidId) => setActiveCommentVideoId(vidId)}
                             onReportClick={(vid) => setReportingVideo(vid)}
                             isActive={true}
+                            hasBottomNav={false}
                         />
-                        <BottomNav />
+                        <BottomNav isAbsolute={true} />
                     </div>
                 </div>
             )}

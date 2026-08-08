@@ -1,9 +1,9 @@
 export const ADMIN_EMAILS = [
-    'voz@appvoz.com',
-    'voz@appvoz.com'
+    'lyvo@lyvo.media',
+    'lyvo@lyvo.media'
 ];
 
-export const CONTACT_EMAIL = 'voz@appvoz.com';
+export const CONTACT_EMAIL = 'lyvo@lyvo.media';
 
 export function isAdmin(email: string): boolean {
     return ADMIN_EMAILS.includes(email);

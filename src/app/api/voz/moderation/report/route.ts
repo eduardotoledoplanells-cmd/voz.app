@@ -16,7 +16,7 @@ async function moderateVideoWithAI(videoId: string, videoUrl: string, thumbnailU
 
         // 1. Verificar la miniatura (si existe) con GPT-4o-mini (Vision)
         if (thumbnailUrl) {
-            const absoluteThumbnailUrl = thumbnailUrl.startsWith('http') ? thumbnailUrl : `https://voz.app${thumbnailUrl}`;
+            const absoluteThumbnailUrl = thumbnailUrl.startsWith('http') ? thumbnailUrl : `https://lyvo.media${thumbnailUrl}`;
             console.log(`[AI Moderation] Analizando miniatura: ${absoluteThumbnailUrl}`);
             
             const thumbRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -186,12 +186,12 @@ export async function POST(req: NextRequest) {
 
         if (content) {
             if (content.videoUrl) {
-                url = content.videoUrl.startsWith('http') ? content.videoUrl : `https://voz.app${content.videoUrl}`;
+                url = content.videoUrl.startsWith('http') ? content.videoUrl : `https://lyvo.media${content.videoUrl}`;
                 reportedUser = content.user;
                 modType = 'video';
             } else if (content.uri) {
                 // Audio comment
-                url = content.uri.startsWith('http') ? content.uri : `https://voz.app${content.uri}`;
+                url = content.uri.startsWith('http') ? content.uri : `https://lyvo.media${content.uri}`;
                 reportedUser = content.user;
                 modType = 'audio';
             }

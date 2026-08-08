@@ -194,7 +194,7 @@ function VozAdminContent({
                         </div>
                     </div>
                     <div className={`window-body ${styles.windowBody}`}>
-                        {!employee && pathname !== '/' ? (
+                        {!employee && !['/', '/login', '/2fa-setup', '/2fa-verify'].includes(pathname) ? (
                             <div style={{ padding: '20px', textAlign: 'center' }}>
                                 <p>Redireccionando al Control de Acceso...</p>
                             </div>

@@ -839,7 +839,7 @@ export default function VozModerationPage() {
                                                 <div style={{ marginBottom: 15 }}>
                                                     <h3>Perfil Analizado: {selectedProfileHandle}</h3>
                                                     <p>Total de reportes pendientes: <b>{profileItems.length}</b></p>
-                                                    <a href={`https://voz.app/profile/${selectedProfileHandle.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ color: 'blue', textDecoration: 'underline' }}>
+                                                    <a href={`https://lyvo.media/profile/${selectedProfileHandle.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ color: 'blue', textDecoration: 'underline' }}>
                                                         Abrir perfil en nueva pestaña ↗
                                                     </a>
                                                 </div>

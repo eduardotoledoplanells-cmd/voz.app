@@ -1,13 +1,28 @@
 "use client";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert, Share2 } from 'lucide-react';
+import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert, Share2, Maximize } from 'lucide-react';
 import Link from 'next/link';
+import '../feeditem.css';
 import BottomNav from '../components/BottomNav';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
 import LiveStreamModal from '../components/LiveStreamModal';
 import ReportModal from '../components/ReportModal';
 import { isUserBlocked } from '@/utils/blockedUsers';
+
+const formatVideoDate = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '';
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch {
+        return '';
+    }
+};
 
 export const FeedItem = ({ 
     v, 
@@ -16,7 +31,8 @@ export const FeedItem = ({
     currentUserHandle, 
     onCommentClick,
     onReportClick,
-    isActive
+    isActive,
+    hasBottomNav
 }: { 
     v: any, 
     autoScroll: boolean, 
@@ -24,7 +40,8 @@ export const FeedItem = ({
     currentUserHandle?: string, 
     onCommentClick: (videoId: string) => void,
     onReportClick: (video: any) => void,
-    isActive: boolean
+    isActive: boolean,
+    hasBottomNav?: boolean
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -37,15 +54,21 @@ export const FeedItem = ({
         const liveActive = v.is_live || v.isLive;
         const targetUrl = v.live_url || v.liveUrl;
         if (liveActive && targetUrl) {
-            setHasLiveSignal(true);
+            setHasLiveSignal(false); // Default to false until verified
             fetch(`/api/voz/live?url=${encodeURIComponent(targetUrl)}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (active && data.streamUrl) {
-                        // Extracted HLS stream URL available
+                    if (active) {
+                        if (data.is_live || data.streamUrl) {
+                            setHasLiveSignal(true);
+                        } else {
+                            setHasLiveSignal(false);
+                        }
                     }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    if (active) setHasLiveSignal(false);
+                });
         } else {
             setHasLiveSignal(false);
         }
@@ -199,7 +222,7 @@ export const FeedItem = ({
 
     // Active playback control
     useEffect(() => {
-        if (isActive) {
+        if (isActive && !isLiveOpen) {
             if (!isManualPause && videoRef.current && !document.hidden) {
                 const p = videoRef.current.play();
                 if (p !== undefined) {
@@ -223,10 +246,12 @@ export const FeedItem = ({
             if (videoRef.current) {
                 videoRef.current.pause();
                 setIsPlaying(false);
-                setIsManualPause(false); // reset manual pause on slide change
+                if (!isActive) {
+                    setIsManualPause(false); // reset manual pause on slide change, but not on live modal open
+                }
             }
         }
-    }, [isActive, isManualPause]);
+    }, [isActive, isManualPause, isLiveOpen]);
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -273,12 +298,12 @@ export const FeedItem = ({
         try {
             const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/like', {
-                method: 'POST',
+                method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle })
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isLiked: newLiked })
             });
         } catch (e) { console.error("Error liking video", e); }
     };
@@ -290,12 +315,12 @@ export const FeedItem = ({
         try {
             const token = localStorage.getItem('token') || '';
             await fetch('/api/voz/videos/bookmark', {
-                method: 'POST',
+                method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle })
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isBookmarked: newBookmarked })
             });
         } catch (e) { console.error("Error bookmarking video", e); }
     };
@@ -356,7 +381,7 @@ export const FeedItem = ({
 
     return (
         <div style={{ width: '100%', height: '100dvh', scrollSnapAlign: 'start', flexShrink: 0, display: 'flex', justifyContent: 'center', backgroundColor: '#000' }}>
-            <div style={{ width: '100%', maxWidth: isManualHorizontalMode ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
+            <div className={hasBottomNav !== false ? 'with-bottom-nav' : ''} style={{ width: '100%', maxWidth: isManualHorizontalMode ? '850px' : '450px', height: '100%', position: 'relative', backgroundColor: '#000', transition: 'max-width 0.3s ease' }}>
                 {v.videoUrl ? (
                     <div style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }} onClick={togglePlay}>
                         <video 
@@ -383,37 +408,7 @@ export const FeedItem = ({
                                 }
                             }}
                         />
-                        {/* Sound Badge if Browser forced muted play */}
-                        {isMuted && isPlaying && (
-                            <div 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (videoRef.current) {
-                                        videoRef.current.muted = false;
-                                        setIsMuted(false);
-                                    }
-                                }}
-                                style={{
-                                    position: 'absolute',
-                                    top: '20px',
-                                    right: '20px',
-                                    backgroundColor: 'rgba(0,0,0,0.7)',
-                                    color: 'white',
-                                    padding: '6px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
-                                    fontWeight: 'bold',
-                                    zIndex: 25,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    border: '1px solid rgba(255,255,255,0.2)'
-                                }}
-                            >
-                                🔇 Toca para activar sonido
-                            </div>
-                        )}
+
                         {/* Play/Pause Icon overlay */}
                         {!isPlaying && (
                             <div style={{ 
@@ -431,36 +426,62 @@ export const FeedItem = ({
                     </div>
                 )}
 
+                {/* Top Right Profile Picture (Like App) */}
+                <div style={{ position: 'absolute', top: '60px', right: '20px', zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto' }}>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', backgroundColor: '#333', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                            {v.userImage ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={v.userImage} alt={v.userName || v.user} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '20px', color: 'white' }}>
+                                    {(v.userName || v.user || '?').charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+                    </Link>
+                </div>
+
                 {/* User info overlay */}
-                <div style={{ 
-                    position: 'absolute', bottom: '115px', left: '16px', right: '85px', color: 'white', 
+                <div className="user-info-overlay" style={{ 
+                    position: 'absolute', color: 'white', 
                     textShadow: '0px 2px 6px rgba(0,0,0,0.95)', zIndex: 35, pointerEvents: 'none' 
                 }}>
-                    <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white', display: 'inline-block' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid white', overflow: 'hidden', backgroundColor: '#333', flexShrink: 0 }}>
-                                {v.userImage ? (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img src={v.userImage} alt={v.userName || v.user} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '18px' }}>
-                                        {(v.userName || v.user || '?').charAt(0).toUpperCase()}
-                                    </div>
-                                )}
-                            </div>
-                            <div>
+                    <div className="user-info-content">
+                        <Link href={`/profile?handle=${encodeURIComponent(v.user || v.userHandle || '')}`} style={{ pointerEvents: 'auto', textDecoration: 'none', color: 'white', display: 'inline-block' }}>
+                            <div style={{ marginBottom: '8px' }}>
                                 <span style={{ fontWeight: 'bold', fontSize: '16px', display: 'block', color: 'white' }}>{v.userName || v.user}</span>
                                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)' }}>{v.userHandle ? (v.userHandle.startsWith('@') ? v.userHandle : '@' + v.userHandle) : (v.user ? (v.user.startsWith('@') ? v.user : '@' + v.user) : '')}</span>
                             </div>
-                        </div>
-                    </Link>
-                    {v.description && (
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.9)', pointerEvents: 'auto' }}>{v.description}</p>
-                    )}
+                        </Link>
+                        {v.description && (
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', lineHeight: '1.4', maxHeight: '60px', overflow: 'hidden', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.9)', pointerEvents: 'auto' }}>
+                                {(() => {
+                                    const hasDateInDesc = /\(\d{2}\/\d{2}\/\d{4}\)$/.test(v.description.trim());
+                                    if (hasDateInDesc) {
+                                        return v.description.replace(/\(\d{2}\/\d{2}\/\d{4}\)$/, '').trim();
+                                    }
+                                    return v.description;
+                                })()}
+                            </p>
+                        )}
+                        {(() => {
+                            const dateProp = v.createdAt || v.created_at;
+                            const formattedDate = formatVideoDate(dateProp);
+                            if (formattedDate) {
+                                return (
+                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontFamily: 'monospace', margin: '4px 0 0', letterSpacing: '1px' }}>
+                                        {formattedDate}
+                                    </p>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
                 </div>
 
-                {/* Right Action Icons */}
-                <div className="action-icons">
+                {/* Left Action Icons */}
+                <div className="left-sidebar">
                     {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
                         <>
                             <div 
@@ -495,10 +516,16 @@ export const FeedItem = ({
                         <Heart size={30} color={isLiked ? '#FF3B30' : 'white'} fill={isLiked ? '#FF3B30' : 'none'} />
                         <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>{likesCount}</span>
                     </div>
-                    <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleComment}>
-                        <Mic size={30} color="white" />
+                    <div style={{ textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }} onClick={handleComment}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '18px', backgroundColor: '#8E2DE2', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                            <Mic size={20} color="white" />
+                        </div>
                         <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>{v.commentsCount || 0}</span>
                     </div>
+                </div>
+
+                {/* Right Action Icons */}
+                <div className="right-sidebar">
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleBookmark}>
                         <Bookmark size={30} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
                         <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>Favoritos</span>
@@ -529,14 +556,14 @@ export const FeedItem = ({
                     onTouchEnd={handleScrubMouseUp}
                     style={{
                         position: 'absolute',
-                        bottom: '75px',
+                        bottom: hasBottomNav !== false ? 'calc(68px + 65px + env(safe-area-inset-bottom, 0px))' : '68px',
                         left: '0',
                         right: '0',
                         height: '24px',
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '0 20px',
-                        zIndex: 40,
+                        padding: '0',
+                        zIndex: 60,
                         cursor: 'pointer',
                         userSelect: 'none',
                         touchAction: 'none'
@@ -605,12 +632,50 @@ export const FeedItem = ({
                 </div>
 
                 {/* Top Left Overlay: Ad badge & Report button */}
-                <div style={{ position: 'absolute', top: '20px', left: '15px', zIndex: 30, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ position: 'absolute', top: '60px', left: '15px', zIndex: 30, display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
                     {v.isAd && (
                         <div style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000', padding: '5px 10px', borderRadius: '5px', fontWeight: 'bold', fontSize: '12px', pointerEvents: 'none' }}>
                             Promocionado
                         </div>
                     )}
+                    
+                    {/* Maximize Button - Only show if landscape */}
+                    {isLandscapeDetected && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (videoRef.current) {
+                                    if (videoRef.current.requestFullscreen) {
+                                        videoRef.current.requestFullscreen();
+                                    } else if ((videoRef.current as any).webkitRequestFullscreen) {
+                                        (videoRef.current as any).webkitRequestFullscreen();
+                                    }
+                                }
+                            }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: 'white',
+                                padding: '4px 8px',
+                                borderRadius: '12px',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                backdropFilter: 'blur(6px)',
+                                WebkitBackdropFilter: 'blur(6px)',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                                transition: 'all 0.2s'
+                            }}
+                            title="Ver en pantalla completa"
+                        >
+                            <Maximize size={12} color="white" />
+                            <span>Completa</span>
+                        </button>
+                    )}
+
                     <button
                         onClick={(e) => { e.stopPropagation(); onReportClick(v); }}
                         style={{
@@ -637,38 +702,7 @@ export const FeedItem = ({
                     </button>
                 </div>
 
-                {/* Top Right Overlay: Small Landscape toggle button */}
-                {isLandscapeDetected && (
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsManualHorizontalMode(!isManualHorizontalMode);
-                        }}
-                        style={{
-                            position: 'absolute',
-                            top: '20px',
-                            right: '15px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                            border: '1px solid rgba(255, 215, 0, 0.5)',
-                            color: '#FFD700',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '10px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            backdropFilter: 'blur(6px)',
-                            WebkitBackdropFilter: 'blur(6px)',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                            transition: 'all 0.2s',
-                            zIndex: 35
-                        }}
-                    >
-                        {isManualHorizontalMode ? '📱 Vertical' : '🖥️ Ver en Horizontal'}
-                    </button>
-                )}
+
 
                 {/* Live stream modal */}
                 {(v.is_live || v.isLive) && v.live_url && hasLiveSignal && (
@@ -834,18 +868,6 @@ export default function FeedPage() {
             </div>
             
             <style>{`
-                .action-icons {
-                    position: absolute;
-                    bottom: 20px;
-                    right: 15px;
-                    color: white;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 20px;
-                    align-items: center;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-                    z-index: 20;
-                }
                 .nav-arrow {
                     display: none;
                     position: fixed;
@@ -884,7 +906,7 @@ export default function FeedPage() {
                 }
                 /* === HORIZONTAL SCROLL FEED === */
                 .feed-scroll-container {
-                    height: 100dvh;
+                    height: calc(100dvh - 56px);
                     width: 100vw;
                     display: flex;
                     flex-direction: row;
@@ -899,28 +921,29 @@ export default function FeedPage() {
                 .feed-scroll-container::-webkit-scrollbar { display: none; }
                 .feed-scroll-container > div {
                     min-width: 100vw;
-                    height: 100dvh;
+                    height: calc(100dvh - 56px);
                     flex-shrink: 0;
                     scroll-snap-align: start;
                 }
+                @media (max-height: 500px) and (orientation: landscape) {
+                    .feed-scroll-container { height: calc(100dvh - 44px); }
+                    .feed-scroll-container > div { height: calc(100dvh - 44px); }
+                }
                 @media (min-width: 768px) {
-                    .action-icons {
-                        bottom: 50%;
-                        transform: translateY(-50%);
-                        right: 15px;
-                    }
                     .nav-arrow {
                         display: flex;
                         align-items: center;
                         justify-content: center;
                     }
                     .feed-autoscroll-toggle { top: 20px; }
+                    .feed-scroll-container { height: 100dvh; }
+                    .feed-scroll-container > div { height: 100dvh; }
                 }
                 @media (min-width: 1025px) {
+                    .feed-autoscroll-toggle { top: 20px; }
                     .feed-scroll-container {
                         height: 100dvh;
                     }
-                    .feed-autoscroll-toggle { top: 20px; }
                 }
             `}</style>
 
@@ -950,7 +973,7 @@ export default function FeedPage() {
                         <FeedItem 
                             key={v.loopKey || `${v.id || 'vid'}-${index}`} 
                             v={v} 
-                            isActive={index === activeIndex}
+                            isActive={index === activeIndex && !isCommentModalOpen && !isReportModalOpen}
                             autoScroll={autoScroll} 
                             scrollNext={scrollNext} 
                             currentUserHandle={user?.handle}

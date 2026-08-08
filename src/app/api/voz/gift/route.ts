@@ -48,7 +48,7 @@ export async function POST(request: Request) {
             receiver = await addAppUser({
                 id: crypto.randomUUID(),
                 handle: receiverHandle,
-                email: 'temp@voz.app',
+                email: 'temp@lyvo.media',
                 status: 'active',
                 joinedAt: new Date().toISOString()
             });

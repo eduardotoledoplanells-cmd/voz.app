@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         has: [{ type: 'host', value: 'server-taupe-six.vercel.app' }],
-        destination: 'https://appvoz.com/:path*',
+        destination: 'https://lyvo.media/:path*',
         permanent: true,
       },
     ];

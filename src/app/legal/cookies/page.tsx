@@ -117,7 +117,7 @@ export default function CookiePolicyPage() {
                     Si tiene alguna pregunta sobre nuestra Política de Cookies, puede contactarnos en:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Email:</strong> voz@appvoz.com</li>
+                    <li><strong>Email:</strong> lyvo@lyvo.media</li>
                     <li><strong>Titular:</strong> LYVO</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                 </ul>

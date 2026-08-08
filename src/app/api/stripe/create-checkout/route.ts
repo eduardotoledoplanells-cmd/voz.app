@@ -118,7 +118,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Configuración de Stripe incompleta' }, { status: 500 });
         }
 
-        const origin = request.headers.get('origin') || 'https://www.appvoz.com';
+        const origin = request.headers.get('origin') || 'https://lyvo.media';
         const finalRedirectUrl = redirectUrl || `${origin}/profile`;
         
         const session = await stripe.checkout.sessions.create({

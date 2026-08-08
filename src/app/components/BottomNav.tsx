@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, Search, Plus, Bell, User } from 'lucide-react';
 import ActivityModal from './ActivityModal';
 
-export default function BottomNav() {
+export default function BottomNav({ isAbsolute = false }: { isAbsolute?: boolean }) {
     const pathname = usePathname();
     const [showActivity, setShowActivity] = useState(false);
     const [hasUnread, setHasUnread] = useState(false);
@@ -105,9 +105,14 @@ export default function BottomNav() {
                     z-index: 1000;
                     border-radius: 12px 12px 0 0;
                 }
-
+                
+                .bottom-nav-absolute {
+                    position: absolute !important;
+                    left: 0 !important;
+                    transform: none !important;
+                }
             `}</style>
-            <div className="bottom-nav-wrapper">
+            <div className={`bottom-nav-wrapper ${isAbsolute ? 'bottom-nav-absolute' : ''}`}>
                 {/* Home */}
                 <Link href="/feed" style={navItemStyle(isActive('/feed'))}>
                     {isActive('/feed') && <span style={activeDot} />}

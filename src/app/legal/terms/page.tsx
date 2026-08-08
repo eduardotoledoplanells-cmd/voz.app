@@ -15,7 +15,7 @@ export default function TermsPage() {
                     <li><strong>Titular:</strong> LYVO</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
-                    <li><strong>Email:</strong> voz@appvoz.com</li>
+                    <li><strong>Email:</strong> lyvo@lyvo.media</li>
                 </ul>
 
                 <h2 style={{ marginTop: '30px', marginBottom: '15px' }}>2. Objeto del Contrato</h2>
@@ -86,7 +86,7 @@ export default function TermsPage() {
                 </p>
                 <p>Para ejercer este derecho:</p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li>Contacte con nosotros en voz@appvoz.com</li>
+                    <li>Contacte con nosotros en lyvo@lyvo.media</li>
                     <li>El producto debe estar en perfecto estado, sin usar y con su embalaje original</li>
                     <li>Los gastos de devolución correrán a cargo del cliente</li>
                     <li>El reembolso se realizará en un plazo máximo de 14 días desde la recepción de la devolución</li>
@@ -144,7 +144,7 @@ export default function TermsPage() {
                 <div style={{ marginTop: '40px', padding: '20px', background: '#f5f5f5', borderRadius: '4px' }}>
                     <p style={{ margin: 0 }}>
                         <strong>Contacto:</strong> Para cualquier consulta, puede contactarnos en
-                        <strong> voz@appvoz.com</strong>
+                        <strong> lyvo@lyvo.media</strong>
                     </p>
                 </div>
             </div>

@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 description,
                 images: [{ url: imageUrl, width: 600, height: 600, alt: 'LYVO App Preview' }],
                 type: 'video.other',
-                url: `https://appvoz.com/video/${id}`,
+                url: `https://lyvo.media/video/${id}`,
                 siteName: 'LYVO App'
             },
             twitter: {

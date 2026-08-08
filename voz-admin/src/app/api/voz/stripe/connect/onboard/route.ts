@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
         // 3. Crear link de onboarding
         // Redirigiremos a la página principal de la app o a un deep link genérico
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voz.app';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lyvo.media';
         
         const accountLink = await stripe.accountLinks.create({
             account: stripeAccountId,

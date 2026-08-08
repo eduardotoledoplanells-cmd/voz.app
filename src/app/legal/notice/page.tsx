@@ -15,7 +15,7 @@ export default function LegalNoticePage() {
                     <li><strong>Titular:</strong> LYVO</li>
                     <li><strong>NIF:</strong> 43148082J</li>
                     <li><strong>Domicilio:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
-                    <li><strong>Email:</strong> voz@appvoz.com</li>
+                    <li><strong>Email:</strong> lyvo@lyvo.media</li>
                     <li><strong>Actividad:</strong> Comercio electrónico de productos tecnológicos y videojuegos</li>
                 </ul>
 
@@ -110,7 +110,7 @@ export default function LegalNoticePage() {
                     Para cualquier consulta o sugerencia relacionada con este Aviso Legal, puede contactarnos en:
                 </p>
                 <ul style={{ marginLeft: '20px', marginBottom: '20px' }}>
-                    <li><strong>Email:</strong> voz@appvoz.com</li>
+                    <li><strong>Email:</strong> lyvo@lyvo.media</li>
                     <li><strong>Dirección:</strong> Calle del General Luque, 42, 07300, Inca, Palma de Mallorca</li>
                 </ul>
 
