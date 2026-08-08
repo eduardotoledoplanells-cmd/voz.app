@@ -885,11 +885,15 @@ export default function VozAdsPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 15, marginBottom: 15 }}>
                                 <fieldset>
                                     <legend>Información Fiscal</legend>
+                                    <p style={{ margin: '5px 0' }}><b>Nombre Comercial:</b> {selectedClientDetail.name}</p>
                                     <p style={{ margin: '5px 0' }}><b>Razón Social:</b> {selectedClientDetail.legalName || selectedClientDetail.name}</p>
                                     <p style={{ margin: '5px 0' }}><b>CIF/Tax ID:</b> {selectedClientDetail.taxId}</p>
                                     <p style={{ margin: '5px 0' }}><b>Email:</b> {selectedClientDetail.contactEmail}</p>
                                     <p style={{ margin: '5px 0' }}><b>Teléfono:</b> {selectedClientDetail.phone}</p>
-                                    <p style={{ margin: '5px 0' }}><b>Dirección:</b> {selectedClientDetail.address}, {selectedClientDetail.city}</p>
+                                    <p style={{ margin: '5px 0' }}><b>Dirección:</b> {selectedClientDetail.address}</p>
+                                    <p style={{ margin: '5px 0' }}><b>Ciudad:</b> {selectedClientDetail.city}</p>
+                                    <p style={{ margin: '5px 0' }}><b>Código Postal:</b> {selectedClientDetail.zip}</p>
+                                    <p style={{ margin: '5px 0' }}><b>País/Provincia:</b> {selectedClientDetail.country}</p>
                                 </fieldset>
                                 <fieldset>
                                     <legend>Resumen de Cuenta</legend>
