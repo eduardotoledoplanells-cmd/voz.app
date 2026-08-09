@@ -3,7 +3,8 @@ import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost, supabaseA
 import { v4 as uuidv4 } from "uuid";
 import { logSystemAlert } from '@/lib/alerts';
 
-export const dynamic = 'force-dynamic';
+// Revalidate feed cache every 15 seconds on Vercel Edge (SWR pattern)
+export const revalidate = 15;
 
 export async function OPTIONS() {
     return new NextResponse(null, {
@@ -49,22 +50,19 @@ export async function GET(request: NextRequest) {
             if (bookmarkedIds.length === 0) {
                 videos = [];
             } else {
+                // Single JOIN query — eliminates N+1 round-trips to app_users
                 const { data: rawVideos, error: videosError } = await supabaseAdmin
                     .from('videos')
-                    .select('*')
-                    .in('id', bookmarkedIds);
+                    .select(`
+                        *,
+                        author:app_users!inner(name, handle, profile_image, is_live, live_url)
+                    `)
+                    .in('id', bookmarkedIds)
+                    .order('created_at', { ascending: false });
                 if (videosError) throw videosError;
 
-                const handles = [...new Set((rawVideos || []).map(v => v.user_handle))];
-                const { data: users } = await supabaseAdmin
-                    .from('app_users')
-                    .select('name, handle, profile_image, is_live, live_url')
-                    .in('handle', handles);
-
-                const usersMap = new Map((users || []).map(u => [u.handle, u]));
-
-                videos = (rawVideos || []).map(v => {
-                    const u: any = usersMap.get(v.user_handle) || {};
+                videos = (rawVideos || []).map((v: any) => {
+                    const u = v.author || {};
                     return {
                         id: v.id,
                         videoUrl: v.video_url,
@@ -100,22 +98,19 @@ export async function GET(request: NextRequest) {
             if (likedIds.length === 0) {
                 videos = [];
             } else {
+                // Single JOIN query — eliminates N+1 round-trips to app_users
                 const { data: rawVideos, error: videosError } = await supabaseAdmin
                     .from('videos')
-                    .select('*')
-                    .in('id', likedIds);
+                    .select(`
+                        *,
+                        author:app_users!inner(name, handle, profile_image, is_live, live_url)
+                    `)
+                    .in('id', likedIds)
+                    .order('created_at', { ascending: false });
                 if (videosError) throw videosError;
 
-                const handles = [...new Set((rawVideos || []).map(v => v.user_handle))];
-                const { data: users } = await supabaseAdmin
-                    .from('app_users')
-                    .select('name, handle, profile_image, is_live, live_url')
-                    .in('handle', handles);
-
-                const usersMap = new Map((users || []).map(u => [u.handle, u]));
-
-                videos = (rawVideos || []).map(v => {
-                    const u: any = usersMap.get(v.user_handle) || {};
+                videos = (rawVideos || []).map((v: any) => {
+                    const u = v.author || {};
                     return {
                         id: v.id,
                         videoUrl: v.video_url,
@@ -143,7 +138,9 @@ export async function GET(request: NextRequest) {
                 ? await getVideosByUser(userHandle, undefined, limit, offset) 
                 : await getVideos(undefined, limit, offset);
         }
-        return corsHeaders(NextResponse.json(videos));
+        const res = NextResponse.json(videos);
+        res.headers.set('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=59');
+        return corsHeaders(res);
     } catch (error) {
         console.error("Error fetching videos:", error);
         await logSystemAlert('Videos', error);
