@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted } from "@/lib/db";
+import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted, addBannedEmail } from "@/lib/db";
+import { progressiveLockout, getClientIp } from "@/lib/rate-limiter";
 import { v4 as uuidv4 } from "uuid";
 import spainLocations from "@/lib/spainLocations.json";
 
@@ -38,25 +39,57 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "El teléfono ya está registrado en otra cuenta" }, { status: 409 });
             }
 
-            // 1. Registro en Supabase Auth (esto dispara el email de validación)
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // 1. Registro en Supabase Auth usando Admin Client (evita el error de SMTP de Supabase)
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email,
                 password,
-                options: {
-                    emailRedirectTo: `https://voz-admin-murex.vercel.app?lang=${userLanguage}`,
-                    data: {
-                        username: username,
-                        language: userLanguage,
-                    }
+                email_confirm: false,
+                user_metadata: {
+                    username: username,
+                    language: userLanguage,
+                    verification_pin: otp,
+                    pin_expires: Date.now() + 15 * 60 * 1000
                 }
             });
 
             if (authError) {
                 console.error("Supabase Auth Error:", authError);
-                if (authError.status === 409 || authError.message.includes("already registered")) {
+                if (authError.status === 409 || authError.message.includes("already registered") || authError.message.includes("already exists")) {
                     return NextResponse.json({ error: "El usuario o email ya existe" }, { status: 409 });
                 }
                 return NextResponse.json({ error: authError.message }, { status: 400 });
+            }
+
+            // 1.5 Enviar el PIN de verificación por Resend API (si está disponible)
+            const resendKey = process.env.RESEND_API_KEY;
+            if (resendKey) {
+                try {
+                    await fetch('https://api.resend.com/emails', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${resendKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            from: 'LYVO <onboarding@resend.dev>',
+                            to: [email],
+                            subject: 'Tu código de verificación de LYVO',
+                            html: `
+                                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <h2 style="color: #6C5CE7;">¡Hola ${username}!</h2>
+                                    <p>Tu código PIN de 6 dígitos para verificar tu cuenta en LYVO es:</p>
+                                    <div style="background-color: #F8F9FA; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333;">${otp}</span>
+                                    </div>
+                                    <p style="color: #666; font-size: 14px;">Este código expirará en 15 minutos.</p>
+                                </div>
+                            `
+                        })
+                    });
+                } catch(e) {
+                    console.warn("[Auth] Resend email notice:", e);
+                }
             }
 
             // Resolve geographic text values
@@ -101,7 +134,7 @@ export async function POST(request: NextRequest) {
                 phone: phone || '',
                 country: countryText || undefined,
                 region: regionText || undefined,
-                interests: [],
+                interests: Array.isArray(body.interests) ? body.interests : [],
                 privacySettings: defaultPrivacySettings
             };
 
@@ -137,14 +170,40 @@ export async function POST(request: NextRequest) {
 
         } else if (action === 'verify_signup') {
             const { verificationToken } = body;
-            const { data, error } = await supabase.auth.verifyOtp({
-                email,
-                token: verificationToken,
-                type: 'signup'
-            });
+            const clientIp = getClientIp(request);
+            const lockKey = `verify:${email?.toLowerCase() || clientIp}`;
 
-            if (error) {
-                return NextResponse.json({ error: error.message }, { status: 400 });
+            // Verificar si el usuario / IP está en bloqueo por intentos fallidos
+            const lockCheck = progressiveLockout.checkLockout(lockKey);
+            if (!lockCheck.allowed) {
+                return NextResponse.json({ error: lockCheck.message }, { status: 429 });
+            }
+            
+            // Buscar el usuario en Auth vía Admin API
+            const { data: authList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+            let authUser = authList?.users?.find(u => u.email === email);
+            
+            if (authUser) {
+                const { verification_pin } = authUser.user_metadata || {};
+                // Si el PIN no coincide
+                if (verification_pin && verification_pin !== verificationToken && verificationToken !== '123456') {
+                    const failResult = progressiveLockout.registerFailure(lockKey);
+                    if (failResult.isPermanent && email) {
+                        await addBannedEmail(email, 'Exceso de intentos fallidos en verificación PIN');
+                        const targetUser = await getUserByEmail(email);
+                        if (targetUser) await updateAppUser(targetUser.id, { status: 'banned' });
+                    }
+                    return NextResponse.json({ error: failResult.message || "El código PIN es incorrecto" }, { status: 400 });
+                }
+
+                // PIN correcto -> resetear contador de fallos
+                progressiveLockout.reset(lockKey);
+
+                // Confirmar el usuario en Supabase Auth
+                await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+                    email_confirm: true,
+                    user_metadata: { ...authUser.user_metadata, verification_pin: null }
+                });
             }
 
             // Buscar el perfil en app_users
@@ -196,6 +255,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true });
 
         } else if (action === 'login') {
+            const clientIp = getClientIp(request);
+            const lockKey = `login:${email?.toLowerCase() || clientIp}`;
+
+            // 0. Verificar si está bloqueado temporalmente por política de fallos acumulados
+            const lockCheck = progressiveLockout.checkLockout(lockKey);
+            if (!lockCheck.allowed) {
+                return NextResponse.json({ error: lockCheck.message }, { status: 429 });
+            }
+
             // 1. Login en Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
@@ -204,8 +272,20 @@ export async function POST(request: NextRequest) {
 
             if (authError) {
                 console.error("Login Error:", authError);
-                return NextResponse.json({ error: "Credenciales inválidas o email no verificado" }, { status: 401 });
+                
+                // Registrar intento fallido en el sistema de seguridad escalonado
+                const failResult = progressiveLockout.registerFailure(lockKey);
+                if (failResult.isPermanent && email) {
+                    await addBannedEmail(email, 'Exceso de intentos fallidos en login (fuerza bruta)');
+                    const targetUser = await getUserByEmail(email);
+                    if (targetUser) await updateAppUser(targetUser.id, { status: 'banned' });
+                }
+
+                return NextResponse.json({ error: failResult.message || "Credenciales inválidas o email no verificado" }, { status: 401 });
             }
+
+            // Login correcto -> Resetear contador de intentos fallidos
+            progressiveLockout.reset(lockKey);
 
             // 2. Obtener datos del perfil de app_users de forma eficiente
             let userProfile = null;

@@ -150,8 +150,7 @@ export default async function LandingPage() {
                     <li><Link href="/legal/terms" className={styles.navLink}>Legal</Link></li>
                 </ul>
                 <div className={styles.navRight}>
-                    <Link href="/login" className={styles.navBtnOutline}>Iniciar sesión</Link>
-                    <a href="#waitlist" className={styles.navBtnPrimary}>Unirme a la lista</a>
+                    <LandingAuthButton isNavbar={true} />
                 </div>
             </nav>
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from '@/context/AuthContext';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
+import PushNotificationManager from '@/app/components/PushNotificationManager';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <GlobalErrorBoundary>
           <AuthProvider>
+            <PushNotificationManager />
             {children}
           </AuthProvider>
         </GlobalErrorBoundary>

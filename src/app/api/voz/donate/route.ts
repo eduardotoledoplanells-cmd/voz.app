@@ -69,26 +69,31 @@ export async function POST(request: Request) {
         });
 
         // 4. Enviar notificación al creador (ve su parte en Euros)
-        await addNotification({
-            id: Date.now().toString(),
-            recipientId: creatorHandle,
-            type: 'donation',
-            title: '¡Has recibido un apoyo! 💰',
-            message: `Has recibido un apoyo de ${payoutAmount.toFixed(2)} € de ${sender.handle}.`,
-            timestamp: new Date().toISOString(),
-            readStatus: false
-        });
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/voz/notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipientId: creatorHandle,
+                type: 'donation',
+                title: '¡Has recibido un apoyo! 💰',
+                message: `Has recibido un apoyo de ${payoutAmount.toFixed(2)} € de ${sender.handle}.`,
+                senderId: sender.handle
+            })
+        }).catch(err => console.error("Error triggering donation notification to creator:", err));
 
         // 5. Enviar notificación al donante (para que quede registrado en su sección de Actividad)
-        await addNotification({
-            id: (Date.now() + 1).toString(),
-            recipientId: sender.handle,
-            type: 'donation',
-            title: '¡Apoyo enviado! 💰',
-            message: `Has enviado un apoyo de ${donationAmount} moneda(s) a ${creatorHandle}.`,
-            timestamp: new Date().toISOString(),
-            readStatus: false
-        });
+        await fetch(`${baseUrl}/api/voz/notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipientId: sender.handle,
+                type: 'donation',
+                title: '¡Apoyo enviado! 💰',
+                message: `Has enviado un apoyo de ${donationAmount} moneda(s) a ${creatorHandle}.`,
+                senderId: sender.handle
+            })
+        }).catch(err => console.error("Error triggering donation notification to sender:", err));
 
         return NextResponse.json({ success: true, payoutAmount });
 

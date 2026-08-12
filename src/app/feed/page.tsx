@@ -51,10 +51,11 @@ export const FeedItem = ({
 
     useEffect(() => {
         let active = true;
-        const liveActive = v.is_live || v.isLive;
-        const targetUrl = v.live_url || v.liveUrl;
-        if (liveActive && targetUrl) {
-            setHasLiveSignal(false); // Default to false until verified
+        let intervalId: NodeJS.Timeout | null = null;
+        
+        const checkLive = () => {
+            if (!active) return;
+            const targetUrl = v.live_url || v.liveUrl;
             fetch(`/api/voz/live?url=${encodeURIComponent(targetUrl)}`)
                 .then(res => res.json())
                 .then(data => {
@@ -69,11 +70,21 @@ export const FeedItem = ({
                 .catch(() => {
                     if (active) setHasLiveSignal(false);
                 });
+        };
+
+        const liveActive = v.is_live || v.isLive;
+        const targetUrl = v.live_url || v.liveUrl;
+        
+        if (liveActive && targetUrl) {
+            setHasLiveSignal(false); // Estrictamente false mientras se valida
+            checkLive();
+            intervalId = setInterval(checkLive, 45000);
         } else {
             setHasLiveSignal(false);
         }
         return () => {
             active = false;
+            if (intervalId) clearInterval(intervalId);
         };
     }, [v.is_live, v.isLive, v.live_url, v.liveUrl]);
     

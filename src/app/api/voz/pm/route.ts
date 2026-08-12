@@ -134,6 +134,14 @@ export async function POST(request: Request) {
 
             const privacySettings = creator.privacySettings || {};
             const arePmsDisabled = privacySettings.receive_pms === false || privacySettings.allow_pms === false;
+            
+            const { data: settings } = await supabaseAdmin.from('system_settings').select('pms_enabled').maybeSingle();
+            const pmsEnabledGlobal = settings ? settings.pms_enabled !== false : true;
+
+            if (!pmsEnabledGlobal) {
+                return NextResponse.json({ error: 'El sistema de mensajes privados está temporalmente deshabilitado a nivel global.' }, { status: 403 });
+            }
+
             const shouldCharge = privacySettings.charge_pms === true; // Only charge if explicitly enabled (opt-in)
 
             if (arePmsDisabled) {
@@ -239,6 +247,13 @@ export async function POST(request: Request) {
             const creator = await getUserByHandle(escrow.creator_handle);
             if (creator && creator.privacySettings?.receive_pms === false) {
                 return NextResponse.json({ error: 'Este usuario ha desactivado los mensajes privados.' }, { status: 400 });
+            }
+
+            const { data: settings } = await supabaseAdmin.from('system_settings').select('pms_enabled').maybeSingle();
+            const pmsEnabledGlobal = settings ? settings.pms_enabled !== false : true;
+
+            if (!pmsEnabledGlobal) {
+                return NextResponse.json({ error: 'El sistema de mensajes privados está temporalmente deshabilitado a nivel global.' }, { status: 403 });
             }
 
             const shouldCharge = creator ? (creator.privacySettings?.charge_pms === true) : false;

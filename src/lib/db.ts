@@ -578,7 +578,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'nationality', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id', 'last_logout'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id', 'last_logout', 'flag'];
     const dbUpdates: any = {};
 
     // Map fields
@@ -625,15 +625,12 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         dbUpdates.last_logout = (updates as any).last_logout || (updates as any).lastLogout;
     }
     // Segmentación publicitaria / País
-    if ((updates as any).nationality !== undefined) dbUpdates.nationality = (updates as any).nationality;
     if ((updates as any).country !== undefined) {
         const cVal = (updates as any).country;
         if (typeof cVal === 'object' && cVal !== null) {
             dbUpdates.country = cVal.name || cVal.label || cVal.code || String(cVal);
-            if (!dbUpdates.nationality) dbUpdates.nationality = dbUpdates.country;
         } else {
             dbUpdates.country = cVal;
-            if (!dbUpdates.nationality) dbUpdates.nationality = cVal;
         }
     }
     if ((updates as any).region !== undefined) dbUpdates.region = (updates as any).region;
@@ -815,7 +812,12 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         interests: user.interests || [],
         country_id: user.country_id,
         region_id: user.region_id,
-        municipality_id: user.municipality_id
+        municipality_id: user.municipality_id,
+        notification_settings: {
+            notify_follows: true,
+            notify_gifts: true,
+            notify_donations: true
+        }
     }]).select().single();
     if (error) {
         console.error("Error inserting app_user:", error);
@@ -1405,14 +1407,16 @@ export function isNotificationCategoryEnabled(type: string, settings: any): bool
     else if (type === 'donation') settingsKey = 'notify_donations';
     else if (type === 'gift') settingsKey = 'notify_gifts';
     else if (type === 'like') settingsKey = 'notify_likes';
-    else if (type === 'follow') settingsKey = 'notify_followers';
+    else if (type === 'follow') settingsKey = 'notify_follows';
     else if (['live', 'live_alert', 'on_air'].includes(type || '')) settingsKey = 'notify_live';
     else if (['balance', 'billing', 'withdrawal', 'payout'].includes(type || '')) settingsKey = 'notify_balance';
     else if (['strike', 'penalty', 'moderation', 'ban', 'warning'].includes(type || '')) settingsKey = 'notify_strikes';
     else if (['system', 'important', 'update', 'promo', 'alert', 'announcement'].includes(type || '')) settingsKey = 'notify_system';
 
-    if (settingsKey && settings[settingsKey] === false) {
-        return false;
+    if (settingsKey) {
+        // Fallback: si es undefined o null (usuarios antiguos), asume true
+        const value = settings[settingsKey];
+        if (value === false) return false;
     }
     return true;
 }

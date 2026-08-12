@@ -25,15 +25,18 @@ export async function POST(req: NextRequest) {
                 }
 
                 if (!error) {
-                    await addNotification({
-                        id: Date.now().toString(),
-                        recipientId: following_handle,
-                        type: 'follow',
-                        title: 'Nuevo Seguidor 👤',
-                        message: `${follower_handle} ha comenzado a seguirte.`,
-                        timestamp: new Date().toISOString(),
-                        readStatus: false
-                    });
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                    await fetch(`${baseUrl}/api/voz/notifications`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recipientId: following_handle,
+                            type: 'follow',
+                            title: 'Nuevo Seguidor 👤',
+                            message: `${follower_handle} ha comenzado a seguirte.`,
+                            senderId: follower_handle
+                        })
+                    }).catch(err => console.error("Error triggering follow notification:", err));
                 }
             } else if (action === 'unfollow') {
                 const { error } = await supabaseAdmin

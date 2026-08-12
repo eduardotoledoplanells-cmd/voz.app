@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import { Send, ArrowLeft, MessageSquare, RefreshCw, User as UserIcon, Lock, Sparkles } from 'lucide-react';
+import { supabaseBrowser } from '@/lib/supabaseBrowser';
 
 function MessagesPageContent() {
     const { user, isLoading } = useAuth();
@@ -121,12 +122,44 @@ function MessagesPageContent() {
             setStartNewChatUser(null);
             fetchMessages(activeEscrow.id, true);
 
-            // Polling cada 4 segundos para actualizar chat activo
-            const interval = setInterval(() => {
-                fetchMessages(activeEscrow.id, false);
-            }, 4000);
+            const channel = supabaseBrowser
+                .channel(`pm_chat_${activeEscrow.id}`)
+                .on(
+                    'postgres_changes',
+                    { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'pm_messages',
+                        filter: `escrow_id=eq.${activeEscrow.id}`
+                    },
+                    (payload) => {
+                        console.log('New message received via realtime!', payload);
+                        setMessages(prev => {
+                            // Evitar duplicados si fue enviado por nosotros y ya está
+                            if (prev.find(m => m.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    { 
+                        event: 'UPDATE', 
+                        schema: 'public', 
+                        table: 'pm_messages',
+                        filter: `escrow_id=eq.${activeEscrow.id}`
+                    },
+                    (payload) => {
+                        setMessages(prev => 
+                            prev.map(m => m.id === payload.new.id ? payload.new : m)
+                        );
+                    }
+                )
+                .subscribe();
 
-            return () => clearInterval(interval);
+            return () => {
+                supabaseBrowser.removeChannel(channel);
+            };
         }
     }, [activeEscrow, fetchMessages]);
 

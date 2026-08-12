@@ -106,16 +106,18 @@ export async function POST(request: NextRequest) {
         }
 
         if (recipient && recipient !== userHandle) {
-            await addNotification({
-                id: Date.now().toString(),
-                recipientId: recipient,
-                type: 'comment',
-                title: 'Nuevo Comentario de Lyvo 🎙️',
-                message: `${userHandle} ha comentado en tu publicación.`,
-                timestamp: new Date().toISOString(),
-                readStatus: false,
-                referenceId: videoId
-            });
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            await fetch(`${baseUrl}/api/voz/notifications`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientId: recipient,
+                    type: 'comment',
+                    title: 'Nuevo Comentario de Lyvo 🎙️',
+                    message: `${userHandle} ha comentado en tu publicación.`,
+                    senderId: userHandle
+                })
+            }).catch(err => console.error("Error triggering comment notification:", err));
         }
 
         return NextResponse.json({

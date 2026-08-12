@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const now = Date.now();
     const cached = streamCache.get(targetUrl);
 
-    if (cached && cached.expiresAt > now + (5 * 60 * 1000)) {
+    if (cached && cached.expiresAt > now) {
         return NextResponse.json({ streamUrl: cached.streamUrl, is_live: true, cached: true });
     }
 
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
         streamCache.set(targetUrl, {
             streamUrl: data.streamUrl,
-            expiresAt: now + (15 * 60 * 1000),
+            expiresAt: now + (20 * 1000),
         });
 
         return NextResponse.json({ streamUrl: data.streamUrl, is_live: true, cached: false });

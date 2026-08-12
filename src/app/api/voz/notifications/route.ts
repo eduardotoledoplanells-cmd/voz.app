@@ -110,7 +110,7 @@ export async function GET(request: Request) {
             'promo': 'notify_system',
             'alert': 'notify_system',
             'like': 'notify_likes',
-            'follow': 'notify_followers',
+            'follow': 'notify_follows',
             'balance': 'notify_balance',
             'billing': 'notify_balance',
             'withdrawal': 'notify_balance',
@@ -127,8 +127,10 @@ export async function GET(request: Request) {
         const seenKeys = new Set<string>();
         const filteredData = mappedData.filter((n: any) => {
             const settingKey = typeToSetting[n.type];
-            if (settingKey && settings[settingKey] === false) {
-                return false;
+            if (settingKey) {
+                // Fallback: si es undefined o null (usuarios antiguos), asume true
+                const val = settings[settingKey];
+                if (val === false) return false;
             }
             const cleanRec = (n.recipientId || '').replace(/^@/, '').toLowerCase();
             const key = `${cleanRec}-${n.type}-${(n.message || '').trim()}`;
@@ -181,7 +183,7 @@ export async function POST(request: Request) {
             'promo': 'notify_system',
             'alert': 'notify_system',
             'like': 'notify_likes',
-            'follow': 'notify_followers',
+            'follow': 'notify_follows',
             'balance': 'notify_balance',
             'billing': 'notify_balance',
             'withdrawal': 'notify_balance',
@@ -195,7 +197,13 @@ export async function POST(request: Request) {
         };
 
         const settingKey = typeToSetting[type];
-        let isEnabled = settingKey ? (settings[settingKey] !== false) : true;
+        
+        // Fallback: si es undefined o null (usuarios antiguos), asume true
+        let isEnabled = true;
+        if (settingKey) {
+            const val = settings[settingKey];
+            if (val === false) isEnabled = false;
+        }
 
         if (isEnabled && ['live', 'live_alert', 'on_air'].includes(type) && Array.isArray(settings.mutedLiveCreators)) {
             const senderClean = (senderId || '').replace('@', '').toLowerCase();

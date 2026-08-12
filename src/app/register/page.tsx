@@ -5,6 +5,21 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import styles from '../login/auth.module.css';
 
+const INTERESTS = [
+    { id: 'Deportes', label: 'Deportes', emoji: '⚽' },
+    { id: 'Moda', label: 'Moda', emoji: '👗' },
+    { id: 'Coches/Motor', label: 'Coches & Motor', emoji: '🚗' },
+    { id: 'Tecnología', label: 'Tecnología', emoji: '💻' },
+    { id: 'Belleza', label: 'Belleza', emoji: '💄' },
+    { id: 'Viajes', label: 'Viajes', emoji: '✈️' },
+    { id: 'Música', label: 'Música', emoji: '🎵' },
+    { id: 'Gaming', label: 'Gaming', emoji: '🎮' },
+    { id: 'Comida', label: 'Comida', emoji: '🍕' },
+    { id: 'Mascotas', label: 'Mascotas', emoji: '🐾' },
+    { id: 'Arte', label: 'Arte & Diseño', emoji: '🎨' },
+    { id: 'Fitness', label: 'Fitness', emoji: '💪' },
+];
+
 export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -12,6 +27,16 @@ export default function RegisterPage() {
     const [marketingConsent, setMarketingConsent] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [honeypot, setHoneypot] = useState('');
+    
+    // Interests State
+    const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+
+    const toggleInterest = (id: string) => {
+        setSelectedInterests(prev => {
+            if (prev.includes(id)) return prev.filter(i => i !== id);
+            return [...prev, id];
+        });
+    };
 
     // Math Challenge State
     const [mathQuestion, setMathQuestion] = useState('');
@@ -99,6 +124,12 @@ export default function RegisterPage() {
             return;
         }
 
+        if (selectedInterests.length < 3) {
+            setError('Debes seleccionar al menos 3 gustos o intereses.');
+            setLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch('/api/voz/auth', {
                 method: 'POST',
@@ -111,6 +142,7 @@ export default function RegisterPage() {
                     country_id: parseInt(countryId),
                     region_id: parseInt(regionId),
                     municipality_id: parseInt(municipalityId),
+                    interests: selectedInterests,
                     marketingConsent,
                     honeypot,
                     mathChallenge: {
@@ -258,6 +290,41 @@ export default function RegisterPage() {
                         </div>
                     )}
 
+                    {/* Interests Selection */}
+                    <div className={styles.formGroup} style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <label className={styles.label} style={{ marginBottom: '10px', display: 'block' }}>
+                            Tus Gustos (Mínimo 3) {selectedInterests.length >= 3 && '✅'}
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {INTERESTS.map(interest => {
+                                const isSelected = selectedInterests.includes(interest.id);
+                                return (
+                                    <button
+                                        type="button"
+                                        key={interest.id}
+                                        onClick={() => toggleInterest(interest.id)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '8px 12px',
+                                            borderRadius: '20px',
+                                            border: isSelected ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.2)',
+                                            background: isSelected ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                                            color: isSelected ? '#10b981' : 'rgba(255,255,255,0.7)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        <span>{interest.emoji}</span>
+                                        <span>{interest.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Math Challenge Shield */}
                     <div className={styles.formGroup} style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
                         <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -325,7 +392,7 @@ export default function RegisterPage() {
                     <button 
                         type="submit" 
                         className={styles.button} 
-                        disabled={loading || !name || !email || !password || password.length < 6 || !countryId || !regionId || !municipalityId || !mathAnswer || !termsAccepted}
+                        disabled={loading || !name || !email || !password || password.length < 6 || !countryId || !regionId || !municipalityId || selectedInterests.length < 3 || !mathAnswer || !termsAccepted}
                     >
                         {loading ? 'Registrando...' : 'Registrarse'}
                     </button>
