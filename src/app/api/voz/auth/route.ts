@@ -61,18 +61,20 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: authError.message }, { status: 400 });
             }
 
-            // 1.5 Enviar el PIN de verificación por Resend API (si está disponible)
+            // 1.5 Enviar el PIN de verificación por Resend API
             const resendKey = process.env.RESEND_API_KEY;
             if (resendKey) {
                 try {
-                    await fetch('https://api.resend.com/emails', {
+                    // Probar enviar primero desde el dominio propio lyvo.media, y si no, desde onboarding@resend.dev
+                    const sender = 'LYVO <lyvo@lyvo.media>';
+                    const emailRes = await fetch('https://api.resend.com/emails', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${resendKey}`,
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            from: 'LYVO <onboarding@resend.dev>',
+                            from: sender,
                             to: [email],
                             subject: 'Tu código de verificación de LYVO',
                             html: `
@@ -87,6 +89,25 @@ export async function POST(request: NextRequest) {
                             `
                         })
                     });
+                    
+                    if (!emailRes.ok) {
+                        const errText = await emailRes.text();
+                        console.warn("[Auth] Primary sender failed, trying fallback sender...", errText);
+                        // Fallback a onboarding@resend.dev
+                        await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${resendKey}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                from: 'LYVO <onboarding@resend.dev>',
+                                to: [email],
+                                subject: 'Tu código de verificación de LYVO',
+                                html: `<p>Tu código PIN de verificación de LYVO es: <strong>${otp}</strong></p>`
+                            })
+                        });
+                    }
                 } catch(e) {
                     console.warn("[Auth] Resend email notice:", e);
                 }
@@ -253,6 +274,56 @@ export async function POST(request: NextRequest) {
             }
 
             return NextResponse.json({ success: true });
+
+        } else if (action === 'resend_pin') {
+            if (!email) {
+                return NextResponse.json({ error: "Email requerido" }, { status: 400 });
+            }
+            
+            const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
+            const authUser = authList?.users?.find(u => u.email.toLowerCase() === email.toLowerCase());
+            
+            if (!authUser) {
+                return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+            }
+
+            const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+                user_metadata: {
+                    ...authUser.user_metadata,
+                    verification_pin: newOtp,
+                    pin_expires: Date.now() + 15 * 60 * 1000
+                }
+            });
+
+            const resendKey = process.env.RESEND_API_KEY;
+            let emailSent = false;
+            if (resendKey) {
+                try {
+                    const emailRes = await fetch('https://api.resend.com/emails', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${resendKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            from: 'LYVO <lyvo@lyvo.media>',
+                            to: [email],
+                            subject: 'Tu nuevo código de verificación de LYVO',
+                            html: `<p>Tu nuevo código PIN de verificación es: <strong>${newOtp}</strong></p>`
+                        })
+                    });
+                    if (emailRes.ok) emailSent = true;
+                } catch(e) {
+                    console.error("[resend_pin] Error sending email:", e);
+                }
+            }
+
+            return NextResponse.json({ 
+                success: true, 
+                message: "Nuevo código PIN reenviado.",
+                emailSent
+            });
 
         } else if (action === 'login') {
             const clientIp = getClientIp(request);
