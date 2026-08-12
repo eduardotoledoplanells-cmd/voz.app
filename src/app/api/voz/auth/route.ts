@@ -64,54 +64,60 @@ export async function POST(request: NextRequest) {
             // 1.5 Enviar el PIN de verificación por Resend API
             console.log(`\n\n=== [AUTH] PIN GENERADO PARA ${email}: ${otp} ===\n\n`);
             const resendKey = process.env.RESEND_API_KEY;
-            if (resendKey) {
-                try {
-                    // Probar enviar primero desde el dominio propio lyvo.media, y si no, desde onboarding@resend.dev
-                    const sender = 'LYVO <lyvo@lyvo.media>';
-                    const emailRes = await fetch('https://api.resend.com/emails', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${resendKey}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            from: sender,
-                            to: [email],
-                            subject: 'Tu código de verificación de LYVO',
-                            html: `
-                                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                                    <h2 style="color: #6C5CE7;">¡Hola ${username}!</h2>
-                                    <p>Tu código PIN de 6 dígitos para verificar tu cuenta en LYVO es:</p>
-                                    <div style="background-color: #F8F9FA; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333;">${otp}</span>
-                                    </div>
-                                    <p style="color: #666; font-size: 14px;">Este código expirará en 15 minutos.</p>
+            
+            if (!resendKey) {
+                console.error("[Auth] Falta RESEND_API_KEY en las variables de entorno.");
+                await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+                return NextResponse.json({ error: "Fallo del servidor: Error en configuración de correo." }, { status: 500 });
+            }
+
+            try {
+                // Enviar siempre desde el dominio verificado
+                const sender = 'LYVO <lyvo@lyvo.media>';
+                const emailRes = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${resendKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        from: sender,
+                        to: [email],
+                        subject: 'Tu código de verificación de LYVO',
+                        html: `
+                            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <h2 style="color: #6C5CE7;">¡Hola ${username}!</h2>
+                                <p>Tu código PIN de 6 dígitos para verificar tu cuenta en LYVO es:</p>
+                                <div style="background-color: #F8F9FA; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333;">${otp}</span>
                                 </div>
-                            `
-                        })
-                    });
+                                <p style="color: #666; font-size: 14px;">Este código expirará en 15 minutos.</p>
+                            </div>
+                        `
+                    })
+                });
+                
+                const responseData = await emailRes.json();
+                console.log("\n\n=== [RESEND API RESPONSE] ===");
+                console.log("Status:", emailRes.status);
+                console.log("Response Body:", JSON.stringify(responseData, null, 2));
+                console.log("===============================\n\n");
+
+                if (!emailRes.ok) {
+                    // Falló el envío del correo (ej. dominio no verificado, error de API, etc.)
+                    // Hacemos ROLLBACK del usuario en Auth para que no se quede bloqueado
+                    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
                     
-                    if (!emailRes.ok) {
-                        const errText = await emailRes.text();
-                        console.warn("[Auth] Primary sender failed, trying fallback sender...", errText);
-                        // Fallback a onboarding@resend.dev
-                        await fetch('https://api.resend.com/emails', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${resendKey}`,
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                from: 'LYVO <onboarding@resend.dev>',
-                                to: [email],
-                                subject: 'Tu código de verificación de LYVO',
-                                html: `<p>Tu código PIN de verificación de LYVO es: <strong>${otp}</strong></p>`
-                            })
-                        });
-                    }
-                } catch(e) {
-                    console.warn("[Auth] Resend email notice:", e);
+                    const errMsg = responseData?.message || "Error desconocido al enviar el email por Resend";
+                    return NextResponse.json({ 
+                        error: `No se pudo enviar el correo de verificación. Motivo de Resend: ${errMsg}` 
+                    }, { status: 400 });
                 }
+            } catch(e: any) {
+                console.error("[Auth] Resend email fetch error:", e);
+                // Rollback
+                await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+                return NextResponse.json({ error: "Fallo de conexión al enviar el correo." }, { status: 500 });
             }
 
             // Resolve geographic text values
@@ -299,25 +305,43 @@ export async function POST(request: NextRequest) {
 
             const resendKey = process.env.RESEND_API_KEY;
             let emailSent = false;
-            if (resendKey) {
-                try {
-                    const emailRes = await fetch('https://api.resend.com/emails', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${resendKey}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            from: 'LYVO <lyvo@lyvo.media>',
-                            to: [email],
-                            subject: 'Tu nuevo código de verificación de LYVO',
-                            html: `<p>Tu nuevo código PIN de verificación es: <strong>${newOtp}</strong></p>`
-                        })
-                    });
-                    if (emailRes.ok) emailSent = true;
-                } catch(e) {
-                    console.error("[resend_pin] Error sending email:", e);
+            if (!resendKey) {
+                return NextResponse.json({ error: "Fallo del servidor: Error en configuración de correo." }, { status: 500 });
+            }
+
+            try {
+                console.log(`\n\n=== [AUTH RESEND PIN] RE-GENERADO PARA ${email}: ${newOtp} ===\n\n`);
+                const emailRes = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${resendKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        from: 'LYVO <lyvo@lyvo.media>',
+                        to: [email],
+                        subject: 'Tu nuevo código de verificación de LYVO',
+                        html: `<p>Tu nuevo código PIN de verificación es: <strong>${newOtp}</strong></p>`
+                    })
+                });
+                
+                const responseData = await emailRes.json();
+                console.log("\n\n=== [RESEND PIN API RESPONSE] ===");
+                console.log("Status:", emailRes.status);
+                console.log("Response Body:", JSON.stringify(responseData, null, 2));
+                console.log("===================================\n\n");
+
+                if (!emailRes.ok) {
+                    const errMsg = responseData?.message || "Error desconocido al enviar el email por Resend";
+                    return NextResponse.json({ 
+                        error: `No se pudo reenviar el correo de verificación. Motivo: ${errMsg}` 
+                    }, { status: 400 });
                 }
+                
+                emailSent = true;
+            } catch(e: any) {
+                console.error("[resend_pin] Error sending email:", e);
+                return NextResponse.json({ error: "Fallo de conexión al enviar el correo." }, { status: 500 });
             }
 
             return NextResponse.json({ 
