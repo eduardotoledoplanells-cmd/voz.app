@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
             }
 
             // 1.5 Enviar el PIN de verificación por Resend API
+            console.log(`\n\n=== [AUTH] PIN GENERADO PARA ${email}: ${otp} ===\n\n`);
             const resendKey = process.env.RESEND_API_KEY;
             if (resendKey) {
                 try {

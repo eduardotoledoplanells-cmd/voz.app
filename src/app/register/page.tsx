@@ -43,6 +43,11 @@ export default function RegisterPage() {
     const [mathAnswer, setMathAnswer] = useState('');
     const [mathSolution, setMathSolution] = useState(0);
     const [registered, setRegistered] = useState(false); // Success state
+    
+    // Verification State
+    const [verificationToken, setVerificationToken] = useState('');
+    const [verifying, setVerifying] = useState(false);
+    const [resending, setResending] = useState(false);
 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -168,20 +173,95 @@ export default function RegisterPage() {
         }
     };
 
+    const handleVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setVerifying(true);
+
+        try {
+            const res = await fetch('/api/voz/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'verify_signup',
+                    email,
+                    verificationToken
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || data.message || 'Error al verificar el PIN');
+            }
+
+            // Success: redirect to login
+            window.location.href = '/login?verified=true';
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const handleResendPin = async () => {
+        setError('');
+        setResending(true);
+        try {
+            const res = await fetch('/api/voz/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'resend_pin', email })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al reenviar el código');
+            alert('Nuevo código PIN enviado a tu correo.');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setResending(false);
+        }
+    };
+
     if (registered) {
         return (
             <div className={styles.wrapper}>
                 <div className={styles.container}>
-                    <h1 className={styles.title} style={{ color: '#10b981' }}>¡Registro Exitoso!</h1>
-                    <p style={{ marginTop: '20px', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                        Hemos enviado un correo de verificación a <strong>{email}</strong>.
+                    <h1 className={styles.title} style={{ color: '#10b981' }}>Verifica tu cuenta</h1>
+                    <p style={{ marginTop: '10px', fontSize: '1rem', lineHeight: '1.6', color: '#a0a0a0', marginBottom: '20px' }}>
+                        Hemos enviado un código PIN de 6 dígitos a <strong style={{ color: '#fff' }}>{email}</strong>.
                     </p>
-                    <p style={{ marginBottom: '30px', color: '#6b7280' }}>
-                        Por favor, revisa tu bandeja de entrada (y spam) y haz clic en el enlace para activar tu cuenta.
-                    </p>
-                    <Link href="/login" className={styles.button} style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}>
-                        Ir a Iniciar Sesión
-                    </Link>
+
+                    {error && <div className={styles.error}>{error}</div>}
+
+                    <form onSubmit={handleVerify} className={styles.form}>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>Código PIN de 6 dígitos</label>
+                            <input
+                                type="text"
+                                value={verificationToken}
+                                onChange={(e) => setVerificationToken(e.target.value.replace(/[^0-9]/g, ''))}
+                                required
+                                className={styles.input}
+                                placeholder="Ej. 123456"
+                                maxLength={6}
+                                style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px' }}
+                            />
+                        </div>
+
+                        <button 
+                            type="button" 
+                            onClick={handleResendPin} 
+                            disabled={resending}
+                            style={{ background: 'none', border: 'none', color: '#8E2DE2', textDecoration: 'underline', cursor: 'pointer', marginBottom: '20px', padding: 0 }}
+                        >
+                            {resending ? 'Enviando...' : '¿No te llega el correo? Reenviar código PIN'}
+                        </button>
+
+                        <button type="submit" className={styles.button} disabled={verifying || verificationToken.length < 6}>
+                            {verifying ? 'Verificando...' : 'Completar Registro'}
+                        </button>
+                    </form>
                 </div>
             </div>
         );
