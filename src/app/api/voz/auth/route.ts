@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "El teléfono ya está registrado en otra cuenta" }, { status: 409 });
             }
 
-            // 1. Registro en Supabase Auth usando Admin Client (evita el error de SMTP de Supabase)
+            // 1. Registro en Supabase Auth usando Admin Client (email_confirm: true evita que Supabase intente su propio envío SMTP roto)
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email,
                 password,
-                email_confirm: false,
+                email_confirm: true, // Marcado en Auth para saltar el motor SMTP interno de Supabase; la verificación real la hace LYVO con status: 'unverified'
                 user_metadata: {
                     username: username,
                     language: userLanguage,
