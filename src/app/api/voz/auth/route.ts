@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
 
             // 1. Registro en Supabase Auth usando Admin Client (email_confirm: true evita que Supabase intente su propio envío SMTP roto)
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
             const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
                 email,
                 password,
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
 
             // 1.5 Enviar el PIN de verificación por Resend API
             console.log(`\n\n=== [AUTH] PIN GENERADO PARA ${email}: ${otp} ===\n\n`);
+            
             const resendKey = process.env.RESEND_API_KEY;
             
             if (!resendKey) {
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
 
             try {
                 // Enviar siempre desde el dominio verificado
-                const sender = 'LYVO <lyvo@lyvo.media>';
+                const sender = 'LYVO <lyvo@send.lyvo.media>';
                 const emailRes = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
                     headers: {
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
 
                 if (!emailRes.ok) {
                     // Falló el envío del correo (ej. dominio no verificado, error de API, etc.)
+                    console.error('Error Resend:', responseData);
                     // Hacemos ROLLBACK del usuario en Auth para que no se quede bloqueado
                     await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
                     
@@ -162,6 +165,9 @@ export async function POST(request: NextRequest) {
                 phone: phone || '',
                 country: countryText || undefined,
                 region: regionText || undefined,
+                country_id: countryId ? parseInt(countryId.toString()) : undefined,
+                region_id: regionId ? parseInt(regionId.toString()) : undefined,
+                municipality_id: municipalityId ? parseInt(municipalityId.toString()) : undefined,
                 interests: Array.isArray(body.interests) ? body.interests : [],
                 privacySettings: defaultPrivacySettings
             };
@@ -318,7 +324,7 @@ export async function POST(request: NextRequest) {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        from: 'LYVO <lyvo@lyvo.media>',
+                        from: 'LYVO <lyvo@send.lyvo.media>',
                         to: [email],
                         subject: 'Tu nuevo código de verificación de LYVO',
                         html: `<p>Tu nuevo código PIN de verificación es: <strong>${newOtp}</strong></p>`
