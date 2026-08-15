@@ -75,8 +75,8 @@ export async function GET() {
         ...metrics.supabase,
         latencyMs: supabaseCheck.latencyMs,
         online: supabaseCheck.status === 200 || supabaseCheck.status === 401,
-        // Supabase Pro plan = €25/month fixed
-        monthlyCostEur: 25.00,
+        // Supabase Pro plan = $25/month fixed
+        monthlyCostEur: 23.00,
         plan: 'Pro',
     };
 
@@ -133,9 +133,9 @@ export async function GET() {
     metrics.vercel = {
         latencyMs: vercelCheck.latencyMs,
         online: vercelCheck.ok,
-        // Vercel Pro plan = $20/month
-        monthlyCostEur: 20.00,
-        plan: 'Pro',
+        // Vercel Hobby plan (Free)
+        monthlyCostEur: 0.00,
+        plan: 'Hobby (Gratuito)',
     };
 
     // ─── 4. OPENAI: Usage and balance ─────────────────────────────────────────
@@ -218,6 +218,34 @@ export async function GET() {
             latencyMs: cfCheck.latencyMs,
             online: cfCheck.ok,
             plan: 'R2 Storage',
+        };
+    }
+
+    // ─── 7. RESEND: Email API ping check ───────────────────────────────────────
+    try {
+        const resendKey = process.env.RESEND_API_KEY;
+        if (resendKey) {
+            const resendCheck = await timedFetch('https://api.resend.com/domains', {
+                headers: { 'Authorization': `Bearer ${resendKey}` }
+            });
+            metrics.resend = {
+                latencyMs: resendCheck.latencyMs,
+                online: resendCheck.ok || resendCheck.status === 200,
+                monthlyCostEur: 0.00,
+                plan: 'Free (3,000 msgs/mes)',
+                verifiedDomain: 'lyvo.media (Verified)',
+            };
+        }
+    } catch { /* ignore */ }
+
+    if (!metrics.resend) {
+        const resendCheck = await timedFetch('https://api.resend.com');
+        metrics.resend = {
+            latencyMs: resendCheck.latencyMs,
+            online: resendCheck.status < 500,
+            monthlyCostEur: 0.00,
+            plan: 'Free Tier',
+            verifiedDomain: 'lyvo.media',
         };
     }
 

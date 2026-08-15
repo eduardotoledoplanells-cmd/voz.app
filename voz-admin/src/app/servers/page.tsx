@@ -39,12 +39,13 @@ export default function ServersPage() {
 
     // Injected budgets state (stored locally, initialized with mock data plus logs)
     const [injectedBudgets, setInjectedBudgets] = useState<{ [key: string]: number }>({
-        supabase: 200.00,
-        vercel: 150.00,
-        openai: 180.00,
-        firebase: 50.00,
-        stripe: 300.00,
-        cloudflare: 100.00
+        supabase: 0.00,
+        vercel: 0.00,
+        openai: 0.00,
+        firebase: 0.00,
+        stripe: 0.00,
+        cloudflare: 0.00,
+        resend: 0.00
     });
 
     // Form inputs
@@ -90,7 +91,7 @@ export default function ServersPage() {
             endpoint: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thiftwzubmvcrdhuwcwm.supabase.co',
             maskedKey: '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••',
             fullKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'Anon Key Configured',
-            estimatedCost: 25.00,
+            estimatedCost: 23.00,
             billingPeriod: 'Mensual (Renovación día 1)',
             dashboardUrl: 'https://supabase.com/dashboard/project/thiftwzubmvcrdhuwcwm',
             status: 'unknown',
@@ -109,8 +110,8 @@ export default function ServersPage() {
             endpoint: 'https://server-taupe-six.vercel.app',
             maskedKey: '••••••••••••••••••••••••••••••••',
             fullKey: 'Vercel Deployment Key Active',
-            estimatedCost: 20.00,
-            billingPeriod: 'Mensual (Renovación día 14)',
+            estimatedCost: 0.00,
+            billingPeriod: 'Hobby Plan (Gratuito)',
             dashboardUrl: 'https://vercel.com/dashboard',
             status: 'unknown',
             quotaName: 'Edge Execution (CPU-Hours)',
@@ -195,6 +196,25 @@ export default function ServersPage() {
             quotaUnit: 'GB',
             performanceMetricName: 'Peticiones Clase A',
             performanceMetricValue: '4,821 / 10,000'
+        },
+        {
+            id: 'resend',
+            name: 'Resend Transactional Email',
+            serviceType: 'Transactional Email CDN & API',
+            role: 'Servicio de entrega de emails transaccionales de alta fiabilidad. Envío de códigos PIN de verificación (OTP de 6 dígitos para registro de nuevos usuarios) y alertas de errores críticos.',
+            endpoint: 'https://api.resend.com',
+            maskedKey: 're_••••••••••••••••••••••••••••••••',
+            fullKey: process.env.RESEND_API_KEY || 'Resend API Key Configured',
+            estimatedCost: 0.00,
+            billingPeriod: 'Free Tier (3,000 emails/mes gratis)',
+            dashboardUrl: 'https://resend.com/overview',
+            status: 'unknown',
+            quotaName: 'Cuota de Emails Mensuales',
+            quotaUsed: 142,
+            quotaMax: 3000,
+            quotaUnit: 'msgs',
+            performanceMetricName: 'Dominio Verificado',
+            performanceMetricValue: 'lyvo.media (Verified)'
         }
     ];
 
@@ -282,12 +302,13 @@ export default function ServersPage() {
 
                     // Reset to initial baseline and add injected sums
                     const baseline: { [key: string]: number } = {
-                        supabase: 200.00,
-                        vercel: 150.00,
-                        openai: 180.00,
-                        firebase: 50.00,
-                        stripe: 300.00,
-                        cloudflare: 100.00
+                        supabase: 0.00,
+                        vercel: 0.00,
+                        openai: 0.00,
+                        firebase: 0.00,
+                        stripe: 0.00,
+                        cloudflare: 0.00,
+                        resend: 0.00
                     };
                     Object.keys(additionalBudgets).forEach(k => {
                         baseline[k] = (baseline[k] || 0) + additionalBudgets[k];
@@ -472,7 +493,8 @@ export default function ServersPage() {
                                                  s.id === 'vercel' ? '⚡' : 
                                                  s.id === 'openai' ? '🧠' : 
                                                  s.id === 'firebase' ? '🔔' : 
-                                                 s.id === 'stripe' ? '💳' : '📦'}
+                                                 s.id === 'stripe' ? '💳' : 
+                                                 s.id === 'resend' ? '📧' : '📦'}
                                             </span>
                                             <span style={{ fontSize: '13px', fontWeight: isSel ? 'bold' : 'normal' }}>{s.name}</span>
                                         </div>
@@ -540,6 +562,49 @@ export default function ServersPage() {
                             </div>
 
                             <p style={{ lineHeight: '1.4', margin: '0 0 15px 0' }}>{selectedServer.role}</p>
+
+                            {selectedServer.id === 'supabase' && (
+                                <details style={{ 
+                                    margin: '10px 0 15px 0', 
+                                    padding: '10px', 
+                                    border: '1px solid #808080', 
+                                    background: '#f9f9f9',
+                                    fontSize: '13px'
+                                }}>
+                                    <summary style={{ cursor: 'pointer', fontWeight: 'bold', outline: 'none', color: '#000080' }}>
+                                        🌟 Beneficios y Tarifas Plan PRO ($25.00 / ~23.00 € al mes)
+                                    </summary>
+                                    <div style={{ marginTop: '10px', display: 'grid', gap: '8px', lineHeight: '1.4' }}>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>👥 Usuarios Activos Mensuales (MAU):</strong> 100,000 incluidos <span style={{ color: '#666' }}>(luego $0.00325 por MAU)</span>
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>💾 Tamaño de Disco BD:</strong> 8 GB por proyecto incluidos <span style={{ color: '#666' }}>(luego $0.125 por GB)</span>
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>🌐 Transferencia de Salida (Egress):</strong> 250 GB incluidos <span style={{ color: '#666' }}>(luego $0.09 por GB)</span>
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>⚡ Egress en Caché:</strong> 250 GB incluidos <span style={{ color: '#666' }}>(luego $0.03 por GB)</span>
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>📁 Almacenamiento de Archivos (Storage):</strong> 100 GB incluidos <span style={{ color: '#666' }}>(luego $0.0213 por GB)</span>
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>✉️ Soporte Técnico:</strong> Soporte prioritario por Email (Email support)
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>🔄 Copias de Seguridad:</strong> Backups diarios guardados durante 7 días (Daily backups stored for 7 days)
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>📜 Retención de Logs:</strong> Histórico de logs guardado durante 7 días (7-day log retention)
+                                        </div>
+                                        <div style={{ background: '#fff', padding: '6px 10px', border: '1px solid #ddd' }}>
+                                            <strong>🪵 Drain de Logs:</strong> Opción de añadir Log Drains <span style={{ color: '#666' }}>(adicional $60 por drain, por proyecto)</span>
+                                        </div>
+                                    </div>
+                                </details>
+                            )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '15px' }}>
                                 <div className="field-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', background: '#e0e0e0', padding: '8px', border: '1px solid #808080' }}>
@@ -671,7 +736,12 @@ export default function ServersPage() {
                             <div className="window-body">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     {/* Real cost from API if available */}
-                                    {realMetrics[selectedServer.id]?.monthlyCostEur !== undefined && realMetrics[selectedServer.id]?.monthlyCostEur !== null && (
+                                    {selectedServer.id === 'supabase' ? (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
+                                            <span>💳 Coste Mensual (Plan Pro):</span>
+                                            <strong style={{ color: 'darkgreen' }}>● 25.00 $ (~23.00 €)/mes</strong>
+                                        </div>
+                                    ) : realMetrics[selectedServer.id]?.monthlyCostEur !== undefined && realMetrics[selectedServer.id]?.monthlyCostEur !== null && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e0e0e0', paddingBottom: '4px' }}>
                                             <span>💳 Coste Mensual ({realMetrics[selectedServer.id]?.plan}):</span>
                                             <strong style={{ color: 'darkgreen' }}>● {realMetrics[selectedServer.id].monthlyCostEur.toFixed(2)} €/mes</strong>
