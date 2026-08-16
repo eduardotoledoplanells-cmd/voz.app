@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        from: 'LYVO <lyvo@send.lyvo.media>',
+                        from: 'LYVO <soporte@lyvo.media>',
                         to: [email],
                         subject: 'Tu nuevo código de verificación de LYVO',
                         html: `<p>Tu nuevo código PIN de verificación es: <strong>${newOtp}</strong></p>`
@@ -413,29 +413,79 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, user: userProfile, token: authData.session?.access_token });
 
         } else if (action === 'forgot_password') {
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+            if (!email) {
+                return NextResponse.json({ error: "Email requerido" }, { status: 400 });
+            }
+            const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
+            const authUser = authList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
             
-            if (resetError) {
-                return NextResponse.json({ error: resetError.message }, { status: 400 });
+            if (!authUser) {
+                return NextResponse.json({ success: true, message: "Si el correo está registrado, recibirás un código PIN para restablecer tu contraseña." });
             }
 
-            return NextResponse.json({ success: true, message: "Instrucciones de recuperación enviadas a tu email" });
+            const recoveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+                user_metadata: {
+                    ...authUser.user_metadata,
+                    recovery_pin: recoveryOtp,
+                    recovery_pin_expires: Date.now() + 15 * 60 * 1000
+                }
+            });
+
+            const resendKey = process.env.RESEND_API_KEY;
+            if (resendKey) {
+                try {
+                    await fetch('https://api.resend.com/emails', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${resendKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            from: 'LYVO <soporte@lyvo.media>',
+                            to: [email],
+                            subject: 'Tu código PIN para recuperar contraseña - LYVO',
+                            html: `
+                                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                                    <h2 style="color: #6C5CE7;">Recuperación de Contraseña</h2>
+                                    <p>Tu código PIN de 6 dígitos para restablecer tu contraseña en LYVO es:</p>
+                                    <div style="background-color: #F8F9FA; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333;">${recoveryOtp}</span>
+                                    </div>
+                                    <p style="color: #666; font-size: 14px;">Este código expirará en 15 minutos.</p>
+                                </div>
+                            `
+                        })
+                    });
+                } catch(e) {
+                    console.error("[forgot_password] Resend email error:", e);
+                }
+            }
+
+            return NextResponse.json({ success: true, message: "Código PIN de recuperación enviado a tu correo." });
 
         } else if (action === 'reset_password') {
             const { email, newPassword, recoveryPin } = body;
             
-            const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                email,
-                token: recoveryPin,
-                type: 'recovery'
-            });
-
-            if (verifyError || !data.user) {
-                return NextResponse.json({ error: "El código PIN es incorrecto o ha expirado" }, { status: 400 });
+            if (!email || !newPassword || !recoveryPin) {
+                return NextResponse.json({ error: "Faltan campos requeridos (email, nueva contraseña, PIN)" }, { status: 400 });
             }
 
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
-                password: newPassword
+            const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
+            const authUser = authList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+            if (!authUser) {
+                return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
+            }
+
+            const { recovery_pin, recovery_pin_expires } = authUser.user_metadata || {};
+            if (!recovery_pin || recovery_pin.toString() !== recoveryPin.toString() || (recovery_pin_expires && Date.now() > recovery_pin_expires)) {
+                return NextResponse.json({ error: "El código PIN de recuperación es incorrecto o ha expirado" }, { status: 400 });
+            }
+
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+                password: newPassword,
+                user_metadata: { ...authUser.user_metadata, recovery_pin: null, recovery_pin_expires: null }
             });
 
             if (updateError) {
