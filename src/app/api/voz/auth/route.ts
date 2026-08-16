@@ -1,3 +1,4 @@
+// LYVO Production Auth Service - Resend Domain Verified
 import { NextRequest, NextResponse } from "next/server";
 import { getUserById, getUserByEmail, addAppUser, updateAppUser, AppUser, supabase, supabaseAdmin, isBlacklisted, addBannedEmail } from "@/lib/db";
 import { progressiveLockout, getClientIp } from "@/lib/rate-limiter";
