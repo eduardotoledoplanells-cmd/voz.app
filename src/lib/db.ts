@@ -799,6 +799,11 @@ export async function updateCreator(id: string, updates: any, employeeName: stri
 }
 
 export async function addAppUser(user: AppUser): Promise<AppUser | null> {
+    // Sanitize foreign key IDs against valid bounds in database (countries: 1, regions: 1..17, municipalities: 1..43)
+    const cid = user.country_id && Number(user.country_id) === 1 ? 1 : null;
+    const rid = user.region_id && Number(user.region_id) >= 1 && Number(user.region_id) <= 17 ? Number(user.region_id) : null;
+    const mid = user.municipality_id && Number(user.municipality_id) >= 1 && Number(user.municipality_id) <= 43 ? Number(user.municipality_id) : null;
+
     const { data, error } = await supabaseAdmin.from('app_users').insert([{
         id: user.id,
         name: user.name || user.handle.replace('@', ''),
@@ -810,9 +815,9 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         country: user.country,
         region: user.region,
         interests: user.interests || [],
-        country_id: user.country_id,
-        region_id: user.region_id,
-        municipality_id: user.municipality_id,
+        country_id: cid,
+        region_id: rid,
+        municipality_id: mid,
         notification_settings: {
             notify_follows: true,
             notify_gifts: true,

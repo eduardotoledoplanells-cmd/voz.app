@@ -154,6 +154,10 @@ export async function POST(request: NextRequest) {
             // Nota: El ID de app_users coincidirá con el ID de Supabase Auth
             const defaultPrivacySettings = { receive_pms: true, charge_pms: false, receive_gifts: true, receive_donations: true };
 
+            const safeCid = countryId && Number(countryId) === 1 ? 1 : null;
+            const safeRid = regionId && Number(regionId) >= 1 && Number(regionId) <= 17 ? Number(regionId) : null;
+            const safeMid = municipalityId && Number(municipalityId) >= 1 && Number(municipalityId) <= 43 ? Number(municipalityId) : null;
+
             const newUser: AppUser = {
                 id: authData.user?.id || uuidv4(),
                 handle: `@${username}`,
@@ -166,9 +170,9 @@ export async function POST(request: NextRequest) {
                 phone: phone || '',
                 country: countryText || undefined,
                 region: regionText || undefined,
-                country_id: countryId ? parseInt(countryId.toString()) : undefined,
-                region_id: regionId ? parseInt(regionId.toString()) : undefined,
-                municipality_id: municipalityId ? parseInt(municipalityId.toString()) : undefined,
+                country_id: safeCid || undefined,
+                region_id: safeRid || undefined,
+                municipality_id: safeMid || undefined,
                 interests: Array.isArray(body.interests) ? body.interests : [],
                 privacySettings: defaultPrivacySettings
             };
@@ -186,9 +190,9 @@ export async function POST(request: NextRequest) {
                     country: newUser.country,
                     region: newUser.region,
                     interests: newUser.interests || [],
-                    country_id: newUser.country_id,
-                    region_id: newUser.region_id,
-                    municipality_id: newUser.municipality_id,
+                    country_id: safeCid,
+                    region_id: safeRid,
+                    municipality_id: safeMid,
                     privacy_settings: defaultPrivacySettings
                 }]);
                 if (dbError) {
