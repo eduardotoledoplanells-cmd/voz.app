@@ -28,22 +28,27 @@ export default function LoginPage() {
         // }
 
         try {
-            const supabase = createClient();
-            
-            const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+            const res = await fetch('/api/voz/employees/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: email.trim(), password })
             });
+            const data = await res.json();
 
-            if (signInError) {
-                // Avoid leaking if user exists or not
-                setError('Credenciales inválidas o cuenta inexistente.');
+            if (!res.ok || !data.success) {
+                setError(data.error || 'Credenciales inválidas o cuenta inexistente.');
                 return;
             }
 
-            // Auth successful, the middleware will catch and redirect if 2FA is needed.
+            if (data.employee) {
+                localStorage.setItem('vozEmployee', JSON.stringify(data.employee));
+            }
+            if (data.token) {
+                localStorage.setItem('voz_admin_token', data.token);
+            }
+
             router.push('/');
-            router.refresh(); // Refresh the router so middleware runs again
+            router.refresh();
         } catch (err: any) {
             setError('Ocurrió un error inesperado. Inténtalo más tarde.');
         } finally {
@@ -68,7 +73,7 @@ export default function LoginPage() {
                 </div>
                 <div className="window-body">
                     <p style={{ textAlign: 'center', marginBottom: '15px' }}>
-                        Acceso Restringido. SuperAdmins de Lyvo.
+                        Acceso Restringido. Panel de Administración de LYVO.
                     </p>
                     
                     {error && (
@@ -78,40 +83,33 @@ export default function LoginPage() {
                     )}
 
                     <form onSubmit={handleLogin}>
-                        <div className="field-row-stacked" style={{ width: '200px', margin: '0 auto 10px auto' }}>
-                            <label htmlFor="email">Usuario / Email</label>
+                        <div className="field-row-stacked" style={{ width: '220px', margin: '0 auto 10px auto' }}>
+                            <label htmlFor="username">Usuario (ej. admin o Director)</label>
                             <input 
-                                id="email" 
-                                type="email" 
+                                id="username" 
+                                type="text" 
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Introduce tu usuario"
                                 required
                             />
                         </div>
 
-                        <div className="field-row-stacked" style={{ width: '200px', margin: '0 auto 15px auto' }}>
+                        <div className="field-row-stacked" style={{ width: '220px', margin: '0 auto 15px auto' }}>
                             <label htmlFor="password">Contraseña</label>
                             <input 
                                 id="password" 
                                 type="password" 
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
                                 required
                             />
                         </div>
 
-                        {/* Captcha Placeholder */}
-                        <div style={{ width: '200px', margin: '0 auto 15px auto', textAlign: 'center' }}>
-                            <div style={{ border: '1px solid gray', padding: '10px', background: 'white' }}>
-                                <i>[ Turnstile Captcha ]</i>
-                                <br />
-                                <small>Preparado para Cloudflare</small>
-                            </div>
-                        </div>
-
-                        <div style={{ textAlign: 'center' }}>
-                            <button type="submit" disabled={loading}>
-                                {loading ? 'Verificando...' : 'Entrar'}
+                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                            <button type="submit" disabled={loading} style={{ padding: '6px 20px', fontWeight: 'bold' }}>
+                                {loading ? 'Verificando...' : '🔑 Entrar'}
                             </button>
                         </div>
                     </form>
