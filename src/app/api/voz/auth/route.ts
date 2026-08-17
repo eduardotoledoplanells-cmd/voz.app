@@ -421,8 +421,20 @@ export async function POST(request: NextRequest) {
             if (!email) {
                 return NextResponse.json({ error: "Email requerido" }, { status: 400 });
             }
-            const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
-            const authUser = authList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+            const cleanEmail = email.toString().trim().toLowerCase();
+
+            let authUser = null;
+            const { data: dbUser } = await supabaseAdmin.from('app_users').select('id, email').ilike('email', cleanEmail).maybeSingle();
+            if (dbUser?.id) {
+                const { data: userData } = await supabaseAdmin.auth.admin.getUserById(dbUser.id);
+                if (userData?.user) {
+                    authUser = userData.user;
+                }
+            }
+            if (!authUser) {
+                const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
+                authUser = authList?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+            }
             
             if (!authUser) {
                 return NextResponse.json({ success: true, message: "Si el correo está registrado, recibirás un código PIN para restablecer tu contraseña." });
@@ -448,7 +460,7 @@ export async function POST(request: NextRequest) {
                         },
                         body: JSON.stringify({
                             from: 'LYVO <soporte@lyvo.media>',
-                            to: [email],
+                            to: [cleanEmail],
                             subject: 'Tu código PIN para recuperar contraseña - LYVO',
                             html: `
                                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -476,15 +488,30 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: "Faltan campos requeridos (email, nueva contraseña, PIN)" }, { status: 400 });
             }
 
-            const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
-            const authUser = authList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+            const cleanEmail = email.toString().trim().toLowerCase();
+            const cleanPin = recoveryPin.toString().trim().replace(/\s+/g, '');
+
+            let authUser = null;
+            const { data: dbUser } = await supabaseAdmin.from('app_users').select('id, email').ilike('email', cleanEmail).maybeSingle();
+            if (dbUser?.id) {
+                const { data: userData } = await supabaseAdmin.auth.admin.getUserById(dbUser.id);
+                if (userData?.user) {
+                    authUser = userData.user;
+                }
+            }
+            if (!authUser) {
+                const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
+                authUser = authList?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+            }
 
             if (!authUser) {
                 return NextResponse.json({ error: "Usuario no encontrado" }, { status: 400 });
             }
 
             const { recovery_pin, recovery_pin_expires } = authUser.user_metadata || {};
-            if (!recovery_pin || recovery_pin.toString() !== recoveryPin.toString() || (recovery_pin_expires && Date.now() > recovery_pin_expires)) {
+            const cleanStoredPin = recovery_pin ? recovery_pin.toString().trim().replace(/\s+/g, '') : null;
+
+            if (!cleanStoredPin || cleanStoredPin !== cleanPin || (recovery_pin_expires && Date.now() > Number(recovery_pin_expires))) {
                 return NextResponse.json({ error: "El código PIN de recuperación es incorrecto o ha expirado" }, { status: 400 });
             }
 
@@ -496,6 +523,8 @@ export async function POST(request: NextRequest) {
             if (updateError) {
                 return NextResponse.json({ error: updateError.message }, { status: 400 });
             }
+
+            return NextResponse.json({ success: true, message: "Contraseña actualizada con éxito." });
 
         } else if (action === 'change_password') {
             const { handle, email, currentPassword, newPassword } = body;
