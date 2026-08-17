@@ -1075,6 +1075,35 @@ export async function toggleVideoLike(videoId: string, userHandle: string, isLik
     return true;
 }
 
+export async function toggleVideoDislike(videoId: string, userHandle: string, isDisliked: boolean): Promise<boolean> {
+    try {
+        if (isDisliked) {
+            await supabaseAdmin
+                .from('video_dislikes')
+                .upsert([{ video_id: videoId, user_handle: userHandle }], { onConflict: 'video_id,user_handle' });
+        } else {
+            await supabaseAdmin
+                .from('video_dislikes')
+                .delete()
+                .match({ video_id: videoId, user_handle: userHandle });
+        }
+    } catch (e) {
+        console.warn('video_dislikes table upsert/delete info:', e);
+    }
+
+    try {
+        const { data: v } = await supabaseAdmin.from('videos').select('dislikes').eq('id', videoId).single();
+        const currentDislikes = v?.dislikes || 0;
+        const newDislikes = isDisliked ? currentDislikes + 1 : Math.max(0, currentDislikes - 1);
+        await supabaseAdmin.from('videos').update({ dislikes: newDislikes }).eq('id', videoId);
+    } catch (e) {
+        console.warn('videos table dislikes column update info:', e);
+    }
+
+    return true;
+}
+
+
 export async function incrementVideoView(videoId: string, userHandle: string): Promise<boolean> {
     // Try to insert a unique view record (duplicate = already viewed by this user)
     const { error: viewError } = await supabaseAdmin
