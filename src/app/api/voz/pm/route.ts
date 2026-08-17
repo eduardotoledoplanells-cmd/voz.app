@@ -21,58 +21,62 @@ async function checkImageSafety(content: string): Promise<{ safe: boolean; reaso
     }
 
     try {
-        // Ejecutar el análisis de seguridad para todas las imágenes en paralelo
         const results = await Promise.all(
             imageUrls.map(async (imageUrl) => {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: [
-                                    {
-                                        type: 'text',
-                                        text: 'Analyze this image. Does it contain nudity, sexually explicit content, pornography, violence, or child exploitation? Answer strictly with either "SAFE" or "UNSAFE" and nothing else.'
-                                    },
-                                    {
-                                        type: 'image_url',
-                                        image_url: {
-                                            url: imageUrl
+                try {
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o-mini',
+                            messages: [
+                                {
+                                    role: 'user',
+                                    content: [
+                                        {
+                                            type: 'text',
+                                            text: 'Analyze this image strictly for child protection. Does this image contain child sexual abuse material (CSAM) or child exploitation? Answer strictly with either "CSAM" or "SAFE" and nothing else.'
+                                        },
+                                        {
+                                            type: 'image_url',
+                                            image_url: {
+                                                url: imageUrl
+                                            }
                                         }
-                                    }
-                                ]
-                            }
-                        ],
-                        max_tokens: 5,
-                        temperature: 0.0
-                    })
-                });
+                                    ]
+                                }
+                            ],
+                            max_tokens: 5,
+                            temperature: 0.0
+                        })
+                    });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`[Safety Filter] Error de la API de OpenAI para ${imageUrl}: ${errorText}`);
-                    return { safe: false, reason: 'El contenido infringe las políticas de seguridad y protección de menores.' };
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.warn(`[Safety Filter] OpenAI API status ${response.status} para ${imageUrl}: ${errorText}`);
+                        // No bloquear imágenes de usuario por errores de red o acceso a la URL
+                        return { safe: true };
+                    }
+
+                    const data = await response.json();
+                    const result = data.choices?.[0]?.message?.content?.trim()?.toUpperCase() || 'SAFE';
+                    console.log(`[Safety Filter] Resultado del análisis para ${imageUrl}: ${result}`);
+
+                    if (result.includes('CSAM')) {
+                        return { safe: false, reason: 'Imagen bloqueada por protección de menores.' };
+                    }
+
+                    return { safe: true };
+                } catch (imgErr) {
+                    console.warn(`[Safety Filter] Error comprobando imagen ${imageUrl}:`, imgErr);
+                    return { safe: true };
                 }
-
-                const data = await response.json();
-                const result = data.choices?.[0]?.message?.content?.trim()?.toUpperCase() || 'UNSAFE';
-                console.log(`[Safety Filter] Resultado del análisis para ${imageUrl}: ${result}`);
-
-                if (result === 'UNSAFE') {
-                    return { safe: false, reason: 'Imagen bloqueada: Detectado contenido no permitido (desnudez, violencia o material inapropiado).' };
-                }
-
-                return { safe: true };
             })
         );
 
-        // Si alguna imagen no es segura, fallamos inmediatamente
         const unsafeResult = results.find(r => !r.safe);
         if (unsafeResult) {
             return unsafeResult;
@@ -80,9 +84,8 @@ async function checkImageSafety(content: string): Promise<{ safe: boolean; reaso
 
         return { safe: true };
     } catch (err) {
-        console.error('[Safety Filter] Excepción durante el análisis de imagen:', err);
-        // Fail-closed por seguridad en el canal de mensajes privados
-        return { safe: false, reason: 'Error en la verificación de seguridad de la imagen.' };
+        console.warn('[Safety Filter] Excepción durante el análisis de imagen:', err);
+        return { safe: true };
     }
 }
 
