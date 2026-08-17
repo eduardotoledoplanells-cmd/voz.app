@@ -497,7 +497,51 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: updateError.message }, { status: 400 });
             }
 
-            return NextResponse.json({ success: true, message: "Contraseña actualizada con éxito" });
+        } else if (action === 'change_password') {
+            const { handle, email, currentPassword, newPassword } = body;
+            
+            if (!currentPassword || !newPassword) {
+                return NextResponse.json({ error: "Faltan contraseñas requeridas" }, { status: 400 });
+            }
+
+            if (newPassword.length < 6) {
+                return NextResponse.json({ error: "La nueva contraseña debe tener al menos 6 caracteres" }, { status: 400 });
+            }
+
+            // Buscar email de usuario si solo vino handle
+            let targetEmail = email;
+            if (!targetEmail && handle) {
+                const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+                const { data: userData } = await supabaseAdmin.from('app_users').select('email').eq('handle', cleanHandle).maybeSingle();
+                if (userData?.email) {
+                    targetEmail = userData.email;
+                }
+            }
+
+            if (!targetEmail) {
+                return NextResponse.json({ error: "No se pudo identificar la cuenta de usuario" }, { status: 400 });
+            }
+
+            // 1. Verificar contraseña actual intentando autenticar en Supabase Auth
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: targetEmail,
+                password: currentPassword
+            });
+
+            if (signInError || !signInData?.user) {
+                return NextResponse.json({ error: "La contraseña actual es incorrecta" }, { status: 401 });
+            }
+
+            // 2. Actualizar contraseña del usuario en Supabase Auth
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(signInData.user.id, {
+                password: newPassword
+            });
+
+            if (updateError) {
+                return NextResponse.json({ error: updateError.message }, { status: 400 });
+            }
+
+            return NextResponse.json({ success: true, message: "Contraseña actualizada correctamente" });
         }
 
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
