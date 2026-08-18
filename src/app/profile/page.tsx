@@ -915,6 +915,7 @@ function ProfilePageContent() {
 
                     <div style={{ width: '100%', maxWidth: '450px', height: '100dvh', position: 'relative', margin: '0 auto' }}>
                         <FeedItem 
+                            key={videos[activeProfileVideoIndex]?.id || `profile_video_${activeProfileVideoIndex}`}
                             v={{
                                 ...videos[activeProfileVideoIndex],
                                 user: videos[activeProfileVideoIndex].user || displayUser.handle || '@' + displayUser.name,

@@ -233,6 +233,11 @@ export const FeedItem = ({
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
+    // Reset manual pause state when video ID or URL changes
+    useEffect(() => {
+        setIsManualPause(false);
+    }, [v.id, v.videoUrl, v.video_url]);
+
     // Active playback control
     useEffect(() => {
         if (isActive && !isLiveOpen) {
@@ -264,7 +269,7 @@ export const FeedItem = ({
                 }
             }
         }
-    }, [isActive, isManualPause, isLiveOpen]);
+    }, [isActive, isManualPause, isLiveOpen, v.id, v.videoUrl, v.video_url]);
 
     const togglePlay = () => {
         if (videoRef.current) {
