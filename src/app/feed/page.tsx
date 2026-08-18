@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert, Share2, Maximize } from 'lucide-react';
+import { Heart, Mic, Gift, Bookmark, Play, ShieldAlert, Share2, Maximize, ThumbsDown } from 'lucide-react';
 import Link from 'next/link';
 import '../feeditem.css';
 import BottomNav from '../components/BottomNav';
@@ -91,6 +91,8 @@ export const FeedItem = ({
     // Icon States
     const [isLiked, setIsLiked] = useState(v.isLikedByMe || false);
     const [likesCount, setLikesCount] = useState(v.likes || 0);
+    const [isDisliked, setIsDisliked] = useState(v.isDislikedByMe || false);
+    const [dislikesCount, setDislikesCount] = useState(v.dislikes || v.dislikesCount || 0);
     const [isBookmarked, setIsBookmarked] = useState(v.isBookmarkedByMe || false);
     const [giftScale, setGiftScale] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
@@ -319,6 +321,24 @@ export const FeedItem = ({
         } catch (e) { console.error("Error liking video", e); }
     };
 
+    const handleDislike = async () => {
+        const newDisliked = !isDisliked;
+        setIsDisliked(newDisliked);
+        setDislikesCount((prev: number) => newDisliked ? prev + 1 : Math.max(0, prev - 1));
+
+        try {
+            const token = localStorage.getItem('token') || '';
+            await fetch('/api/voz/videos/dislike', {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ videoId: v.id, userHandle: currentUserHandle, isDisliked: newDisliked })
+            });
+        } catch (e) { console.error("Error toggling dislike", e); }
+    };
+
     const handleBookmark = async () => {
         const newBookmarked = !isBookmarked;
         setIsBookmarked(newBookmarked);
@@ -537,6 +557,14 @@ export const FeedItem = ({
 
                 {/* Right Action Icons */}
                 <div className="right-sidebar">
+                    {!v.isAd && (
+                        <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleDislike}>
+                            <ThumbsDown size={28} color={isDisliked ? '#FF3B30' : 'white'} fill={isDisliked ? '#FF3B30' : 'none'} />
+                            <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>
+                                {(isDisliked && (dislikesCount === 0 || dislikesCount === '0')) ? 1 : dislikesCount}
+                            </span>
+                        </div>
+                    )}
                     <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={handleBookmark}>
                         <Bookmark size={30} color={isBookmarked ? '#FFD700' : 'white'} fill={isBookmarked ? '#FFD700' : 'none'} />
                         <span style={{ fontSize: '11px', display: 'block', marginTop: '4px', fontWeight: '600' }}>Favoritos</span>
@@ -555,7 +583,7 @@ export const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Scrubber Progress Bar (Línea con Bolita Roja idéntica a la App Móvil) */}
+                {/* Scrubber Progress Bar (Línea Blanca limpia con Bolita Única estilo TikTok) */}
                 <div 
                     ref={scrubberBarRef}
                     onClick={(e) => e.stopPropagation()}
@@ -567,7 +595,7 @@ export const FeedItem = ({
                     onTouchEnd={handleScrubMouseUp}
                     style={{
                         position: 'absolute',
-                        bottom: hasBottomNav !== false ? 'calc(68px + 65px + env(safe-area-inset-bottom, 0px))' : '68px',
+                        bottom: hasBottomNav !== false ? '65px' : '0px',
                         left: '0',
                         right: '0',
                         height: '24px',
@@ -590,16 +618,16 @@ export const FeedItem = ({
                             backgroundColor: 'rgba(18, 18, 20, 0.92)',
                             padding: '4px 10px',
                             borderRadius: '12px',
-                            border: '1px solid rgba(255, 0, 85, 0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
                             color: '#FFFFFF',
                             fontSize: '11px',
                             fontWeight: '700',
                             letterSpacing: '0.5px',
-                            boxShadow: '0 2px 8px rgba(255,0,85,0.4)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
                             pointerEvents: 'none',
                             whiteSpace: 'nowrap'
                         }}>
-                            <span style={{ color: '#FF0055' }}>{formatScrubTime((dragPct / 100) * videoDuration)}</span>
+                            <span style={{ color: '#FFFFFF' }}>{formatScrubTime((dragPct / 100) * videoDuration)}</span>
                             <span style={{ color: 'rgba(255,255,255,0.5)' }}> / </span>
                             {formatScrubTime(videoDuration)}
                         </div>
@@ -608,35 +636,33 @@ export const FeedItem = ({
                     {/* Track Base */}
                     <div style={{
                         width: '100%',
-                        height: isDraggingScrubber ? '6px' : '4px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                        borderRadius: '4px',
+                        height: isDraggingScrubber ? '4px' : '2px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
                         position: 'relative',
                         transition: 'height 0.15s ease'
                     }}>
-                        {/* Relleno Activo */}
+                        {/* Relleno Activo (Rojo de marca) */}
                         <div style={{
                             position: 'absolute',
                             left: '0',
                             top: '0',
                             bottom: '0',
                             backgroundColor: '#FF0055',
-                            borderRadius: '4px',
                             width: `${isDraggingScrubber ? dragPct : progressPct}%`
                         }} />
 
-                        {/* Bolita Roja (Thumb Dot) */}
+                        {/* ÚNICA Bolita Roja (Thumb Dot) */}
                         <div style={{
                             position: 'absolute',
                             left: `${isDraggingScrubber ? dragPct : progressPct}%`,
                             top: '50%',
-                            width: isDraggingScrubber ? '18px' : '14px',
-                            height: isDraggingScrubber ? '18px' : '14px',
+                            width: isDraggingScrubber ? '14px' : '10px',
+                            height: isDraggingScrubber ? '14px' : '10px',
                             borderRadius: '50%',
                             backgroundColor: '#FF0055',
                             border: '2px solid #FFFFFF',
                             transform: 'translate(-50%, -50%)',
-                            boxShadow: '0 0 8px rgba(255,0,85,0.8)',
+                            boxShadow: '0 0 6px rgba(255,0,85,0.8)',
                             transition: 'width 0.15s ease, height 0.15s ease'
                         }} />
                     </div>
@@ -902,18 +928,19 @@ export default function FeedPage() {
                 .nav-arrow.right { right: 20px; }
                 .feed-autoscroll-toggle {
                     position: fixed;
-                    top: 70px;
+                    top: 12px;
                     right: 16px;
-                    z-index: 100;
+                    z-index: 1000;
                     color: white;
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    background: rgba(0,0,0,0.6);
-                    padding: 8px 14px;
+                    background: rgba(0,0,0,0.55);
+                    border: 1px solid rgba(255,255,255,0.15);
+                    padding: 6px 12px;
                     border-radius: 20px;
                     backdrop-filter: blur(8px);
-                    font-size: 13px;
+                    font-size: 12px;
                 }
                 /* === HORIZONTAL SCROLL FEED === */
                 .feed-scroll-container {

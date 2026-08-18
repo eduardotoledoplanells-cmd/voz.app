@@ -37,6 +37,87 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     const [editYoutube, setEditYoutube] = useState('');
     const [isDisclaimerAccepted, setIsDisclaimerAccepted] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // Estados para Cambiar contraseña y Eliminar cuenta dentro de Usuario
+    const [showChangePassword, setShowChangePassword] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+    const handleChangePasswordSubmit = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            alert("Por favor completa todos los campos de contraseña.");
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            alert("La nueva contraseña y su confirmación no coinciden.");
+            return;
+        }
+        if (newPassword.length < 6) {
+            alert("La nueva contraseña debe tener al menos 6 caracteres.");
+            return;
+        }
+
+        setIsSubmittingPassword(true);
+        try {
+            const res = await fetch('/api/voz/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'change_password',
+                    handle: profile.handle || profile.name,
+                    email: profile.email,
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                })
+            });
+
+            const data = await res.json();
+            setIsSubmittingPassword(false);
+
+            if (!res.ok || data.error) {
+                alert(data.error || "No se pudo cambiar la contraseña.");
+                return;
+            }
+
+            alert("Tu contraseña ha sido actualizada correctamente.");
+            setShowChangePassword(false);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err) {
+            setIsSubmittingPassword(false);
+            alert("Error de conexión con el servidor.");
+        }
+    };
+
+    const handleDeleteAccountWeb = async () => {
+        if (!confirm("¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible y borrará todos tus vídeos y datos.")) {
+            return;
+        }
+        setIsDeletingAccount(true);
+        try {
+            const res = await fetch('/api/voz/users/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: profile.id })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Tu cuenta ha sido eliminada con éxito.");
+                onClose();
+                onLogout();
+            } else {
+                alert(data.error || "No se pudo eliminar la cuenta.");
+            }
+        } catch (err) {
+            alert("Error al intentar eliminar la cuenta.");
+        } finally {
+            setIsDeletingAccount(false);
+        }
+    };
     
     // Estados para la tienda de monedas
     const [showCoinPacks, setShowCoinPacks] = useState(false);
@@ -517,9 +598,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                         </button>
                     </div>
 
-                    {/* Eliminar y Cerrar sesión */}
+                    {/* Cerrar sesión */}
                     <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <button onClick={() => confirm('¿Seguro que deseas eliminar tu cuenta permanentemente? Contacta con soporte para proceder.')} style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', color: '#FF3B30', padding: '15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>Eliminar Cuenta Permanentemente</button>
                         <button onClick={() => { if(confirm('¿Seguro que quieres cerrar sesión?')) { onClose(); onLogout(); } }} style={{ backgroundColor: '#333', color: 'white', padding: '15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>Cerrar sesión</button>
                     </div>
                 </div>
@@ -544,12 +624,106 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             />
                         )}
                         {editMode === 'name' && (
-                            <input 
-                                type="text"
-                                value={editText} 
-                                onChange={(e) => setEditText(e.target.value)}
-                                style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '1rem', marginBottom: '20px' }}
-                            />
+                            <div>
+                                <label style={{ color: '#aaa', fontSize: '0.8rem', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Nombre de usuario</label>
+                                <input 
+                                    type="text"
+                                    value={editText} 
+                                    onChange={(e) => setEditText(e.target.value)}
+                                    style={{ width: '100%', height: '40px', backgroundColor: '#111', color: 'white', border: '1px solid #444', borderRadius: '10px', padding: '10px', fontSize: '1rem', marginBottom: '15px' }}
+                                />
+
+                                {/* Opción Cambiar Contraseña */}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowChangePassword(!showChangePassword)}
+                                    style={{
+                                        width: '100%',
+                                        backgroundColor: 'rgba(142, 45, 226, 0.15)',
+                                        color: '#8E2DE2',
+                                        border: '1px solid rgba(142, 45, 226, 0.4)',
+                                        borderRadius: '12px',
+                                        padding: '12px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer',
+                                        fontSize: '0.95rem',
+                                        display: 'flex',
+                                        justify: 'space-between',
+                                        alignItems: 'center',
+                                        marginBottom: '15px'
+                                    }}
+                                >
+                                    <span>🔑 Cambiar Contraseña</span>
+                                    <span>{showChangePassword ? '▲' : '▼'}</span>
+                                </button>
+
+                                {showChangePassword && (
+                                    <div style={{ backgroundColor: '#161616', padding: '15px', borderRadius: '12px', border: '1px solid #333', marginBottom: '15px' }}>
+                                        <div style={{ marginBottom: '10px' }}>
+                                            <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Contraseña Actual</label>
+                                            <input 
+                                                type="password"
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                placeholder="Introduce contraseña actual"
+                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
+                                            />
+                                        </div>
+                                        <div style={{ marginBottom: '10px' }}>
+                                            <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Nueva Contraseña</label>
+                                            <input 
+                                                type="password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="Nueva contraseña (mín 6 caracteres)"
+                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
+                                            />
+                                        </div>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Repetir Nueva Contraseña</label>
+                                            <input 
+                                                type="password"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="Repite la nueva contraseña"
+                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleChangePasswordSubmit}
+                                            disabled={isSubmittingPassword}
+                                            style={{ width: '100%', backgroundColor: '#8E2DE2', color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
+                                        >
+                                            {isSubmittingPassword ? 'Actualizando...' : 'Guardar Nueva Contraseña'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Opción Eliminar Cuenta Permanentemente */}
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteAccountWeb}
+                                    disabled={isDeletingAccount}
+                                    style={{
+                                        width: '100%',
+                                        backgroundColor: 'rgba(255, 59, 48, 0.15)',
+                                        color: '#FF3B30',
+                                        border: '1px solid rgba(255, 59, 48, 0.4)',
+                                        borderRadius: '12px',
+                                        padding: '12px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer',
+                                        fontSize: '0.95rem',
+                                        display: 'flex',
+                                        justify: 'center',
+                                        alignItems: 'center',
+                                        marginBottom: '20px'
+                                    }}
+                                >
+                                    🗑️ {isDeletingAccount ? 'Eliminando...' : 'Eliminar Cuenta Permanentemente'}
+                                </button>
+                            </div>
                         )}
                         {editMode === 'live_url' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
