@@ -75,5 +75,5 @@
 }
 
 .with-bottom-nav .user-info-overlay {
-  bottom: calc(65px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(75px + env(safe-area-inset-bottom, 0px));
 }

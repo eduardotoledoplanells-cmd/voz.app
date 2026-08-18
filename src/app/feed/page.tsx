@@ -600,7 +600,7 @@ export const FeedItem = ({
                     onTouchEnd={handleScrubMouseUp}
                     style={{
                         position: 'absolute',
-                        bottom: hasBottomNav !== false ? '65px' : '0px',
+                        bottom: hasBottomNav !== false ? 'calc(75px + env(safe-area-inset-bottom, 0px))' : '0px',
                         left: '0',
                         right: '0',
                         height: '24px',
