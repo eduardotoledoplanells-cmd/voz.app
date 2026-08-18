@@ -401,31 +401,6 @@ export default function CreatorPanelPage() {
                                     })}
                                 </div>
                             )}
-
-                            {/* Sincronización con el desplegable */}
-                            <select
-                                value={formData.videoUrl}
-                                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    marginTop: '8px',
-                                    backgroundColor: '#1a1a20',
-                                    border: '1px solid #333',
-                                    borderRadius: '8px',
-                                    color: 'white',
-                                    fontSize: '12px',
-                                    boxSizing: 'border-box'
-                                }}
-                                required
-                            >
-                                <option value="">-- O selecciona desde la lista si lo prefieres --</option>
-                                {videos.map(v => (
-                                    <option key={v.id} value={v.videoUrl || v.url || v.video_url}>
-                                        {v.title || v.description || `Vídeo ${v.id.substring(0, 8)}`}
-                                    </option>
-                                ))}
-                            </select>
                         </div>
 
                         {/* 3. Selección de Modalidad / Pack de Vistas */}
