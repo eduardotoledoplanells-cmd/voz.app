@@ -649,7 +649,8 @@ export const FeedItem = ({
                     <div style={{
                         width: '100%',
                         height: isDraggingScrubber ? '4px' : '2px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                        borderRadius: '2px',
                         position: 'relative',
                         transition: 'height 0.15s ease'
                     }}>
@@ -660,13 +661,14 @@ export const FeedItem = ({
                             top: '0',
                             bottom: '0',
                             backgroundColor: '#FF0055',
-                            width: `${isDraggingScrubber ? dragPct : progressPct}%`
+                            borderRadius: '2px',
+                            width: `${Math.min(100, Math.max(0, isDraggingScrubber ? dragPct : progressPct))}%`
                         }} />
 
                         {/* ÚNICA Bolita Roja (Thumb Dot) */}
                         <div style={{
                             position: 'absolute',
-                            left: `${isDraggingScrubber ? dragPct : progressPct}%`,
+                            left: `${Math.min(100, Math.max(0, isDraggingScrubber ? dragPct : progressPct))}%`,
                             top: '50%',
                             width: isDraggingScrubber ? '14px' : '10px',
                             height: isDraggingScrubber ? '14px' : '10px',
@@ -675,7 +677,8 @@ export const FeedItem = ({
                             border: '2px solid #FFFFFF',
                             transform: 'translate(-50%, -50%)',
                             boxShadow: '0 0 6px rgba(255,0,85,0.8)',
-                            transition: 'width 0.15s ease, height 0.15s ease'
+                            transition: 'width 0.15s ease, height 0.15s ease',
+                            pointerEvents: 'none'
                         }} />
                     </div>
                 </div>
