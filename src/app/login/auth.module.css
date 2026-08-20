@@ -94,6 +94,39 @@ select.input option {
     color: #ffffff;
 }
 
+.passwordInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.passwordInputWrapper .input {
+    width: 100%;
+    padding-right: 48px;
+}
+
+.eyeButton {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 8px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.eyeButton:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+
 .button {
     background: linear-gradient(135deg, #8E2DE2, #4A00E0);
     color: white;

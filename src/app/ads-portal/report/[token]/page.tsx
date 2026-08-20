@@ -6,8 +6,8 @@ import AnalyticsDashboard from '@/components/ads/AnalyticsDashboard';
 // or we make it a server component that fetches and passes to a client component.
 // Since it's Next.js 13+ App Router, this is a Server Component by default.
 
-export default async function MagicLinkReport({ params }: { params: { token: string } }) {
-    const token = params.token;
+export default async function MagicLinkReport({ params }: { params: Promise<{ token: string }> }) {
+    const { token } = await params;
     
     // Server-side validation
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

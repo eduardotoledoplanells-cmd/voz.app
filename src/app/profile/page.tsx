@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav';
 import ProfileSettingsModal from '../components/ProfileSettingsModal';
 import ReportModal from '../components/ReportModal';
 import VoiceCommentsModal from '../components/VoiceCommentsModal';
-import { FeedItem } from '../feed/page';
+import FeedItem from '../components/FeedItem';
 import '../feeditem.css';
 import { isUserBlocked, blockUser, unblockUser } from '@/utils/blockedUsers';
 import { Grid, Bookmark, Heart, Lock, Play, Camera, Search, X, Ban, ShieldAlert, MoreVertical, Share2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -343,6 +343,12 @@ function ProfilePageContent() {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id, user?.handle, targetHandle, activeTab]);
+
+    useEffect(() => {
+        if (!isExplicitHandle && !isFetchingUser && !user) {
+            router.replace('/?authRequired=1');
+        }
+    }, [isExplicitHandle, isFetchingUser, user, router]);
 
     const fetchMoreVideos = async () => {
         setLoadingMore(true);
@@ -957,7 +963,6 @@ function ProfilePageContent() {
                     video={reportingVideo}
                     isOpen={!!reportingVideo}
                     onClose={() => setReportingVideo(null)}
-                    currentUserHandle={user?.handle || '@Eduardo'}
                 />
             )}
 

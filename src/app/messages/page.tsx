@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
-import { Send, ArrowLeft, MessageSquare, RefreshCw, User as UserIcon, Lock, Sparkles } from 'lucide-react';
+import { Send, ArrowLeft, MessageSquare, RefreshCw, User as UserIcon, Lock, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabaseBrowser';
 
 function MessagesPageContent() {
@@ -168,6 +168,104 @@ function MessagesPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setErrorMessage('');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const token = localStorage.getItem('token') || '';
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success && data.url) {
+                let prefix = '[IMAGE: ';
+                if (file.type.startsWith('video/')) prefix = '[VIDEO: ';
+                if (file.type.startsWith('audio/')) prefix = '[AUDIO: ';
+
+                const formattedMessage = `${prefix}${data.url}]`;
+
+                if (activeEscrow) {
+                    const sendRes = await fetch('/api/voz/pm', {
+                        method: 'POST',
+                        headers: {
+                            ...headers,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'reply',
+                            escrowId: activeEscrow.id,
+                            content: formattedMessage,
+                            idempotencyKey: `pm-reply-${user?.id || 'web'}-${activeEscrow.id}-${Date.now()}`
+                        })
+                    });
+                    const sendData = await sendRes.json();
+                    if (sendData.success) {
+                        await fetchMessages(activeEscrow.id, false);
+                        fetchConversations(false);
+                    } else {
+                        setErrorMessage(sendData.error || "No se pudo enviar el archivo.");
+                    }
+                } else if (startNewChatUser) {
+                    const sendRes = await fetch('/api/voz/pm', {
+                        method: 'POST',
+                        headers: {
+                            ...headers,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'start',
+                            creatorHandle: startNewChatUser.handle,
+                            message: formattedMessage,
+                            idempotencyKey: `pm-start-${user?.id || 'web'}-${startNewChatUser.id || startNewChatUser.handle}-${Date.now()}`
+                        })
+                    });
+                    const sendData = await sendRes.json();
+                    if (sendData.success) {
+                        if (sendData.escrowId) {
+                            const newEscrow = {
+                                id: sendData.escrowId,
+                                sender_handle: myHandle,
+                                creator_handle: startNewChatUser.handle,
+                                creator_name: startNewChatUser.name || startNewChatUser.handle.replace('@', ''),
+                                creator_avatar: startNewChatUser.profileImage || null
+                            };
+                            setActiveEscrow(newEscrow);
+                            setStartNewChatUser(null);
+                            await fetchMessages(sendData.escrowId, true);
+                            fetchConversations(false);
+                        }
+                    } else {
+                        setErrorMessage(sendData.error || "No se pudo iniciar el chat con el archivo.");
+                    }
+                }
+            } else {
+                setErrorMessage(data.error || "Error al subir el archivo.");
+            }
+        } catch (err) {
+            console.error("Error uploading file:", err);
+            setErrorMessage("Error de conexión al subir el archivo.");
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     // 4. Enviar Mensaje
     const handleSendMessage = async () => {
         if (!inputText.trim() || sending) return;
@@ -191,7 +289,7 @@ function MessagesPageContent() {
                         action: 'reply',
                         escrowId: activeEscrow.id,
                         content: textToSend,
-                        idempotencyKey: `pm-reply-${user.id}-${activeEscrow.id}-${Date.now()}`
+                        idempotencyKey: `pm-reply-${user?.id || 'web'}-${activeEscrow.id}-${Date.now()}`
                     })
                 });
 
@@ -212,7 +310,7 @@ function MessagesPageContent() {
                         action: 'start',
                         creatorHandle: startNewChatUser.handle,
                         message: textToSend,
-                        idempotencyKey: `pm-start-${user.id}-${startNewChatUser.id || startNewChatUser.handle}-${Date.now()}`
+                        idempotencyKey: `pm-start-${user?.id || 'web'}-${startNewChatUser.id || startNewChatUser.handle}-${Date.now()}`
                     })
                 });
 
@@ -429,7 +527,22 @@ function MessagesPageContent() {
                                                 wordBreak: 'break-word',
                                                 boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
                                             }}>
-                                                {m.content}
+                                                {(() => {
+                                                    const content = m.content || "";
+                                                    if (content.startsWith("[IMAGE: ")) {
+                                                        const url = content.replace("[IMAGE: ", "").replace("]", "");
+                                                        return <img src={url} alt="Shared media" style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '5px', display: 'block', maxHeight: '200px', objectFit: 'cover' }} />;
+                                                    }
+                                                    if (content.startsWith("[VIDEO: ")) {
+                                                        const url = content.replace("[VIDEO: ", "").replace("]", "");
+                                                        return <video src={url} controls style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '5px', display: 'block', maxHeight: '220px' }} />;
+                                                    }
+                                                    if (content.startsWith("[AUDIO: ")) {
+                                                        const url = content.replace("[AUDIO: ", "").replace("]", "");
+                                                        return <audio src={url} controls style={{ maxWidth: '100%', marginTop: '5px', display: 'block' }} />;
+                                                    }
+                                                    return m.content;
+                                                })()}
                                                 <div style={{ fontSize: '10px', color: isMine ? 'rgba(255,255,255,0.7)' : '#888', marginTop: '4px', textAlign: 'right' }}>
                                                     {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                                 </div>
@@ -451,6 +564,38 @@ function MessagesPageContent() {
                         {/* Input Footer */}
                         <div style={{ padding: '10px 15px', borderTop: '1px solid #222', backgroundColor: '#111', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleFileUpload} 
+                                style={{ display: 'none' }} 
+                                accept="image/*,video/*,audio/*" 
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading || sending}
+                                style={{
+                                    background: 'none', 
+                                    border: 'none', 
+                                    color: '#b3b3b3', 
+                                    cursor: (uploading || sending) ? 'default' : 'pointer', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    width: '40px', 
+                                    height: '40px', 
+                                    borderRadius: '50%', 
+                                    backgroundColor: '#222', 
+                                    opacity: (uploading || sending) ? 0.6 : 1,
+                                    flexShrink: 0
+                                }}
+                            >
+                                {uploading ? (
+                                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                    <Paperclip size={18} />
+                                )}
+                            </button>
+                            <input 
                                 type="text" 
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
@@ -463,12 +608,13 @@ function MessagesPageContent() {
                             />
                             <button 
                                 onClick={handleSendMessage}
-                                disabled={sending || !inputText.trim()}
+                                disabled={sending || uploading || !inputText.trim()}
                                 style={{ 
                                     width: '40px', height: '40px', borderRadius: '50%', 
                                     background: inputText.trim() ? 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)' : '#333', 
                                     color: 'white', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', 
-                                    cursor: inputText.trim() ? 'pointer' : 'default', opacity: sending ? 0.6 : 1 
+                                    cursor: inputText.trim() ? 'pointer' : 'default', opacity: (sending || uploading) ? 0.6 : 1,
+                                    flexShrink: 0
                                 }}
                             >
                                 <Send size={18} />

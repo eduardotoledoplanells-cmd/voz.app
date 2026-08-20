@@ -6,7 +6,7 @@ async function runRLSFix() {
     console.log("🔐 Starting Supabase RLS Fix Script...");
 
     // 1. Read SQL file
-    const sqlPath = path.join(__dirname, 'fix_rls_manual.sql');
+    const sqlPath = path.join(__dirname, 'src/lib/fix_rls_security.sql');
     if (!fs.existsSync(sqlPath)) {
         console.error("❌ SQL File fix_rls_manual.sql not found!");
         process.exit(1);

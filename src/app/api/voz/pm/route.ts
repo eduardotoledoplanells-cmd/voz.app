@@ -99,9 +99,21 @@ export async function POST(request: Request) {
         const CREATOR_SHARE = 0.6; // 60% para el creador (3.00 monedas)
 
         let userId = request.headers.get('x-user-id');
-        const authHeader = request.headers.get('authorization');
+        const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
         if (!userId && authHeader && authHeader.startsWith('Bearer ')) {
-            userId = authHeader.substring(7);
+            const token = authHeader.substring(7);
+            if (token && token.length > 36) { // JWT token from Supabase
+                try {
+                    const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+                    if (authUser && !authError) {
+                        userId = authUser.id;
+                    }
+                } catch (jwtErr) {
+                    console.warn('[PM API] Error parsing JWT token:', jwtErr);
+                }
+            } else if (token) {
+                userId = token;
+            }
         }
 
         let sender = userId ? await getUserById(userId) : null;

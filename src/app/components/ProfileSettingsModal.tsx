@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { Coins } from 'lucide-react';
+import { Coins, Eye, EyeOff } from 'lucide-react';
 import WalletWidget from './WalletWidget';
 
 const COIN_PACKS = [
@@ -43,6 +43,9 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -648,7 +651,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                         cursor: 'pointer',
                                         fontSize: '0.95rem',
                                         display: 'flex',
-                                        justify: 'space-between',
+                                        justifyContent: 'space-between',
                                         alignItems: 'center',
                                         marginBottom: '15px'
                                     }}
@@ -661,33 +664,60 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                     <div style={{ backgroundColor: '#161616', padding: '15px', borderRadius: '12px', border: '1px solid #333', marginBottom: '15px' }}>
                                         <div style={{ marginBottom: '10px' }}>
                                             <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Contraseña Actual</label>
-                                            <input 
-                                                type="password"
-                                                value={currentPassword}
-                                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                                placeholder="Introduce contraseña actual"
-                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
-                                            />
+                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <input 
+                                                    type={showCurrentPassword ? "text" : "password"}
+                                                    value={currentPassword}
+                                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                                    placeholder="Introduce contraseña actual"
+                                                    style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px 36px 8px 8px', fontSize: '0.85rem' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                    style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div style={{ marginBottom: '10px' }}>
                                             <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Nueva Contraseña</label>
-                                            <input 
-                                                type="password"
-                                                value={newPassword}
-                                                onChange={(e) => setNewPassword(e.target.value)}
-                                                placeholder="Nueva contraseña (mín 6 caracteres)"
-                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
-                                            />
+                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <input 
+                                                    type={showNewPassword ? "text" : "password"}
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    placeholder="Nueva contraseña (mín 6 caracteres)"
+                                                    style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px 36px 8px 8px', fontSize: '0.85rem' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                                    style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div style={{ marginBottom: '12px' }}>
                                             <label style={{ color: '#aaa', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Repetir Nueva Contraseña</label>
-                                            <input 
-                                                type="password"
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                placeholder="Repite la nueva contraseña"
-                                                style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px', fontSize: '0.85rem' }}
-                                            />
+                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <input 
+                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    placeholder="Repite la nueva contraseña"
+                                                    style={{ width: '100%', height: '36px', backgroundColor: '#000', color: 'white', border: '1px solid #444', borderRadius: '8px', padding: '8px 36px 8px 8px', fontSize: '0.85rem' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
                                         <button
                                             type="button"
@@ -716,7 +746,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                         cursor: 'pointer',
                                         fontSize: '0.95rem',
                                         display: 'flex',
-                                        justify: 'center',
+                                        justifyContent: 'center',
                                         alignItems: 'center',
                                         marginBottom: '20px'
                                     }}

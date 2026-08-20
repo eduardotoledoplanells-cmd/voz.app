@@ -36,8 +36,47 @@ export async function GET(request: NextRequest) {
         const limit = limitParam ? parseInt(limitParam, 10) : 10;
         const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
+        const q = searchParams.get('q') || searchParams.get('search') || undefined;
+
         let videos: any[] = [];
-        if (bookmarkedBy) {
+        if (q) {
+            const cleanQ = q.trim().replace(/^@/, '');
+            const { data: rawVideos, error: videosError } = await supabaseAdmin
+                .from('videos')
+                .select(`
+                    *,
+                    author:app_users(name, handle, profile_image, is_live, live_url)
+                `)
+                .or(`description.ilike.%${cleanQ}%,user_handle.ilike.%${cleanQ}%`)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+            if (videosError) throw videosError;
+
+            videos = (rawVideos || []).map((v: any) => {
+                const u = v.author || {};
+                return {
+                    id: v.id,
+                    videoUrl: v.video_url,
+                    user: v.user_handle,
+                    userHandle: v.user_handle,
+                    description: v.description,
+                    likes: v.likes,
+                    shares: v.shares,
+                    commentsCount: v.comments_count,
+                    views: v.views,
+                    music: v.music,
+                    thumbnailUrl: v.thumbnail_url,
+                    filterConfig: v.filter_config,
+                    createdAt: v.created_at,
+                    isMuted: v.is_muted,
+                    userName: u.name || v.user_handle,
+                    userImage: u.profile_image || null,
+                    isLive: u.is_live || false,
+                    liveUrl: u.live_url || null
+                };
+            });
+        } else if (bookmarkedBy) {
             const { data: bookmarks, error: bookmarkError } = await supabaseAdmin
                 .from('video_bookmarks')
                 .select('video_id')

@@ -100,16 +100,18 @@ export async function POST(request: NextRequest) {
             }
 
             // Incrementar el contador en la tabla campaigns
-            await supabaseAdmin.rpc('increment_campaign_impressions', { p_campaign_id: campaignId })
-                .then(({ error }) => {
-                    if (error) {
-                        // Fallback: update directo si el RPC no existe aún
-                        return supabaseAdmin
-                            .from('campaigns')
-                            .update({ impressions: supabaseAdmin.raw('impressions + 1') as any })
-                            .eq('id', campaignId);
-                    }
-                });
+            try {
+                const { error: rpcErr } = await supabaseAdmin.rpc('increment_campaign_impressions', { p_campaign_id: campaignId });
+                if (rpcErr && campaign) {
+                    const currentImp = (campaign as any).impressions || 0;
+                    await supabaseAdmin
+                        .from('campaigns')
+                        .update({ impressions: currentImp + 1 })
+                        .eq('id', campaignId);
+                }
+            } catch (rpcEx) {
+                console.warn('[Ads Track] Failed to increment impression count:', rpcEx);
+            }
 
             console.log(`[Ads Track] Impression recorded — campaign: ${campaignId}, channel: ${channel}, duration: ${view_duration_ms}ms, completed: ${completed}`);
 

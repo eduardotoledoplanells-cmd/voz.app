@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import styles from './landing.module.css';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -5,6 +6,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '@/lib/db';
 import WaitlistSection from './components/WaitlistSection';
 import LandingAuthButton from './components/LandingAuthButton';
+import AuthRequiredModal from './components/AuthRequiredModal';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -135,6 +137,9 @@ export default async function LandingPage() {
 
     return (
         <div className={styles.page}>
+            <Suspense fallback={null}>
+                <AuthRequiredModal />
+            </Suspense>
 
             {/* ════════════════════════════════
                 NAVBAR

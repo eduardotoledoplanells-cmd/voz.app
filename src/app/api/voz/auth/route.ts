@@ -251,42 +251,39 @@ export async function POST(request: NextRequest) {
             if (targetUser) {
                 // El perfil existe -> activarlo
                 await updateAppUser(targetUser.id, { status: 'active' });
-            } else {
+            } else if (authUser) {
                 // El perfil NO existe (addAppUser falló durante el registro)
                 // Lo creamos ahora usando los datos del usuario de Auth verificado
-                const authUser = data.user;
-                if (authUser) {
-                    const username = authUser.user_metadata?.username || email.split('@')[0];
-                    const newUser: AppUser = {
-                        id: authUser.id,
-                        handle: `@${username}`,
-                        name: username,
-                        email: authUser.email || email,
-                        password: '',
-                        status: 'active',
-                        walletBalance: 0,
-                        joinedAt: new Date().toISOString(),
-                        phone: '',
-                        interests: []
-                    };
-                    const dbResult = await addAppUser(newUser);
-                    if (!dbResult) {
-                        const { error: dbError } = await supabaseAdmin.from('app_users').insert([{
-                            id: newUser.id,
-                            name: newUser.name || newUser.handle.replace('@', ''),
-                            handle: newUser.handle,
-                            email: newUser.email,
-                            password: newUser.password,
-                            status: newUser.status,
-                            wallet_balance: newUser.walletBalance || 0,
-                            country: newUser.country,
-                            region: newUser.region,
-                            interests: newUser.interests || []
-                        }]);
-                        if (dbError) {
-                            console.error('[verify_signup] Error creating missing profile:', dbError);
-                            return NextResponse.json({ error: `Database profile creation failed on verification: ${dbError.message}` }, { status: 500 });
-                        }
+                const username = authUser.user_metadata?.username || email.split('@')[0];
+                const newUser: AppUser = {
+                    id: authUser.id,
+                    handle: `@${username}`,
+                    name: username,
+                    email: authUser.email || email,
+                    password: '',
+                    status: 'active',
+                    walletBalance: 0,
+                    joinedAt: new Date().toISOString(),
+                    phone: '',
+                    interests: []
+                };
+                const dbResult = await addAppUser(newUser);
+                if (!dbResult) {
+                    const { error: dbError } = await supabaseAdmin.from('app_users').insert([{
+                        id: newUser.id,
+                        name: newUser.name || newUser.handle.replace('@', ''),
+                        handle: newUser.handle,
+                        email: newUser.email,
+                        password: newUser.password,
+                        status: newUser.status,
+                        wallet_balance: newUser.walletBalance || 0,
+                        country: newUser.country,
+                        region: newUser.region,
+                        interests: newUser.interests || []
+                    }]);
+                    if (dbError) {
+                        console.error('[verify_signup] Error creating missing profile:', dbError);
+                        return NextResponse.json({ error: `Database profile creation failed on verification: ${dbError.message}` }, { status: 500 });
                     }
                 }
             }
@@ -299,7 +296,7 @@ export async function POST(request: NextRequest) {
             }
             
             const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
-            const authUser = authList?.users?.find(u => u.email.toLowerCase() === email.toLowerCase());
+            const authUser = authList?.users?.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
             
             if (!authUser) {
                 return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });

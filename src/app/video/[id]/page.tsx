@@ -60,5 +60,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SharedVideoPage({ params }: Props) {
     const { id } = await params;
-    redirect(`/feed?v=${id}`);
+    redirect(`/?authRequired=1&video=${encodeURIComponent(id)}`);
 }

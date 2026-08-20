@@ -1818,6 +1818,7 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             const seq = creatorSeqMap[handle];
 
             const createdAtTime = new Date(v.created_at).getTime();
+            const ageInHours = (Date.now() - createdAtTime) / (1000 * 60 * 60);
             const views = v.views || 0;
             const likes = v.likes || 0;
             const commentsCount = v.comments_count || 0;

@@ -1,11 +1,13 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function AdsPortalLogin() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -70,13 +72,22 @@ export default function AdsPortalLogin() {
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '5px', color: '#374151', fontWeight: 500 }}>Contraseña</label>
-                        <input 
-                            type="password" 
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
-                            placeholder="••••••••"
-                        />
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input 
+                                type={showPassword ? 'text' : 'password'} 
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{ width: '100%', padding: '10px 40px 10px 10px', borderRadius: '6px', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                     </div>
                     <button 
                         type="submit"

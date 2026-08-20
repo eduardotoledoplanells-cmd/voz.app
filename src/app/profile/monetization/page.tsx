@@ -209,6 +209,72 @@ export default function MonetizationPage() {
                     </div>
                 )}
 
+                {/* Sección de Retiro de Fondos / Payouts */}
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: isApproved ? '1px solid rgba(76,217,100,0.3)' : '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center' }}>
+                            <span style={{ marginRight: '10px' }}>💸</span> Retiro de Ganancias (Payouts)
+                        </h4>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '4px 10px', borderRadius: '12px', backgroundColor: isApproved ? 'rgba(76,217,100,0.15)' : 'rgba(255,255,255,0.08)', color: isApproved ? '#4CD964' : '#888899' }}>
+                            {isApproved ? '● Stripe Activo' : '○ Requiere Alta en Stripe'}
+                        </span>
+                    </div>
+                    <p style={{ color: 'gray', fontSize: '13.5px', lineHeight: '1.5', marginBottom: '16px' }}>
+                        Transfiere tus ganancias acumuladas directamente a tu cuenta bancaria de forma segura a través de Stripe Connect (1 Moneda = 1,00 € neto).
+                    </p>
+
+                    <button
+                        onClick={() => {
+                            if (!isApproved) {
+                                alert("Debes completar el registro en Stripe antes de poder solicitar retiros.");
+                                return;
+                            }
+                            const amountStr = prompt("Introduce la cantidad de monedas a retirar (Mínimo 50):", "50");
+                            if (!amountStr) return;
+                            const amount = Number(amountStr.replace(',', '.'));
+                            if (isNaN(amount) || amount < 50) {
+                                alert("El importe mínimo de retiro es de 50 monedas.");
+                                return;
+                            }
+
+                            fetch('/api/voz/wallet/withdrawals', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id, amount })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert("¡Solicitud de retiro procesada con éxito a través de Stripe!");
+                                    fetchHistory(user.handle || `@${user.name}`);
+                                } else {
+                                    alert(data.error || "No se pudo procesar el retiro");
+                                }
+                            })
+                            .catch(err => {
+                                console.error("Withdrawal error:", err);
+                                alert("Error al procesar el retiro");
+                            });
+                        }}
+                        disabled={!isApproved}
+                        style={{
+                            width: '100%',
+                            padding: '14px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            fontWeight: 'bold',
+                            fontSize: '15px',
+                            cursor: isApproved ? 'pointer' : 'not-allowed',
+                            backgroundColor: isApproved ? '#4CD964' : '#22222E',
+                            color: isApproved ? 'white' : '#666677',
+                            opacity: isApproved ? 1 : 0.6,
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        {isApproved ? 'Solicitar Retiro a Cuenta Bancaria' : 'Retiro Desactivado (Completa tu Alta en Stripe)'}
+                    </button>
+                </div>
+
                 {/* Campaña de Publicidad Section */}
                 <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: '1px solid rgba(142, 45, 226, 0.3)' }}>
                     <h4 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>

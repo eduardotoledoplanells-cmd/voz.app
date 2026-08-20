@@ -582,7 +582,7 @@ export default function UploadPage() {
                                     // Fetch fresh profile data to get latest custom_video_duration set by admin
                                     if (user && (user.id || user.handle)) {
                                         try {
-                                            const query = user.id ? `id=${encodeURIComponent(user.id)}` : `handle=${encodeURIComponent(user.handle)}`;
+                                            const query = user.id ? `id=${encodeURIComponent(user.id)}` : `handle=${encodeURIComponent(user.handle || '')}`;
                                             const profileRes = await fetch(`/api/voz/users/profile?${query}&t=${Date.now()}`);
                                             const profileData = await profileRes.json();
                                             if (profileData.success && profileData.user) {
@@ -603,7 +603,7 @@ export default function UploadPage() {
                                         user?.privacySettings?.custom_video_duration ||
                                         0
                                     );
-                                    const followers = user?.followers_count || user?.followers || 0;
+                                    const followers = Number(user?.followersCount || user?.followers_count || (Array.isArray(user?.followers) ? user?.followers.length : user?.followers) || 0);
                                     
                                     if (customLimit > 0) {
                                         maxAllowed = customLimit;

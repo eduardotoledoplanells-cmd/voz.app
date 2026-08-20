@@ -1,11 +1,22 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
 import Link from 'next/link';
 import { Search, X } from 'lucide-react';
 import { isUserBlocked } from '@/utils/blockedUsers';
 
 export default function DiscoverPage() {
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.replace('/?authRequired=1');
+        }
+    }, [user, isLoading, router]);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [videos, setVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

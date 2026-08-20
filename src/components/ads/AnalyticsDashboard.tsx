@@ -227,7 +227,7 @@ export default function AnalyticsDashboard({ campaigns, companies }: { campaigns
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                                        <Tooltip formatter={(value: any) => value !== undefined ? Number(value).toLocaleString() : ''} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -247,7 +247,7 @@ export default function AnalyticsDashboard({ campaigns, companies }: { campaigns
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} />
                                         <YAxis dataKey="name" type="category" />
-                                        <Tooltip formatter={(value: number) => `${value}%`} />
+                                        <Tooltip formatter={(value: any) => value !== undefined ? `${value}%` : ''} />
                                         <Bar dataKey="rate" fill="#8884d8" barSize={30}>
                                             {metrics.retentionData.map((_, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

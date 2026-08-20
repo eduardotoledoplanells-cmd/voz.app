@@ -101,6 +101,8 @@ export interface User {
     profile_image?: string;
     followingCount?: number;
     followersCount?: number;
+    followers_count?: number;
+    followers?: any[];
     likesCount?: number;
     walletBalance?: number;
     earningsBalance?: number;
@@ -114,6 +116,13 @@ export interface User {
     country_id?: number;
     region_id?: number;
     municipality_id?: number;
+    last_logout?: string;
+    custom_video_duration?: number;
+    privacy_settings?: any;
+    privacySettings?: any;
+    country?: any;
+    region?: string;
+    nationality?: string;
 }
 
 export interface ProductView {

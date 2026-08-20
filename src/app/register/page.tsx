@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 import styles from '../login/auth.module.css';
 
 const INTERESTS = [
@@ -24,6 +25,7 @@ export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [marketingConsent, setMarketingConsent] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [honeypot, setHoneypot] = useState('');
@@ -301,15 +303,25 @@ export default function RegisterPage() {
 
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Contraseña</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className={styles.input}
-                            placeholder="********"
-                            minLength={6}
-                        />
+                        <div className={styles.passwordInputWrapper}>
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                className={styles.input}
+                                placeholder="********"
+                                minLength={6}
+                            />
+                            <button
+                                type="button"
+                                className={styles.eyeButton}
+                                onClick={() => setShowPassword(!showPassword)}
+                                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div className={styles.formGroup}>

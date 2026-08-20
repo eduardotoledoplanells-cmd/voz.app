@@ -264,7 +264,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ file, onApply, onCance
                         Borrador
                     </button>
                     <button 
-                        onClick={() => onApply({ trimRange, selectedMusic, selectedFilter, filterIntensity, filterBrightness, isMuted, description })}
+                        onClick={() => onApply({ trimRange, selectedMusic, selectedFilter, filterIntensity, filterBrightness, isMuted, musicVolume, description })}
                         style={{ background: '#8E2DE2', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' }}
                     >
                         Publicar
