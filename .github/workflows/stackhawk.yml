@@ -23,17 +23,13 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Next.js App
-        run: npm run build
+      - name: Start Next.js Development Server
+        run: npm run dev &
         env:
+          PORT: 3000
           NEXT_TELEMETRY_DISABLED: 1
           NEXT_PUBLIC_SUPABASE_URL: "https://thiftwzubmvcrdhuwcwm.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWZ0d3p1Ym12Y3JkaHV3Y3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTIxNzIsImV4cCI6MjA5NDY4ODE3Mn0.ontxCxwCCA4TRbFCF9oZHT-eSDTrVC2b5P6z5B6Xa6s"
-
-      - name: Start Next.js Server
-        run: npm run start &
-        env:
-          PORT: 3000
 
       - name: Wait for Server to be Ready
         run: npx wait-on http://localhost:3000 --timeout 60000
