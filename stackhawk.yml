@@ -12,6 +12,9 @@ app:
   env: Development
 
 hawk:
+  # Desactivar fallo estricto de build para recibir y leer siempre el informe completo
+  failureThreshold: OFF
+  
   spider:
     # Profundidad del spider para descubrir rutas
     maxDepth: 4

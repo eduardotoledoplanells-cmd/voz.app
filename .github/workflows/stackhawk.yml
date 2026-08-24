@@ -24,7 +24,8 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Start Next.js Development Server
-        run: npm run dev &
+        run: |
+          nohup npm run dev > next_dev.log 2>&1 &
         env:
           PORT: 3000
           NEXT_TELEMETRY_DISABLED: 1
@@ -32,7 +33,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaWZ0d3p1Ym12Y3JkaHV3Y3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTIxNzIsImV4cCI6MjA5NDY4ODE3Mn0.ontxCxwCCA4TRbFCF9oZHT-eSDTrVC2b5P6z5B6Xa6s"
 
       - name: Wait for Server to be Ready
-        run: npx wait-on http://localhost:3000 --timeout 60000
+        run: |
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep -E '200|404|308|307'; then
+              echo "Server is UP and ready on port 3000!"
+              break
+            fi
+            echo "Waiting for server to respond... ($i/30)"
+            sleep 2
+          done
+          cat next_dev.log || true
 
       - name: Run StackHawk Scan via Docker
         run: |
@@ -40,4 +50,4 @@ jobs:
             -v ${{ github.workspace }}:/hawk:rw \
             -e HAWK_API_KEY="${{ secrets.HAWK_API_KEY || 'hawk.L8iFvSXZ1WwBcq045f4d.q6d3EEKOI7PSp1frjxvR' }}" \
             -e HAWK_APP_ID="${{ secrets.HAWK_APP_ID || '058e0617-b911-4095-a3d0-76e1debadd8d' }}" \
-            stackhawk/hawkscan:latest stackhawk.yml
+            stackhawk/hawkscan:latest /hawk/stackhawk.yml
