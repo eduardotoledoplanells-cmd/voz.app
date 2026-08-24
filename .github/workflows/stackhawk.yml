@@ -38,6 +38,6 @@ jobs:
         uses: stackhawk/hawkscan-action@v2
         with:
           apiKey: ${{ secrets.HAWK_API_KEY || 'hawk.L8iFvSXZ1WwBcq045f4d.q6d3EEKOI7PSp1frjxvR' }}
-          configFile: stackhawk.yml
+          configurationFiles: stackhawk.yml
         env:
           HAWK_APP_ID: ${{ secrets.HAWK_APP_ID || '058e0617-b911-4095-a3d0-76e1debadd8d' }}
