@@ -34,10 +34,10 @@ jobs:
       - name: Wait for Server to be Ready
         run: npx wait-on http://localhost:3000 --timeout 60000
 
-      - name: Run StackHawk HawkScan Action
-        uses: stackhawk/hawkscan-action@v2
-        with:
-          apiKey: ${{ secrets.HAWK_API_KEY || 'hawk.L8iFvSXZ1WwBcq045f4d.q6d3EEKOI7PSp1frjxvR' }}
-          configurationFiles: stackhawk.yml
-        env:
-          HAWK_APP_ID: ${{ secrets.HAWK_APP_ID || '058e0617-b911-4095-a3d0-76e1debadd8d' }}
+      - name: Run StackHawk Scan via Docker
+        run: |
+          docker run --rm --network host \
+            -v ${{ github.workspace }}:/hawk:rw \
+            -e HAWK_API_KEY="${{ secrets.HAWK_API_KEY || 'hawk.L8iFvSXZ1WwBcq045f4d.q6d3EEKOI7PSp1frjxvR' }}" \
+            -e HAWK_APP_ID="${{ secrets.HAWK_APP_ID || '058e0617-b911-4095-a3d0-76e1debadd8d' }}" \
+            stackhawk/hawkscan:latest stackhawk.yml
