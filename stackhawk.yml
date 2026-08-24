@@ -1,0 +1,32 @@
+# Configuración oficial de StackHawk DAST para LYVO Web & API
+app:
+  # Nombre de la aplicación en el panel de StackHawk
+  name: LYVO-Web-API
+  # El Application ID asignado en tu panel de StackHawk
+  applicationId: ${HAWK_APP_ID:058e0617-b911-4095-a3d0-76e1debadd8d}
+  
+  # URL del host a escanear (por defecto en local)
+  host: ${HAWK_TARGET_HOST:http://localhost:3000}
+  
+  # Entorno del escaneo
+  env: Development
+
+hawk:
+  spider:
+    # Profundidad del spider para descubrir rutas
+    maxDepth: 4
+    # Tiempo máximo de rastreo en minutos
+    crawlBudget: 5
+  
+  # Excluir rutas que no deben ser probadas agresivamente (ej. webhooks o destrucción)
+  excludePaths:
+    - /api/voz/stripe/webhook
+    - /_next/*
+    - /static/*
+    - /favicon.ico
+
+# Configuraciones de pruebas avanzadas
+tags:
+  - nextjs
+  - rest-api
+  - lyvo
