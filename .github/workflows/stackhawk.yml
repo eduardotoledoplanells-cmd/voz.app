@@ -48,6 +48,6 @@ jobs:
         run: |
           docker run --rm --network host \
             -v ${{ github.workspace }}:/hawk:rw \
-                          -e HAWK_API_KEY='hawk.L8iFvSXZ1WwBcq045f4d.q6d3EEKOI7PSp1frjxvR' \
+                                    -e HAWK_API_KEY="${{ secrets.HAWK_API_KEY }}" \
             -e HAWK_APP_ID="${{ secrets.HAWK_APP_ID || '058e0617-b911-4095-a3d0-76e1debadd8d' }}" \
             stackhawk/hawkscan:latest /hawk/stackhawk.yml
