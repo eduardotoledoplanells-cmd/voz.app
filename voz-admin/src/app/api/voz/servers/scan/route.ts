@@ -47,6 +47,13 @@ function saveScanStatus(status: ScanStatus) {
 
 export async function POST() {
     try {
+        if (process.env.VERCEL) {
+            return NextResponse.json({ 
+                success: false, 
+                error: 'El escaneo de StackHawk (DAST) requiere Docker y no puede ejecutarse en el entorno Serverless de Vercel. Por favor, ejecuta "npm run hawk:scan" localmente o configúralo en tu pipeline de CI/CD (GitHub Actions).' 
+            }, { status: 400 });
+        }
+
         const status = getScanStatus();
         if (status.running) {
             return NextResponse.json({ success: false, error: 'Ya hay un escaneo en curso.' }, { status: 400 });
@@ -105,6 +112,15 @@ export async function POST() {
 
 export async function GET() {
     try {
+        if (process.env.VERCEL) {
+            return NextResponse.json({
+                running: false,
+                lastScanTime: null,
+                logs: 'StackHawk no disponible en Vercel.\nEjecuta "npm run hawk:scan" localmente o en un pipeline de integración continua (CI/CD) para iniciar auditorías DAST.',
+                exitCode: null,
+                error: 'Entorno Serverless detectado (Vercel).'
+            });
+        }
         const status = getScanStatus();
         return NextResponse.json(status);
     } catch (err: any) {

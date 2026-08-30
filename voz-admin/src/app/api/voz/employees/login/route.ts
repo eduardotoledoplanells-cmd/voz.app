@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { username, password } = body;
+        const { username, password, code, tempSecret } = body;
 
         if (!username || !password) {
             return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -115,6 +115,44 @@ export async function POST(request: NextRequest) {
 
         if (!isPasswordValid) {
             return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 });
+        }
+
+        // ── Google Authenticator (TOTP 2FA) ───────────────────────────────────
+        const { verifyTOTP, generateSecret, getOTPAuthURL } = await import('@/lib/totp');
+
+        if (employee.totp_enabled && employee.totp_secret) {
+            if (!code) {
+                return NextResponse.json({ success: false, requiresCode: true });
+            }
+            const is2FAValid = verifyTOTP(code, employee.totp_secret);
+            if (!is2FAValid) {
+                return NextResponse.json({ error: 'Código de autenticación incorrecto' }, { status: 401 });
+            }
+        } else {
+            // Setup 2FA on first login
+            if (code && tempSecret) {
+                const is2FAValid = verifyTOTP(code, tempSecret);
+                if (!is2FAValid) {
+                    return NextResponse.json({ error: 'Código de configuración incorrecto' }, { status: 401 });
+                }
+                const { error: updateTotpError } = await supabaseAdmin
+                    .from('employees')
+                    .update({ totp_secret: tempSecret, totp_enabled: true })
+                    .eq('id', employee.id);
+                if (updateTotpError) {
+                    console.error('Error saving TOTP setup:', updateTotpError);
+                    return NextResponse.json({ error: 'Error guardando configuración 2FA' }, { status: 500 });
+                }
+            } else {
+                const newSecret = generateSecret();
+                const qrUri = getOTPAuthURL(employee.username, newSecret);
+                return NextResponse.json({
+                    success: false,
+                    requiresSetup: true,
+                    tempSecret: newSecret,
+                    qrUri
+                });
+            }
         }
 
         // ✅ Login successful — reset rate limit for this IP
