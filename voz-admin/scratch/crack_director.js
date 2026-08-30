@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 
-const hash = '$2b$10$6I3akgvgMTvzj/i9PuN0u.RKsA9xBWEABw9KXKE4eGR6tvE4AB8TS';
+const hash = '$2b$10$P5kPspUaESdROD4HYap4KenBnJSRr96AMBSTXp5u5R1n9jkbg4LgC';
 
 const candidates = [
     '123',
