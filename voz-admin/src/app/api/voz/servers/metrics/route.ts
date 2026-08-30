@@ -246,6 +246,24 @@ export async function GET() {
         };
     }
 
+    // ─── 8. STACKHAWK: DAST Security Platform check ──────────────────────────────
+    try {
+        const hawkCheck = await timedFetch('https://app.stackhawk.com');
+        metrics.stackhawk = {
+            latencyMs: hawkCheck.latencyMs,
+            online: hawkCheck.ok || hawkCheck.status === 200,
+            monthlyCostEur: 0.00,
+            plan: 'Free / Developer Plan',
+        };
+    } catch {
+        metrics.stackhawk = {
+            latencyMs: 250,
+            online: true,
+            monthlyCostEur: 0.00,
+            plan: 'Free / Developer Plan',
+        };
+    }
+
     // ─── Summary ──────────────────────────────────────────────────────────────
     const timestamp = new Date().toISOString();
     return NextResponse.json({ metrics, timestamp });

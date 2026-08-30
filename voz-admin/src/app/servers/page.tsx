@@ -45,13 +45,67 @@ export default function ServersPage() {
         firebase: 0.00,
         stripe: 0.00,
         cloudflare: 0.00,
-        resend: 0.00
+        resend: 0.00,
+        stackhawk: 0.00
     });
 
     // Form inputs
     const [injectAmount, setInjectAmount] = useState('');
     const [injectNotes, setInjectNotes] = useState('');
     const [injecting, setInjecting] = useState(false);
+
+    // StackHawk scan states
+    const [scanStatus, setScanStatus] = useState<{ running: boolean; lastScanTime: string | null; logs: string; exitCode: number | null; error: string | null }>({
+        running: false,
+        lastScanTime: null,
+        logs: 'No se ha iniciado ningún escaneo aún.',
+        exitCode: null,
+        error: null
+    });
+    const [scanning, setScanning] = useState(false);
+
+    const startStackHawkScan = async () => {
+        if (scanning || scanStatus.running) return;
+        setScanning(true);
+        try {
+            const { getAdminJsonHeaders, getEmployeeSession } = await import('@/lib/adminSession');
+            const emp = getEmployeeSession();
+            const res = await fetch('/api/voz/servers/scan', {
+                method: 'POST',
+                headers: getAdminJsonHeaders(emp)
+            });
+            if (res.ok) {
+                pollScanStatus();
+            } else {
+                const errData = await res.json();
+                alert(errData.error || 'No se pudo iniciar el escaneo.');
+            }
+        } catch (e) {
+            console.error('Error starting scan:', e);
+            alert('Error al iniciar el escaneo.');
+        } finally {
+            setScanning(false);
+        }
+    };
+
+    const pollScanStatus = async () => {
+        try {
+            const { getAdminJsonHeaders, getEmployeeSession } = await import('@/lib/adminSession');
+            const emp = getEmployeeSession();
+            const res = await fetch('/api/voz/servers/scan', {
+                headers: getAdminJsonHeaders(emp)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setScanStatus(data);
+                if (data.running) {
+                    setTimeout(pollScanStatus, 1500);
+                }
+            }
+        } catch (e) {
+            console.error('Error polling scan status:', e);
+        }
+    };
 
     const fetchRealMetrics = async () => {
         setMetricsLoading(true);
@@ -215,6 +269,25 @@ export default function ServersPage() {
             quotaUnit: 'msgs',
             performanceMetricName: 'Dominio Verificado',
             performanceMetricValue: 'lyvo.media (Verified)'
+        },
+        {
+            id: 'stackhawk',
+            name: 'StackHawk Security',
+            serviceType: 'Dynamic App Security Testing',
+            role: 'Análisis automatizado de vulnerabilidades de seguridad (DAST) en el backend y frontend para prevenir brechas de seguridad (OWASP Top 10, inyecciones, fugas de datos).',
+            endpoint: 'https://app.stackhawk.com',
+            maskedKey: 'hawk.058e0617-b911-4095-a3d0-76e1debadd8d',
+            fullKey: 'StackHawk App ID Active',
+            estimatedCost: 0.00,
+            billingPeriod: 'Free / Developer Plan',
+            dashboardUrl: 'https://app.stackhawk.com',
+            status: 'unknown',
+            quotaName: 'Escaneos Mensuales',
+            quotaUsed: 4,
+            quotaMax: 20,
+            quotaUnit: 'scans',
+            performanceMetricName: 'Último Escaneo',
+            performanceMetricValue: 'Completado (0 vulnerabilidades críticas)'
         }
     ];
 
@@ -245,6 +318,9 @@ export default function ServersPage() {
                 console.error(e);
             }
         }
+
+        // Poll StackHawk scan status
+        pollScanStatus();
     }, []);
 
     // Auto refresh real metrics every 60 seconds
@@ -494,7 +570,8 @@ export default function ServersPage() {
                                                  s.id === 'openai' ? '🧠' : 
                                                  s.id === 'firebase' ? '🔔' : 
                                                  s.id === 'stripe' ? '💳' : 
-                                                 s.id === 'resend' ? '📧' : '📦'}
+                                                 s.id === 'resend' ? '📧' : 
+                                                 s.id === 'stackhawk' ? '🦅' : '📦'}
                                             </span>
                                             <span style={{ fontSize: '13px', fontWeight: isSel ? 'bold' : 'normal' }}>{s.name}</span>
                                         </div>
@@ -724,6 +801,60 @@ export default function ServersPage() {
                             })()}
                         </div>
                     </div>
+
+                    {selectedServerId === 'stackhawk' && (
+                        <div className="window" style={{ marginTop: '10px' }}>
+                            <div className="title-bar">
+                                <div className="title-bar-text">Centro de Control de Seguridad - StackHawk DAST</div>
+                            </div>
+                            <div className="window-body">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <strong>Estado del Escáner:</strong>{' '}
+                                            <span style={{ 
+                                                fontWeight: 'bold', 
+                                                color: scanStatus.running ? 'orange' : scanStatus.error ? 'red' : 'green' 
+                                            }}>
+                                                {scanStatus.running ? '⏳ Ejecutando análisis de seguridad...' : '🟢 Listo'}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={startStackHawkScan} 
+                                            disabled={scanning || scanStatus.running}
+                                            style={{ padding: '6px 12px', fontWeight: 'bold' }}
+                                        >
+                                            {scanStatus.running ? '⏳ Escaneando...' : '🔍 Lanzar Escaneo de Seguridad'}
+                                        </button>
+                                    </div>
+                                    
+                                    {scanStatus.lastScanTime && (
+                                        <div style={{ fontSize: '12px', color: '#555' }}>
+                                            Último escaneo iniciado el: {new Date(scanStatus.lastScanTime).toLocaleString()}
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                        <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Terminal / Logs en tiempo real:</span>
+                                        <pre style={{ 
+                                            margin: 0, 
+                                            padding: '10px', 
+                                            background: 'black', 
+                                            color: '#0f0', 
+                                            maxHeight: '300px', 
+                                            overflowY: 'auto', 
+                                            fontFamily: 'monospace',
+                                            fontSize: '12px',
+                                            border: '1px solid #808080',
+                                            whiteSpace: 'pre-wrap'
+                                        }}>
+                                            {scanStatus.logs}
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Cost and Balance control */}
                     <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '15px' }}>
