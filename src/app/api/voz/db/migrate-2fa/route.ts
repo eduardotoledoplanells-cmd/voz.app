@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Client } from 'pg';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const dbPasswordInput = searchParams.get('password');
+    
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
     const projRef = match ? match[1] : 'thiftwzubmvcrdhuwcwm';
-    const password = process.env.SUPABASE_DB_PASSWORD || 'VozDatabase2026!';
+    const password = dbPasswordInput || process.env.SUPABASE_DB_PASSWORD || 'VozDatabase2026!';
 
     const host = `aws-1-eu-central-1.pooler.supabase.com`;
     const client = new Client({
