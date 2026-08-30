@@ -4,13 +4,9 @@ import path from 'path';
 import fs from 'fs';
 
 // Store scan status in the shared scratch directory
-const statusFilePath = path.join(process.cwd(), '../scratch/hawk_scan_status.json');
-
-// Ensure parent scratch directory exists
-const scratchDir = path.dirname(statusFilePath);
-if (!fs.existsSync(scratchDir)) {
-    fs.mkdirSync(scratchDir, { recursive: true });
-}
+const statusFilePath = process.env.VERCEL 
+    ? '/tmp/hawk_scan_status.json' 
+    : path.join(process.cwd(), '../scratch/hawk_scan_status.json');
 
 interface ScanStatus {
     running: boolean;
@@ -22,6 +18,10 @@ interface ScanStatus {
 
 function getScanStatus(): ScanStatus {
     try {
+        const scratchDir = path.dirname(statusFilePath);
+        if (!fs.existsSync(scratchDir)) {
+            fs.mkdirSync(scratchDir, { recursive: true });
+        }
         if (fs.existsSync(statusFilePath)) {
             return JSON.parse(fs.readFileSync(statusFilePath, 'utf8'));
         }
@@ -39,6 +39,10 @@ function getScanStatus(): ScanStatus {
 
 function saveScanStatus(status: ScanStatus) {
     try {
+        const scratchDir = path.dirname(statusFilePath);
+        if (!fs.existsSync(scratchDir)) {
+            fs.mkdirSync(scratchDir, { recursive: true });
+        }
         fs.writeFileSync(statusFilePath, JSON.stringify(status, null, 2));
     } catch (e) {
         console.error('Error writing scan status:', e);
