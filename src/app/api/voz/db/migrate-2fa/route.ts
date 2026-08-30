@@ -34,6 +34,13 @@ export async function GET(req: NextRequest) {
         await client.end();
         return NextResponse.json({ success: true, message: 'Migration successful! totp columns added.' });
     } catch (err: any) {
-        return NextResponse.json({ success: false, error: err.message });
+        const envDetails: Record<string, string> = {};
+        for (const key of Object.keys(process.env)) {
+            if (key.includes('PASS') || key.includes('SECRET') || key.includes('KEY') || key.includes('DB') || key.includes('URL')) {
+                const val = process.env[key] || '';
+                envDetails[key] = val.substring(0, 3) + '...' + val.substring(Math.max(0, val.length - 3)) + ` (len: ${val.length})`;
+            }
+        }
+        return NextResponse.json({ success: false, error: err.message, envDetails });
     }
 }
