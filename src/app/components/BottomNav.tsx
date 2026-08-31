@@ -155,19 +155,6 @@ export default function BottomNav({ isAbsolute = false }: { isAbsolute?: boolean
                 <button onClick={() => { setShowActivity(true); setHasUnread(false); }} style={navItemStyle(false) as any}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Bell size={22} strokeWidth={1.8} />
-                        {hasUnread && (
-                            <span style={{
-                                position: 'absolute',
-                                top: '-2px',
-                                right: '-2px',
-                                width: '8px',
-                                height: '8px',
-                                backgroundColor: '#FF3B30',
-                                borderRadius: '50%',
-                                border: '1.5px solid #000',
-                                boxShadow: '0 0 6px #FF3B30'
-                            }} />
-                        )}
                     </div>
                     <span style={labelStyle(false)}>Actividad</span>
                 </button>

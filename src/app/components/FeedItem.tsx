@@ -595,7 +595,7 @@ export const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Scrubber Progress Bar (Línea Blanca limpia con Bolita Única estilo TikTok) */}
+                {/* Scrubber Progress Bar en el filo del menú superior */}
                 <div 
                     ref={scrubberBarRef}
                     onClick={(e) => e.stopPropagation()}
@@ -607,11 +607,10 @@ export const FeedItem = ({
                     onTouchEnd={handleScrubMouseUp}
                     style={{
                         position: 'absolute',
-                        bottom: hasBottomNav !== false ? 'calc(65px + env(safe-area-inset-bottom, 0px))' : '8px',
-                        transform: hasBottomNav !== false ? 'translateY(50%)' : 'none',
+                        top: 0,
                         left: '0',
                         right: '0',
-                        height: '24px',
+                        height: '18px',
                         display: 'flex',
                         alignItems: 'center',
                         padding: '0',
