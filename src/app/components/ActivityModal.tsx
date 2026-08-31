@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { Heart, MessageCircle, UserPlus, Gift, DollarSign, Mail, Radio, Bell, AlertTriangle } from 'lucide-react';
+
 export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
     const router = useRouter();
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -86,17 +88,34 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
         setTouchStartY(0);
     };
 
-    const getIconForType = (type: string) => {
-        switch (type) {
-            case 'like': return '❤️';
-            case 'comment': return '💬';
-            case 'follow': return '👤';
-            case 'gift': return '🎁';
-            case 'donation': return '💰';
-            case 'pm': return '✉️';
-            case 'live_alert': return '🔴';
-            default: return '🔔';
-        }
+    const renderNotificationIcon = (type: string) => {
+        const raw = (type || '').toLowerCase();
+        let IconComponent = Bell;
+        if (raw === 'like') IconComponent = Heart;
+        else if (raw === 'comment' || raw === 'reply') IconComponent = MessageCircle;
+        else if (raw === 'follow') IconComponent = UserPlus;
+        else if (raw === 'gift') IconComponent = Gift;
+        else if (raw === 'donation' || raw === 'coin' || raw === 'purchase') IconComponent = DollarSign;
+        else if (raw === 'pm' || raw === 'message') IconComponent = Mail;
+        else if (raw === 'live' || raw === 'live_alert') IconComponent = Radio;
+        else if (raw === 'system' || raw === 'moderation' || raw === 'important' || raw === 'video_deletion_warning') IconComponent = AlertTriangle;
+
+        return (
+            <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                color: '#FFFFFF'
+            }}>
+                <IconComponent size={18} color="#FFFFFF" strokeWidth={2} />
+            </div>
+        );
     };
 
     return (
@@ -187,8 +206,8 @@ export default function ActivityModal({ isOpen, onClose }: { isOpen: boolean, on
                                         border: '1px solid rgba(255,255,255,0.05)'
                                     }}
                                 >
-                                    <div style={{ fontSize: '24px', marginRight: '15px', minWidth: '30px', textAlign: 'center' }}>
-                                        {getIconForType(notif.type)}
+                                    <div style={{ marginRight: '14px', flexShrink: 0 }}>
+                                        {renderNotificationIcon(notif.type)}
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 'bold', marginBottom: '5px', color: 'white' }}>{notif.title}</div>
