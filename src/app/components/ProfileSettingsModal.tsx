@@ -571,7 +571,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             </button>
                             <button onClick={() => setShowPrivacySettings(true)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, margin: 0, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>🔒 Privacidad (Regalos, PMs)</div>
-                                <div style={{ color: '#8E2DE2', fontWeight: 'bold' }}>Editar</div>
+                                <div style={{ color: '#888' }}>❯</div>
                             </button>
                         </div>
                     </div>
