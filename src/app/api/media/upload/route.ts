@@ -126,7 +126,7 @@ export async function POST(request: Request) {
                     publicUrl = `${formattedBase}/${fileName}`;
                 } else {
                     const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
-                    publicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${fileName}`;
+                    publicUrl = `https://${accountId}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${fileName}`;
                 }
             } catch (r2Error: any) {
                 console.error('R2 upload error:', r2Error);

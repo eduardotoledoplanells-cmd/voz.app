@@ -1,8 +1,8 @@
 const { Client } = require('pg');
 
-const host = 'aws-1-eu-central-1.pooler.supabase.com';
-const port = 6543;
-const user = 'postgres.thiftwzubmvcrdhuwcwm';
+const host = '[2a05:d014:14a4:4002:3fcb:f8aa:e50b:4e2f]';
+const port = 5432;
+const user = 'postgres';
 const password = 'VozDatabase2026!';
 const database = 'postgres';
 

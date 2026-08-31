@@ -63,7 +63,7 @@ export async function POST(request: Request) {
                 publicUrl = `${formattedBase}/${finalPath}`;
             } else {
                 const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
-                publicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${finalPath}`;
+                publicUrl = `https://${accountId}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${finalPath}`;
             }
         } else {
             const { data, error } = await supabaseAdmin.storage

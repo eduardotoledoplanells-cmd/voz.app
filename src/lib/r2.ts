@@ -12,7 +12,7 @@ if (!accountId || !accessKeyId || !secretAccessKey) {
   );
 }
 
-// Config S3Client for Cloudflare R2
+// Config S3Client for Cloudflare R2 (forcePathStyle: true is essential for R2 endpoint routing)
 export const r2Client = new S3Client({
   region: 'auto',
   endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
@@ -20,6 +20,8 @@ export const r2Client = new S3Client({
     accessKeyId: accessKeyId || '',
     secretAccessKey: secretAccessKey || '',
   },
+  forcePathStyle: true,
   requestChecksumCalculation: 'WHEN_REQUIRED',
   responseChecksumValidation: 'WHEN_REQUIRED',
 });
+

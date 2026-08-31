@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         publicUrl = `${formattedBase}/${key}`;
       } else {
         const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
-        publicUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${key}`;
+        publicUrl = `https://${accountId}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`;
       }
     } catch (e) {
       console.warn("[Presign API] R2 presigned URL generation warning:", e);

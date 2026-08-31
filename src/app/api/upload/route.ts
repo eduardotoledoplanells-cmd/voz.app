@@ -100,16 +100,14 @@ export async function POST(request: Request) {
         // 6. Construct Video Public URL
         // Cloudflare R2 public domains are either custom domains (e.g. video.lyvo.media) or pub-*.r2.dev subdomains.
         // If NEXT_PUBLIC_R2_PUBLIC_URL is not set, we construct a default compatible format or return the bucket key.
-        const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
         let videoUrl = '';
+        const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
         if (publicBaseUrl) {
-            // Trim trailing slash and append the key
             const formattedBase = publicBaseUrl.endsWith('/') ? publicBaseUrl.slice(0, -1) : publicBaseUrl;
             videoUrl = `${formattedBase}/${key}`;
         } else {
-            // Fallback: Use standard S3 endpoint format if no public URL domain is defined (e.g. for developer debug)
             const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID;
-            videoUrl = `https://${R2_BUCKET_NAME}.${accountId}.r2.cloudflarestorage.com/${key}`;
+            videoUrl = `https://${accountId}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`;
         }
 
         console.log(`[R2 Upload API] Upload successful. Key: ${key}, URL: ${videoUrl}`);
