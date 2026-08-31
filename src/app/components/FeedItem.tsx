@@ -595,7 +595,7 @@ export const FeedItem = ({
                     </div>
                 </div>
 
-                {/* Scrubber Progress Bar en el filo del menú superior */}
+                {/* Scrubber Progress Bar en el filo superior del menú inferior */}
                 <div 
                     ref={scrubberBarRef}
                     onClick={(e) => e.stopPropagation()}
@@ -607,7 +607,7 @@ export const FeedItem = ({
                     onTouchEnd={handleScrubMouseUp}
                     style={{
                         position: 'absolute',
-                        top: 0,
+                        bottom: hasBottomNav !== false ? 'calc(65px + env(safe-area-inset-bottom, 0px))' : 'env(safe-area-inset-bottom, 0px)',
                         left: '0',
                         right: '0',
                         height: '18px',
