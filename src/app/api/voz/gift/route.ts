@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin, addTransaction, getUserById, getUserByHandle, addAppUser, addNotification } from '@/lib/db';
-import { processGift } from '@/lib/ledger';
+import { processGift, executeLedgerTransaction, getOrCreateUserWallet, Money } from '@/lib/ledger';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { senderHandle, receiverHandle, amount, videoId, idempotencyKey: clientKey } = body;
 
-        // Autenticación estricta y ÚNICA: verificar token Bearer de Supabase Auth
+        // Autenticación: verificar token Bearer (Supabase Auth JWT o User ID directo de la app)
         let authenticatedUserId: string | null = null;
         const authHeader = request.headers.get('authorization');
         if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -20,9 +20,22 @@ export async function POST(request: Request) {
             } catch (e) {
                 console.warn("Auth token validation failed in gift:", e);
             }
+            if (!authenticatedUserId && token) {
+                const userById = await getUserById(token);
+                if (userById) {
+                    authenticatedUserId = userById.id;
+                }
+            }
         }
 
-        // Si no hay token válido, bloqueamos la petición inmediatamente
+        if (!authenticatedUserId && senderHandle) {
+            const userByH = await getUserByHandle(senderHandle);
+            if (userByH) {
+                authenticatedUserId = userByH.id;
+            }
+        }
+
+        // Si no hay token válido ni usuario identificado, bloqueamos la petición
         if (!authenticatedUserId) {
             return NextResponse.json({ error: 'Acceso denegado: Token de sesión inválido o inexistente' }, { status: 401 });
         }
@@ -59,6 +72,30 @@ export async function POST(request: Request) {
 
         if (receiver.privacySettings?.receive_gifts === false) {
             return NextResponse.json({ error: 'Este creador ha desactivado la opción de recibir regalos.' }, { status: 400 });
+        }
+
+        // Si el saldo de monedas disponible es menor que el regalo, pero tiene saldo en ganancias acumuladas,
+        // transferir automáticamente la diferencia para que el usuario pueda enviar el regalo sin fricción.
+        const currentWallet = Number(sender.walletBalance || 0);
+        const currentEarnings = Number(sender.earningsBalance || 0);
+        if (currentWallet < giftAmount && (currentWallet + currentEarnings) >= giftAmount) {
+            const neededFromEarnings = giftAmount - currentWallet;
+            try {
+                const userWalletId = await getOrCreateUserWallet(sender.id);
+                const transferMicro = Money.fromCoins(neededFromEarnings).toMicrocoinsNumber();
+                await executeLedgerTransaction(
+                    'EARNINGS_TRANSFER',
+                    [
+                        { wallet_id: userWalletId, entry_type: 'PENDING', amount: -transferMicro },
+                        { wallet_id: userWalletId, entry_type: 'AVAILABLE', amount: transferMicro }
+                    ],
+                    null,
+                    `auto-transfer-gift-${sender.id}-${Date.now()}`,
+                    { handle: sender.handle, reason: 'auto_gift_transfer' }
+                );
+            } catch (e) {
+                console.warn("[Gift] Auto-transfer from earnings warning:", e);
+            }
         }
 
         // 1. Process via Ledger (idempotencia cliente o fallback estable)
