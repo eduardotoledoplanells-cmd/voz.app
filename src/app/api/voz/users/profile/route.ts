@@ -89,8 +89,11 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        const customDuration = Number(user.custom_video_duration || (user as any).customVideoDuration || user.privacySettings?.custom_video_duration || 0);
         const enrichedProfile = {
             ...userWithoutPassword,
+            custom_video_duration: customDuration,
+            customVideoDuration: customDuration,
             walletBalance: user.walletBalance || 0,
             wallet_balance: user.walletBalance || 0,
             earningsBalance: user.earningsBalance || 0,

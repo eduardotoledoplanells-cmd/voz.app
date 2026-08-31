@@ -233,7 +233,7 @@ export async function getAppUsers(): Promise<AppUser[]> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
-        custom_video_duration: u.privacy_settings?.custom_video_duration || null,
+        custom_video_duration: u.custom_video_duration || u.privacy_settings?.custom_video_duration || null,
         country: u.country,
         region: u.region,
         interests: u.interests,
@@ -276,6 +276,7 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
+        custom_video_duration: u.custom_video_duration || u.privacy_settings?.custom_video_duration || null,
         is_live: u.is_live,
         live_url: u.live_url,
         country: u.country,
@@ -323,6 +324,7 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
+        custom_video_duration: u.custom_video_duration || u.privacy_settings?.custom_video_duration || null,
         is_live: u.is_live,
         live_url: u.live_url,
         country: u.country,
@@ -367,7 +369,7 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         earningsBalance: isNaN(parseFloat(u.earnings_balance)) ? 0 : parseFloat(u.earnings_balance),
         notificationSettings: u.notification_settings || {},
         privacySettings: u.privacy_settings || {},
-        custom_video_duration: u.privacy_settings?.custom_video_duration || null,
+        custom_video_duration: u.custom_video_duration || u.privacy_settings?.custom_video_duration || null,
         is_live: u.is_live,
         live_url: u.live_url,
         country: u.country,
@@ -609,6 +611,7 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
     if (updates.privacySettings !== undefined) dbUpdates.privacy_settings = updates.privacySettings;
     
     if ((updates as any).custom_video_duration !== undefined) {
+        dbUpdates.custom_video_duration = (updates as any).custom_video_duration;
         if (!dbUpdates.privacy_settings && id) {
             const { data: curr } = await supabaseAdmin.from('app_users').select('privacy_settings').eq('id', id).single();
             dbUpdates.privacy_settings = curr?.privacy_settings || {};
