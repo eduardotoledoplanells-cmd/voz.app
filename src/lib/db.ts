@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendNativePush } from './firebaseAdmin';
 import { executeLedgerTransaction, getOrCreateUserWallet, SYSTEM_WALLETS, processRefundPM } from './ledger';
+import { calculateGravityScore, UserRankingContext, VideoPlaybackStats, calculateDiversityPenalty } from './gravityEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -202,6 +203,18 @@ export interface VideoPost {
     userName?: string;
     userImage?: string;
     is_processed?: boolean;
+    rankingScore?: number;
+    rankingVersion?: string;
+    rankingDebug?: any;
+    score?: number;
+    _score?: number;
+    isLikedByMe?: boolean;
+    isBookmarkedByMe?: boolean;
+    commentsEnabled?: boolean;
+    is_live?: boolean;
+    isLive?: boolean;
+    live_url?: string | null;
+    [key: string]: any;
 }
 
 // --- App Users / Creators ---
@@ -1030,18 +1043,90 @@ export async function addVoiceComment(comment: any): Promise<any> {
         return null;
     }
 
-    // Increment comments_count in videos table using select and update
+    // Increment comments_count and update voice_stats in videos metadata
     if (comment.video_id) {
-        const { data: vidData } = await supabaseAdmin.from('videos').select('comments_count').eq('id', comment.video_id).single();
-        const currentCount = vidData?.comments_count || 0;
-        const { error: updateError } = await supabaseAdmin.from('videos').update({ comments_count: currentCount + 1 }).eq('id', comment.video_id);
-        
-        if (updateError) {
-            console.error('[db] Error updating comments_count:', updateError);
+        try {
+            const { data: vidData } = await supabaseAdmin
+                .from('videos')
+                .select('comments_count, metadata')
+                .eq('id', comment.video_id)
+                .single();
+
+            const currentCount = vidData?.comments_count || 0;
+            const currentMeta = vidData?.metadata || {};
+            const voiceStats = currentMeta.voice_stats || {
+                total_voice_comments: 0,
+                unique_commenters: [],
+                unique_commenters_count: 0,
+                thread_replies_count: 0,
+                total_listens: 0,
+                listened_duration_seconds: 0
+            };
+
+            voiceStats.total_voice_comments = (voiceStats.total_voice_comments || currentCount) + 1;
+            
+            const uniqueSet = new Set(voiceStats.unique_commenters || []);
+            if (comment.user_handle) {
+                uniqueSet.add(comment.user_handle);
+            }
+            voiceStats.unique_commenters = Array.from(uniqueSet).slice(0, 100);
+            voiceStats.unique_commenters_count = uniqueSet.size;
+
+            if (comment.parent_id) {
+                voiceStats.thread_replies_count = (voiceStats.thread_replies_count || 0) + 1;
+            }
+            voiceStats.last_voice_at = new Date().toISOString();
+            currentMeta.voice_stats = voiceStats;
+
+            await supabaseAdmin
+                .from('videos')
+                .update({ 
+                    comments_count: currentCount + 1,
+                    metadata: currentMeta 
+                })
+                .eq('id', comment.video_id);
+        } catch (updateErr) {
+            console.error('[db] Error updating voice_stats on addVoiceComment:', updateErr);
         }
     }
 
     return data;
+}
+
+export async function recordVoiceCommentListen(videoId: string, commentId: string, durationSec: number = 3): Promise<boolean> {
+    if (!videoId) return false;
+    try {
+        const { data: vidData } = await supabaseAdmin
+            .from('videos')
+            .select('metadata')
+            .eq('id', videoId)
+            .single();
+
+        if (!vidData) return false;
+        const meta = vidData.metadata || {};
+        const voiceStats = meta.voice_stats || {
+            total_voice_comments: 0,
+            unique_commenters: [],
+            unique_commenters_count: 0,
+            thread_replies_count: 0,
+            total_listens: 0,
+            listened_duration_seconds: 0
+        };
+
+        voiceStats.total_listens = (voiceStats.total_listens || 0) + 1;
+        voiceStats.listened_duration_seconds = Number(((voiceStats.listened_duration_seconds || 0) + durationSec).toFixed(1));
+        meta.voice_stats = voiceStats;
+
+        await supabaseAdmin
+            .from('videos')
+            .update({ metadata: meta })
+            .eq('id', videoId);
+
+        return true;
+    } catch (err) {
+        console.error('[db] Error in recordVoiceCommentListen:', err);
+        return false;
+    }
 }
 
 export async function toggleVideoLike(videoId: string, userHandle: string, isLiked: boolean): Promise<boolean> {
@@ -1784,58 +1869,260 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
     }]);
 }
 
-// --- Videos ---
-export async function getVideos(currentUserHandle?: string, limit: number = 10, offset: number = 0): Promise<VideoPost[]> {
-    // 1. Intentamos usar la función RPC nativa en Supabase para máxima escalabilidad
-    let scoredVideos: any[] = [];
-    const { data: rpcVideos, error: rpcError } = await supabaseAdmin.rpc('get_antigravity_feed', {
-        req_limit: limit,
-        req_offset: offset
-    });
+// --- Videos Tracking & Gravity Engine V2 ---
+export interface PlaybackTrackingPayload {
+    videoId: string;
+    userHandle?: string;
+    watchTimeSeconds: number;
+    completionRate: number;
+    isCompleted: boolean;
+    isRewatch: boolean;
+    isEarlySkip: boolean;
+    durationSeconds?: number;
+}
 
-    if (!rpcError && rpcVideos && rpcVideos.length > 0) {
-        scoredVideos = rpcVideos;
-    } else {
-        // Fallback: Si el RPC falla (ej. todavía no está desplegado o hay un error), usamos la lógica en JS
-        if (rpcError) console.warn("[db] RPC get_antigravity_feed failed, falling back to JS implementation:", rpcError.message);
-        
-        const { data: videos, error: videosError } = await supabaseAdmin
+export async function recordPlaybackMetrics(payload: PlaybackTrackingPayload): Promise<boolean> {
+    const { videoId, userHandle, watchTimeSeconds, completionRate, isCompleted, isRewatch, isEarlySkip, durationSeconds } = payload;
+    if (!videoId) return false;
+
+    try {
+        const { data: current, error: getErr } = await supabaseAdmin
             .from('videos')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(500);
-        
-        if (videosError) {
-            console.error("[db] getVideos fallback error:", videosError);
-            return [];
+            .select('id, views, metadata')
+            .eq('id', videoId)
+            .single();
+
+        if (getErr || !current) {
+            console.warn('[db] recordPlaybackMetrics: video not found', videoId);
+            return false;
         }
 
-        if (!videos || videos.length === 0) return [];
+        const currentMeta = current.metadata || {};
+        const stats: VideoPlaybackStats = currentMeta.playback_stats || {
+            qualified_views: 0,
+            total_watch_time: 0,
+            completion_count: 0,
+            rewatch_count: 0,
+            early_skips_count: 0
+        };
 
-        const now = new Date().getTime();
-        const creatorSeqMap: Record<string, number> = {};
+        const maxSingleWatch = Math.max(15, (durationSeconds || 15) * 3);
+        const safeWatchSec = Math.max(0, Math.min(maxSingleWatch, Number(watchTimeSeconds) || 0));
+        const safeCompletion = Math.max(0, Math.min(1.0, Number(completionRate) || 0));
 
-        scoredVideos = videos.map(v => {
-            const handle = v.user_handle || 'anon';
-            creatorSeqMap[handle] = (creatorSeqMap[handle] || 0) + 1;
-            const seq = creatorSeqMap[handle];
+        if (!isEarlySkip && (safeWatchSec >= 2.5 || safeCompletion >= 0.35)) {
+            stats.qualified_views = (stats.qualified_views || 0) + 1;
+        }
+        stats.total_watch_time = Number(((stats.total_watch_time || 0) + safeWatchSec).toFixed(2));
+        
+        // Evitar que rewatch o completion excedan la exposición real
+        const currentQual = Math.max(1, stats.qualified_views || 1);
+        if (isCompleted || safeCompletion >= 0.95) {
+            stats.completion_count = Math.min(currentQual, (stats.completion_count || 0) + 1);
+        }
+        if (isRewatch) {
+            stats.rewatch_count = Math.min(currentQual * 2, (stats.rewatch_count || 0) + 1);
+        }
+        if (isEarlySkip || (safeWatchSec < 2.5 && !isCompleted)) {
+            stats.early_skips_count = (stats.early_skips_count || 0) + 1;
+        }
+        stats.last_updated = new Date().toISOString();
 
-            const createdAtTime = new Date(v.created_at).getTime();
-            const ageInHours = (Date.now() - createdAtTime) / (1000 * 60 * 60);
-            const views = v.views || 0;
-            const likes = v.likes || 0;
-            const commentsCount = v.comments_count || 0;
-            const shares = v.shares || 0;
-            // Algoritmo de Prioridad: Me Gusta (10x - Máximo privilegio) > Comentarios de Lyvo (7x) > Compartidos (5x) > Visualizaciones (1x)
-            let score = ((views * 1.0) + (shares * 5.0) + (commentsCount * 7.0) + (likes * 10.0)) / Math.pow(Math.max(ageInHours, 0) + 2, 1.4);
-            if (ageInHours < 2 && score < 1) score = 1 + Math.random();
-            return { ...v, _score: score, _seq: seq };
-        });
+        currentMeta.playback_stats = stats;
+        if (durationSeconds && durationSeconds > 0) {
+            currentMeta.duration = durationSeconds;
+        }
 
-        scoredVideos.sort((a, b) => a._seq - b._seq || (b._score + (Math.random() * 0.1)) - (a._score + (Math.random() * 0.1)));
-        scoredVideos = scoredVideos.slice(offset, offset + limit);
+        await supabaseAdmin
+            .from('videos')
+            .update({ metadata: currentMeta })
+            .eq('id', videoId);
+
+        if (userHandle) {
+            await supabaseAdmin
+                .from('video_views')
+                .insert([{
+                    video_id: videoId,
+                    user_handle: userHandle
+                }]);
+        }
+
+        return true;
+    } catch (err) {
+        console.error('[db] Error in recordPlaybackMetrics:', err);
+        return false;
     }
-    
+}
+
+export async function incrementVideoShare(videoId: string, userHandle?: string): Promise<boolean> {
+    if (!videoId) return false;
+    try {
+        const { data: current } = await supabaseAdmin
+            .from('videos')
+            .select('shares')
+            .eq('id', videoId)
+            .single();
+
+        const newShares = (current?.shares || 0) + 1;
+        const { error } = await supabaseAdmin
+            .from('videos')
+            .update({ shares: newShares })
+            .eq('id', videoId);
+
+        return !error;
+    } catch (err) {
+        console.error('[db] Error in incrementVideoShare:', err);
+        return false;
+    }
+}
+
+export async function getVideos(
+    currentUserHandle?: string,
+    limit: number = 10,
+    offset: number = 0,
+    sessionSeed?: string,
+    recentlySeen?: { id: string; seenAt: number }[],
+    telemetryOut?: { q1?: number; q2?: number; q3?: number; dbTotal?: number }
+): Promise<VideoPost[]> {
+    const tDb0 = performance.now();
+    let q1_latency = 0;
+    let q2_latency = 0;
+    let q3_latency = 0;
+
+    // 1. Obtener candidatos de la base de datos (Pool diverso multi-capa de hasta 350 vídeos)
+    // Tier 1: Novedades recientes para dar oportunidad a creadores nuevos (150 vídeos)
+    const pFresh = supabaseAdmin
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(150);
+
+    // Tier 2: Contenido con mayor interacción histórica para que vídeos evergreen compitan (100 vídeos)
+    const pViral = supabaseAdmin
+        .from('videos')
+        .select('*')
+        .order('likes', { ascending: false })
+        .limit(100);
+
+    // Tier 3: Contenido con mayor debate y notas de voz para priorizar conversación activa (100 vídeos)
+    const pVoice = supabaseAdmin
+        .from('videos')
+        .select('*')
+        .order('comments_count', { ascending: false })
+        .limit(100);
+
+    const pFreshTimed = pFresh.then(res => { q1_latency = Math.round(performance.now() - tDb0); return res; });
+    const pViralTimed = pViral.then(res => { q2_latency = Math.round(performance.now() - tDb0); return res; });
+    const pVoiceTimed = pVoice.then(res => { q3_latency = Math.round(performance.now() - tDb0); return res; });
+
+    const [resFresh, resViral, resVoice] = await Promise.all([pFreshTimed, pViralTimed, pVoiceTimed]);
+    const dbTotalLatency = Math.round(performance.now() - tDb0);
+
+    if (telemetryOut) {
+        telemetryOut.q1 = q1_latency;
+        telemetryOut.q2 = q2_latency;
+        telemetryOut.q3 = q3_latency;
+        telemetryOut.dbTotal = dbTotalLatency;
+    }
+
+    // Combinar y deduplicar por id
+    const candidateMap = new Map<string, any>();
+    for (const res of [resFresh, resViral, resVoice]) {
+        if (res?.data && Array.isArray(res.data)) {
+            for (const v of res.data) {
+                if (!candidateMap.has(v.id)) {
+                    candidateMap.set(v.id, v);
+                }
+            }
+        }
+    }
+
+    const rawVideos = Array.from(candidateMap.values());
+    if (rawVideos.length === 0) return [];
+
+    // Calcular proporción de vídeos no vistos en el pool para degradación elegante de recientemente vistos
+    const seenSet = new Set((recentlySeen || []).map(s => s.id));
+    const unseenCount = rawVideos.filter(v => !seenSet.has(v.id)).length;
+    const unseenRatio = unseenCount / Math.max(1, rawVideos.length);
+
+    // 2. Preparar contexto de usuario (seguidos, intereses)
+    let followingList: string[] = [];
+    let userInterests: string[] = [];
+
+    if (currentUserHandle) {
+        try {
+            const { data: uData } = await supabaseAdmin
+                .from('app_users')
+                .select('interests')
+                .eq('handle', currentUserHandle)
+                .maybeSingle();
+
+            if (uData?.interests && Array.isArray(uData.interests)) {
+                userInterests = uData.interests;
+            }
+
+            const { data: follows } = await supabaseAdmin
+                .from('followers')
+                .select('following_handle')
+                .eq('follower_handle', currentUserHandle);
+
+            if (follows && Array.isArray(follows)) {
+                followingList = follows.map(f => f.following_handle);
+            }
+        } catch (ctxErr) {
+            console.warn("[db] Error fetching user context for ranking:", ctxErr);
+        }
+    }
+
+    const userContext: UserRankingContext = {
+        userHandle: currentUserHandle,
+        followingList,
+        recentlySeenVideos: recentlySeen,
+        sessionSeed,
+        userInterests,
+        unseenRatio
+    };
+
+    // 3. Evaluar Gravity Engine V2 para cada vídeo (Pase 1: Puntuación base)
+    const scoredList = rawVideos.map(v => {
+        const { rankingScore, rankingVersion, rankingDebug } = calculateGravityScore(v, userContext);
+        return {
+            ...v,
+            _baseScore: rankingScore,
+            _rankingScore: rankingScore,
+            _rankingVersion: rankingVersion,
+            _rankingDebug: rankingDebug
+        };
+    });
+
+    // Orden inicial antes de diversidad
+    scoredList.sort((a, b) => b._baseScore - a._baseScore);
+
+    // Pase 2: Penalización dinámica de repetición por diversidad de creadores
+    const creatorHistory: Record<string, number> = {};
+    const diversifiedList = scoredList.map(v => {
+        const creator = v.user_handle || 'anon';
+        const divPenalty = calculateDiversityPenalty(creator, creatorHistory);
+        creatorHistory[creator] = (creatorHistory[creator] || 0) + 1;
+
+        const adjustedScore = Number(Math.max(0.01, v._baseScore - divPenalty).toFixed(3));
+        return {
+            ...v,
+            _rankingScore: adjustedScore,
+            _rankingDebug: {
+                ...v._rankingDebug,
+                creatorDiversityPenalty: divPenalty,
+                finalScore: adjustedScore
+            }
+        };
+    });
+
+    // Ordenación definitiva por rankingScore descendente
+    diversifiedList.sort((a, b) => b._rankingScore - a._rankingScore);
+
+    // Aplicar paginación
+    const scoredVideos = diversifiedList.slice(offset, offset + limit);
+
     if (scoredVideos.length === 0) return [];
 
     // 2. Fetch corresponding users to perform manual join
@@ -2024,7 +2311,11 @@ export async function getVideos(currentUserHandle?: string, limit: number = 10, 
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
             isBookmarkedByMe: bookmarkedSet.has(v.id),
-            score: v._score || v.score,
+            rankingScore: v._rankingScore || 0,
+            score: v._rankingScore || 0,
+            _score: v._rankingScore || 0,
+            rankingVersion: v._rankingVersion || 'gravity-v2',
+            rankingDebug: v._rankingDebug,
             forceView: campMeta ? campMeta.force_view : (v.force_view || false),
             minViewTime: campMeta ? campMeta.min_view_time : (v.min_view_time || 0),
             is_live: u.is_live || false,

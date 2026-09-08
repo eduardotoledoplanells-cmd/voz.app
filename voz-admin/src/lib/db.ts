@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { calculateGravityScore, UserRankingContext, VideoPlaybackStats, calculateDiversityPenalty } from './gravityEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -199,6 +200,18 @@ export interface VideoPost {
     userName?: string;
     userImage?: string;
     metadata?: any;
+    rankingScore?: number;
+    rankingVersion?: string;
+    rankingDebug?: any;
+    score?: number;
+    _score?: number;
+    isLikedByMe?: boolean;
+    isBookmarkedByMe?: boolean;
+    commentsEnabled?: boolean;
+    is_live?: boolean;
+    isLive?: boolean;
+    live_url?: string | null;
+    [key: string]: any;
 }
 
 function mapUserRowToAppUser(u: any): AppUser {
@@ -1332,23 +1345,282 @@ export async function addProductivityLog(employeeName: string, cycleVideos: numb
     }]);
 }
 
-// --- Videos ---
-export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]> {
-    // 1. Fetch raw videos
-    const { data: videos, error: videosError } = await supabaseAdmin
+// --- Videos Tracking & Gravity Engine V2 ---
+export interface PlaybackTrackingPayload {
+    videoId: string;
+    userHandle?: string;
+    watchTimeSeconds: number;
+    completionRate: number;
+    isCompleted: boolean;
+    isRewatch: boolean;
+    isEarlySkip: boolean;
+    durationSeconds?: number;
+}
+
+export async function recordPlaybackMetrics(payload: PlaybackTrackingPayload): Promise<boolean> {
+    const { videoId, userHandle, watchTimeSeconds, completionRate, isCompleted, isRewatch, isEarlySkip, durationSeconds } = payload;
+    if (!videoId) return false;
+
+    try {
+        const { data: current, error: getErr } = await supabaseAdmin
+            .from('videos')
+            .select('id, views, metadata')
+            .eq('id', videoId)
+            .single();
+
+        if (getErr || !current) {
+            console.warn('[db] recordPlaybackMetrics: video not found', videoId);
+            return false;
+        }
+
+        const currentMeta = current.metadata || {};
+        const stats: VideoPlaybackStats = currentMeta.playback_stats || {
+            qualified_views: 0,
+            total_watch_time: 0,
+            completion_count: 0,
+            rewatch_count: 0,
+            early_skips_count: 0
+        };
+
+        const maxSingleWatch = Math.max(15, (durationSeconds || 15) * 3);
+        const safeWatchSec = Math.max(0, Math.min(maxSingleWatch, Number(watchTimeSeconds) || 0));
+        const safeCompletion = Math.max(0, Math.min(1.0, Number(completionRate) || 0));
+
+        if (!isEarlySkip && (safeWatchSec >= 2.5 || safeCompletion >= 0.35)) {
+            stats.qualified_views = (stats.qualified_views || 0) + 1;
+        }
+        stats.total_watch_time = Number(((stats.total_watch_time || 0) + safeWatchSec).toFixed(2));
+        
+        // Evitar que rewatch o completion excedan la exposición real
+        const currentQual = Math.max(1, stats.qualified_views || 1);
+        if (isCompleted || safeCompletion >= 0.95) {
+            stats.completion_count = Math.min(currentQual, (stats.completion_count || 0) + 1);
+        }
+        if (isRewatch) {
+            stats.rewatch_count = Math.min(currentQual * 2, (stats.rewatch_count || 0) + 1);
+        }
+        if (isEarlySkip || (safeWatchSec < 2.5 && !isCompleted)) {
+            stats.early_skips_count = (stats.early_skips_count || 0) + 1;
+        }
+        stats.last_updated = new Date().toISOString();
+
+        currentMeta.playback_stats = stats;
+        if (durationSeconds && durationSeconds > 0) {
+            currentMeta.duration = durationSeconds;
+        }
+
+        await supabaseAdmin
+            .from('videos')
+            .update({ metadata: currentMeta })
+            .eq('id', videoId);
+
+        if (userHandle) {
+            await supabaseAdmin
+                .from('video_views')
+                .insert([{
+                    video_id: videoId,
+                    user_handle: userHandle
+                }]);
+        }
+
+        return true;
+    } catch (err) {
+        console.error('[db] Error in recordPlaybackMetrics:', err);
+        return false;
+    }
+}
+
+export async function incrementVideoShare(videoId: string, userHandle?: string): Promise<boolean> {
+    if (!videoId) return false;
+    try {
+        const { data: current } = await supabaseAdmin
+            .from('videos')
+            .select('shares')
+            .eq('id', videoId)
+            .single();
+
+        const newShares = (current?.shares || 0) + 1;
+        const { error } = await supabaseAdmin
+            .from('videos')
+            .update({ shares: newShares })
+            .eq('id', videoId);
+
+        return !error;
+    } catch (err) {
+        console.error('[db] Error in incrementVideoShare:', err);
+        return false;
+    }
+}
+
+export async function recordVoiceCommentListen(videoId: string, commentId: string, durationSec: number = 3): Promise<boolean> {
+    if (!videoId) return false;
+    try {
+        const { data: vidData } = await supabaseAdmin
+            .from('videos')
+            .select('metadata')
+            .eq('id', videoId)
+            .single();
+
+        if (!vidData) return false;
+        const meta = vidData.metadata || {};
+        const voiceStats = meta.voice_stats || {
+            total_voice_comments: 0,
+            unique_commenters: [],
+            unique_commenters_count: 0,
+            thread_replies_count: 0,
+            total_listens: 0,
+            listened_duration_seconds: 0
+        };
+
+        voiceStats.total_listens = (voiceStats.total_listens || 0) + 1;
+        voiceStats.listened_duration_seconds = Number(((voiceStats.listened_duration_seconds || 0) + durationSec).toFixed(1));
+        meta.voice_stats = voiceStats;
+
+        await supabaseAdmin
+            .from('videos')
+            .update({ metadata: meta })
+            .eq('id', videoId);
+
+        return true;
+    } catch (err) {
+        console.error('[db] Error in recordVoiceCommentListen (admin):', err);
+        return false;
+    }
+}
+
+export async function getVideos(
+    currentUserHandle?: string,
+    limit: number = 10,
+    offset: number = 0,
+    sessionSeed?: string,
+    recentlySeen?: { id: string; seenAt: number }[]
+): Promise<VideoPost[]> {
+    // 1. Obtener candidatos de la base de datos (Pool diverso multi-capa de hasta 350 vídeos)
+    // Tier 1: Novedades recientes para dar oportunidad a creadores nuevos (150 vídeos)
+    const pFresh = supabaseAdmin
         .from('videos')
         .select('*')
-        .order('created_at', { ascending: false });
-    
-    if (videosError) {
-        console.error("[db] getVideos error:", videosError);
-        return [];
+        .order('created_at', { ascending: false })
+        .limit(150);
+
+    // Tier 2: Contenido con mayor interacción histórica para que vídeos evergreen compitan (100 vídeos)
+    const pViral = supabaseAdmin
+        .from('videos')
+        .select('*')
+        .order('likes', { ascending: false })
+        .limit(100);
+
+    // Tier 3: Contenido con mayor debate y notas de voz para priorizar conversación activa (100 vídeos)
+    const pVoice = supabaseAdmin
+        .from('videos')
+        .select('*')
+        .order('comments_count', { ascending: false })
+        .limit(100);
+
+    const [resFresh, resViral, resVoice] = await Promise.all([pFresh, pViral, pVoice]);
+
+    // Combinar y deduplicar por id
+    const candidateMap = new Map<string, any>();
+    for (const res of [resFresh, resViral, resVoice]) {
+        if (res?.data && Array.isArray(res.data)) {
+            for (const v of res.data) {
+                if (!candidateMap.has(v.id)) {
+                    candidateMap.set(v.id, v);
+                }
+            }
+        }
     }
 
-    if (!videos || videos.length === 0) return [];
+    const rawVideos = Array.from(candidateMap.values());
+    if (rawVideos.length === 0) return [];
 
-    // 2. Fetch corresponding users to perform manual join
-    const handles = [...new Set(videos.map(v => v.user_handle))];
+    // Calcular proporción de vídeos no vistos en el pool para degradación elegante de recientemente vistos
+    const seenSet = new Set((recentlySeen || []).map(s => s.id));
+    const unseenCount = rawVideos.filter(v => !seenSet.has(v.id)).length;
+    const unseenRatio = unseenCount / Math.max(1, rawVideos.length);
+
+    // 2. Preparar contexto de usuario (seguidos, intereses)
+    let followingList: string[] = [];
+    let userInterests: string[] = [];
+
+    if (currentUserHandle) {
+        try {
+            const { data: uData } = await supabaseAdmin
+                .from('app_users')
+                .select('interests')
+                .eq('handle', currentUserHandle)
+                .maybeSingle();
+
+            if (uData?.interests && Array.isArray(uData.interests)) {
+                userInterests = uData.interests;
+            }
+
+            const { data: follows } = await supabaseAdmin
+                .from('followers')
+                .select('following_handle')
+                .eq('follower_handle', currentUserHandle);
+
+            if (follows && Array.isArray(follows)) {
+                followingList = follows.map(f => f.following_handle);
+            }
+        } catch (ctxErr) {
+            console.warn("[db] Error fetching user context for ranking:", ctxErr);
+        }
+    }
+
+    const userContext: UserRankingContext = {
+        userHandle: currentUserHandle,
+        followingList,
+        recentlySeenVideos: recentlySeen,
+        sessionSeed,
+        userInterests,
+        unseenRatio
+    };
+
+    // 3. Evaluar Gravity Engine V2 para cada vídeo (Pase 1: Puntuación base)
+    const scoredList = rawVideos.map(v => {
+        const { rankingScore, rankingVersion, rankingDebug } = calculateGravityScore(v, userContext);
+        return {
+            ...v,
+            _baseScore: rankingScore,
+            _rankingScore: rankingScore,
+            _rankingVersion: rankingVersion,
+            _rankingDebug: rankingDebug
+        };
+    });
+
+    // Orden inicial antes de diversidad
+    scoredList.sort((a, b) => b._baseScore - a._baseScore);
+
+    // Pase 2: Penalización dinámica de repetición por diversidad de creadores
+    const creatorHistory: Record<string, number> = {};
+    const diversifiedList = scoredList.map(v => {
+        const creator = v.user_handle || 'anon';
+        const divPenalty = calculateDiversityPenalty(creator, creatorHistory);
+        creatorHistory[creator] = (creatorHistory[creator] || 0) + 1;
+
+        const adjustedScore = Number(Math.max(0.01, v._baseScore - divPenalty).toFixed(3));
+        return {
+            ...v,
+            _rankingScore: adjustedScore,
+            _rankingDebug: {
+                ...v._rankingDebug,
+                creatorDiversityPenalty: divPenalty,
+                finalScore: adjustedScore
+            }
+        };
+    });
+
+    // Ordenación definitiva por rankingScore descendente
+    diversifiedList.sort((a, b) => b._rankingScore - a._rankingScore);
+
+    // Aplicar paginación
+    const scoredVideos = diversifiedList.slice(offset, offset + limit);
+
+    if (scoredVideos.length === 0) return [];
+
+    // 4. Fetch corresponding users to perform manual join
+    const handles = [...new Set(scoredVideos.map(v => v.user_handle))];
     const { data: users, error: usersError } = await supabaseAdmin
         .from('app_users')
         .select('name, handle, profile_image')
@@ -1361,7 +1633,7 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
     const userMap = new Map();
     users?.forEach(u => userMap.set(u.handle, u));
 
-    // 3. Handle personal state (likes/bookmarks)
+    // 5. Handle personal state (likes/bookmarks)
     let likedSet = new Set<string>();
     let bookmarkedSet = new Set<string>();
 
@@ -1380,13 +1652,14 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
         bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
     }
 
-    // 4. Merge data
-    return (videos as any[]).map(v => {
+    // 6. Merge data
+    return (scoredVideos as any[]).map(v => {
         const u: any = userMap.get(v.user_handle) || {};
         return {
             id: v.id,
             videoUrl: v.video_url,
             user: v.user_handle,
+            userHandle: v.user_handle,
             description: v.description,
             likes: v.likes,
             shares: v.shares,
@@ -1398,10 +1671,16 @@ export async function getVideos(currentUserHandle?: string): Promise<VideoPost[]
             thumbnailUrl: v.thumbnail_url,
             filterConfig: v.filter_config,
             isMuted: v.is_muted,
+            commentsEnabled: v.comments_enabled !== false,
             userName: u.name || u.handle?.replace('@', '') || v.user_handle?.replace('@', ''),
             userImage: u.profile_image,
             isLikedByMe: likedSet.has(v.id),
-            isBookmarkedByMe: bookmarkedSet.has(v.id)
+            isBookmarkedByMe: bookmarkedSet.has(v.id),
+            rankingScore: v._rankingScore || 0,
+            score: v._rankingScore || 0,
+            _score: v._rankingScore || 0,
+            rankingVersion: v._rankingVersion || 'gravity-v2',
+            rankingDebug: v._rankingDebug
         };
     });
 }

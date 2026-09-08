@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost, supabaseAdmin } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { logSystemAlert } from '@/lib/alerts';
+import { feedTelemetry, assignVariant, EXPERIMENT_ID } from '@/lib/feedTelemetry';
 
 // Revalidate feed cache every 15 seconds on Vercel Edge (SWR pattern)
 export const revalidate = 15;
@@ -25,11 +26,29 @@ function corsHeaders(response: NextResponse) {
 }
 
 export async function GET(request: NextRequest) {
+    const requestStart = performance.now();
+    const requestId = request.headers.get('x-request-id') || uuidv4();
+    let assignedVariant: 'CURRENT' | 'HYBRID_RECOMMENDED' = 'CURRENT';
+    let userIdentifier = 'anonymous';
+
     try {
         const { searchParams } = new URL(request.url);
-        const userHandle = searchParams.get('userHandle') || undefined;
+        const creatorHandle = searchParams.get('creatorHandle') || searchParams.get('userHandle') || undefined;
+        const viewerHandle = searchParams.get('viewerHandle') || searchParams.get('currentUserHandle') || undefined;
         const bookmarkedBy = searchParams.get('bookmarkedBy') || undefined;
         const likedBy = searchParams.get('likedBy') || undefined;
+        const sessionSeed = searchParams.get('sessionSeed') || undefined;
+
+        userIdentifier = viewerHandle || sessionSeed || request.headers.get('x-forwarded-for') || requestId;
+        assignedVariant = assignVariant(EXPERIMENT_ID, userIdentifier, 0.75);
+        
+        let recentlySeen: { id: string; seenAt: number }[] | undefined = undefined;
+        const recentlySeenParam = searchParams.get('recentlySeen');
+        if (recentlySeenParam) {
+            try {
+                recentlySeen = JSON.parse(recentlySeenParam);
+            } catch (e) {}
+        }
         
         const limitParam = searchParams.get('limit');
         const offsetParam = searchParams.get('offset');
@@ -173,14 +192,54 @@ export async function GET(request: NextRequest) {
                 });
             }
         } else {
-            videos = userHandle 
-                ? await getVideosByUser(userHandle, undefined, limit, offset) 
-                : await getVideos(undefined, limit, offset);
+            const telemetryOut: any = {};
+            videos = creatorHandle 
+                ? await getVideosByUser(creatorHandle, viewerHandle, limit, offset) 
+                : await getVideos(viewerHandle, limit, offset, sessionSeed, recentlySeen, telemetryOut);
+
+            const totalLatency = Math.round(performance.now() - requestStart);
+            await feedTelemetry.recordEventAsync({
+                request_id: requestId,
+                timestamp_utc: new Date().toISOString(),
+                user_uuid: userIdentifier,
+                experiment_id: EXPERIMENT_ID,
+                variant: assignedVariant,
+                total_latency_ms: totalLatency,
+                q1_latency_ms: telemetryOut.q1 || 0,
+                q2_latency_ms: telemetryOut.q2 || 0,
+                q3_latency_ms: telemetryOut.q3 || 0,
+                q4_latency_ms: null,
+                q5_latency_ms: null,
+                fallback_fired: false,
+                status_code: 200,
+                timeout: false,
+                db_total_latency_ms: telemetryOut.dbTotal || 0,
+                candidates_count: Array.isArray(videos) ? videos.length : 0
+            });
         }
+
         const res = NextResponse.json(videos);
-        res.headers.set('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=59');
+        res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         return corsHeaders(res);
     } catch (error) {
+        const totalLatency = Math.round(performance.now() - requestStart);
+        await feedTelemetry.recordEventAsync({
+            request_id: requestId,
+            timestamp_utc: new Date().toISOString(),
+            user_uuid: userIdentifier,
+            experiment_id: EXPERIMENT_ID,
+            variant: assignedVariant,
+            total_latency_ms: totalLatency,
+            q1_latency_ms: 0,
+            q2_latency_ms: 0,
+            q3_latency_ms: 0,
+            q4_latency_ms: null,
+            q5_latency_ms: null,
+            fallback_fired: false,
+            status_code: 500,
+            timeout: totalLatency >= 3000
+        });
+
         console.error("Error fetching videos:", error);
         await logSystemAlert('Videos', error);
         return corsHeaders(NextResponse.json({ error: "Internal Server Error" }, { status: 500 }));
