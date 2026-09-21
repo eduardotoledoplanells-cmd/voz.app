@@ -57,6 +57,7 @@ export interface AppUser {
     live_url_kick?: string | null;
     live_url_twitch?: string | null;
     live_url_youtube?: string | null;
+    custom_video_duration?: number | null;
     // Segmentación publicitaria
     country?: string;
     region?: string;
@@ -1989,7 +1990,7 @@ export async function getVideos(
     let q2_latency = 0;
     let q3_latency = 0;
 
-    // 1. Obtener candidatos de la base de datos (Pool diverso multi-capa de hasta 350 vídeos)
+    // 1. Obtener candidatos de la base de datos y contexto de usuario en paralelo (Fase 1)
     // Tier 1: Novedades recientes para dar oportunidad a creadores nuevos (150 vídeos)
     const pFresh = supabaseAdmin
         .from('videos')
@@ -2015,7 +2016,30 @@ export async function getVideos(
     const pViralTimed = pViral.then(res => { q2_latency = Math.round(performance.now() - tDb0); return res; });
     const pVoiceTimed = pVoice.then(res => { q3_latency = Math.round(performance.now() - tDb0); return res; });
 
-    const [resFresh, resViral, resVoice] = await Promise.all([pFreshTimed, pViralTimed, pVoiceTimed]);
+    // Preparar contexto de usuario (seguidos, intereses) concurrentemente con los candidatos
+    const pUserInterests = currentUserHandle 
+        ? Promise.resolve(supabaseAdmin.from('app_users').select('interests').eq('handle', currentUserHandle).maybeSingle())
+            .catch(err => {
+                console.warn("[db] Error fetching user interests:", err);
+                return { data: null, error: err };
+            })
+        : Promise.resolve({ data: null, error: null });
+
+    const pUserFollows = currentUserHandle
+        ? Promise.resolve(supabaseAdmin.from('followers').select('following_handle').eq('follower_handle', currentUserHandle))
+            .catch(err => {
+                console.warn("[db] Error fetching user follows:", err);
+                return { data: null, error: err };
+            })
+        : Promise.resolve({ data: null, error: null });
+
+    const [resFresh, resViral, resVoice, resInterests, resFollows] = await Promise.all([
+        pFreshTimed,
+        pViralTimed,
+        pVoiceTimed,
+        pUserInterests,
+        pUserFollows
+    ]);
     const dbTotalLatency = Math.round(performance.now() - tDb0);
 
     if (telemetryOut) {
@@ -2045,32 +2069,19 @@ export async function getVideos(
     const unseenCount = rawVideos.filter(v => !seenSet.has(v.id)).length;
     const unseenRatio = unseenCount / Math.max(1, rawVideos.length);
 
-    // 2. Preparar contexto de usuario (seguidos, intereses)
+    // 2. Extraer contexto de usuario ya resuelto concurrentemente
     let followingList: string[] = [];
     let userInterests: string[] = [];
 
     if (currentUserHandle) {
-        try {
-            const { data: uData } = await supabaseAdmin
-                .from('app_users')
-                .select('interests')
-                .eq('handle', currentUserHandle)
-                .maybeSingle();
+        const uData = (resInterests as any)?.data;
+        if (uData?.interests && Array.isArray(uData.interests)) {
+            userInterests = uData.interests;
+        }
 
-            if (uData?.interests && Array.isArray(uData.interests)) {
-                userInterests = uData.interests;
-            }
-
-            const { data: follows } = await supabaseAdmin
-                .from('followers')
-                .select('following_handle')
-                .eq('follower_handle', currentUserHandle);
-
-            if (follows && Array.isArray(follows)) {
-                followingList = follows.map(f => f.following_handle);
-            }
-        } catch (ctxErr) {
-            console.warn("[db] Error fetching user context for ranking:", ctxErr);
+        const follows = (resFollows as any)?.data;
+        if (follows && Array.isArray(follows)) {
+            followingList = follows.map((f: any) => f.following_handle);
         }
     }
 
@@ -2125,37 +2136,67 @@ export async function getVideos(
 
     if (scoredVideos.length === 0) return [];
 
-    // 2. Fetch corresponding users to perform manual join
+    // ====================================================================
+    // FASE 2: ENRIQUECIMIENTO POST-SCORING CONCURRENTE (Promise.all)
+    // ====================================================================
     const handles = [...new Set(scoredVideos.map(v => v.user_handle))];
-    const { data: users, error: usersError } = await supabaseAdmin
+
+    // 1. Authors Query
+    const pAuthors = supabaseAdmin
         .from('app_users')
         .select('name, handle, profile_image, is_live, live_url')
         .in('handle', handles);
 
-    if (usersError) {
-        console.error("[db] Error fetching users for join:", usersError);
+    // 2. Personal state (Likes & Bookmarks)
+    const pLikes = currentUserHandle
+        ? supabaseAdmin.from('video_likes').select('video_id').eq('user_handle', currentUserHandle)
+        : Promise.resolve({ data: [] });
+
+    const pBookmarks = currentUserHandle
+        ? supabaseAdmin.from('video_bookmarks').select('video_id').eq('user_handle', currentUserHandle)
+        : Promise.resolve({ data: [] });
+
+    // 3. User Geo / Profile for Ad Targeting
+    const pUserProfile = currentUserHandle
+        ? Promise.resolve(supabaseAdmin.from('app_users').select('country, region, interests').eq('handle', currentUserHandle).single())
+            .catch(() => ({ data: null, error: null }))
+        : Promise.resolve({ data: null, error: null });
+
+    // 4. Active Campaigns
+    const pCampaigns = supabaseAdmin
+        .from('campaigns')
+        .select('id, force_view, min_view_time, video_url, name, target_countries, target_regions, target_interests, priority, pack_size, impressions')
+        .eq('status', 'active');
+
+    // 5. Live Users
+    const pLiveUsers = supabaseAdmin
+        .from('app_users')
+        .select('name, handle, profile_image, is_live, live_url')
+        .eq('is_live', true)
+        .limit(10);
+
+    const [resUsers, resLikes, resBookmarks, resUserProfile, resCampaigns, resLiveUsers] = await Promise.all([
+        pAuthors,
+        pLikes,
+        pBookmarks,
+        pUserProfile,
+        pCampaigns,
+        pLiveUsers
+    ]);
+
+    // Procesar User Map para autores
+    if (resUsers.error) {
+        console.error("[db] Error fetching users for join:", resUsers.error);
     }
-
     const userMap = new Map();
-    users?.forEach(u => userMap.set(u.handle, u));
+    resUsers.data?.forEach((u: any) => userMap.set(u.handle, u));
 
-    // 3. Handle personal state (likes/bookmarks)
-    let likedSet = new Set<string>();
-    let bookmarkedSet = new Set<string>();
-
+    // Procesar Likes & Bookmarks Sets
+    const likedSet = new Set<string>();
+    const bookmarkedSet = new Set<string>();
     if (currentUserHandle) {
-        const { data: likes } = await supabaseAdmin
-            .from('video_likes')
-            .select('video_id')
-            .eq('user_handle', currentUserHandle);
-
-        const { data: bookmarks } = await supabaseAdmin
-            .from('video_bookmarks')
-            .select('video_id')
-            .eq('user_handle', currentUserHandle);
-
-        likes?.forEach((l: any) => likedSet.add(l.video_id));
-        bookmarks?.forEach((b: any) => bookmarkedSet.add(b.video_id));
+        resLikes.data?.forEach((l: any) => likedSet.add(l.video_id));
+        resBookmarks.data?.forEach((b: any) => bookmarkedSet.add(b.video_id));
     }
 
     // ====================================================================
@@ -2164,54 +2205,38 @@ export async function getVideos(
     let campaignsMap = new Map();
     let adToInject: any = null;
     try {
-        // Obtener perfil del usuario actual para segmentación
         let userCountry: string | null = null;
         let userRegion: string | null = null;
-        let userInterests: string[] = [];
+        let adUserInterests: string[] = [];
 
-        if (currentUserHandle) {
-            const { data: userProfile } = await supabaseAdmin
-                .from('app_users')
-                .select('country, region, interests')
-                .eq('handle', currentUserHandle)
-                .single();
-            if (userProfile) {
-                userCountry = userProfile.country || null;
-                userRegion = userProfile.region || null;
-                userInterests = userProfile.interests || [];
-            }
+        const uProf = (resUserProfile as any)?.data;
+        if (uProf) {
+            userCountry = uProf.country || null;
+            userRegion = uProf.region || null;
+            adUserInterests = uProf.interests || [];
         }
 
-        // Traer todas las campañas activas con sus metadatos y targeting
-        const { data: activeCampaignsData } = await supabaseAdmin
-            .from('campaigns')
-            .select('id, force_view, min_view_time, video_url, name, target_countries, target_regions, target_interests, priority, pack_size, impressions')
-            .eq('status', 'active');
-
-        // Filtro adicional de Inventario: excluir campañas locales que ya consumieron su pack
-        // (Este filtro también se aplica en BD por el trigger, pero lo doble-chequeamos aquí)
+        const activeCampaignsData = resCampaigns.data;
         let activeCampaigns = activeCampaignsData || [];
         activeCampaigns = activeCampaigns.filter((c: any) => c.pack_size === 0 || c.impressions < c.pack_size);
 
         if (activeCampaigns && activeCampaigns.length > 0) {
             activeCampaigns.forEach((c: any) => campaignsMap.set(c.id, c));
 
-            // 1. Filtro geográfico ESTRICTO: descartar anuncios que explícitamente excluyen al usuario
+            // 1. Filtro geográfico ESTRICTO
             const geoFiltered = activeCampaigns.filter((c: any) => {
                 const hasCountryTarget = c.target_countries && c.target_countries.length > 0;
                 const hasRegionTarget = c.target_regions && c.target_regions.length > 0;
 
-                // Si el anuncio tiene filtro de países y el usuario no coincide → descartar
                 if (hasCountryTarget && userCountry) {
                     const countryMatch = c.target_countries.some((tc: string) =>
                         tc.toLowerCase() === userCountry!.toLowerCase()
                     );
                     if (!countryMatch) return false;
                 } else if (hasCountryTarget && !userCountry) {
-                    return false; // Usuario sin perfil geo → no ver ads geofiltrados
+                    return false;
                 }
 
-                // Si el anuncio tiene filtro de región y el usuario no coincide → descartar
                 if (hasRegionTarget && userRegion) {
                     const regionMatch = c.target_regions.some((tr: string) =>
                         userRegion!.toLowerCase().includes(tr.toLowerCase()) ||
@@ -2225,38 +2250,33 @@ export async function getVideos(
                 return true;
             });
 
-            // 2. Dividir en pool segmentado (match de interés) y pool genérico
+            // 2. Dividir en pool segmentado y pool genérico
             const matchedPool = geoFiltered.filter((c: any) => {
                 const hasInterestTarget = c.target_interests && c.target_interests.length > 0;
-                if (!hasInterestTarget) return false; // Sin intereses → genérico
+                if (!hasInterestTarget) return false;
                 return c.target_interests.some((ti: string) =>
-                    userInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
+                    adUserInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
                 );
             });
 
             const genericPool = geoFiltered.filter((c: any) => {
                 const hasInterestTarget = c.target_interests && c.target_interests.length > 0;
-                if (!hasInterestTarget) return true; // Sin intereses → siempre genérico
+                if (!hasInterestTarget) return true;
                 return !c.target_interests.some((ti: string) =>
-                    userInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
+                    adUserInterests.some((ui: string) => ui.toLowerCase() === ti.toLowerCase())
                 );
             });
 
-            // 3. Agrupación por Prioridades (Enterprise, Premium, Standard)
-            const enterprisePool = [...matchedPool.filter(c => c.priority === 'Enterprise'), ...genericPool.filter(c => c.priority === 'Enterprise')];
-            const premiumPool = [...matchedPool.filter(c => c.priority === 'Local_Premium'), ...genericPool.filter(c => c.priority === 'Local_Premium')];
-            const standardPool = [...matchedPool.filter(c => c.priority === 'Local_Standard'), ...genericPool.filter(c => c.priority === 'Local_Standard')];
+            // 3. Agrupación por Prioridades
+            const enterprisePool = [...matchedPool.filter((c: any) => c.priority === 'Enterprise'), ...genericPool.filter((c: any) => c.priority === 'Enterprise')];
+            const premiumPool = [...matchedPool.filter((c: any) => c.priority === 'Local_Premium'), ...genericPool.filter((c: any) => c.priority === 'Local_Premium')];
+            const standardPool = [...matchedPool.filter((c: any) => c.priority === 'Local_Standard'), ...genericPool.filter((c: any) => c.priority === 'Local_Standard')];
 
-            // 4. Algoritmo de inyección según el Offset de la paginación (offset)
-            // Enterprise: inyección al inicio (offset 0) y cada 15 vídeos (ej: offset 15, 30)
-            // Locales (Premium/Standard): inyección cada 25-30 vídeos (ej: offset 25, 55, etc. Lo calcularemos por modulo)
-            
+            // 4. Algoritmo de inyección según el Offset
             let selectedCampaign = null;
-            
             if (offset % 15 === 0 && enterprisePool.length > 0) {
                 selectedCampaign = enterprisePool[Math.floor(Math.random() * enterprisePool.length)];
             } else if ((offset % 25 === 0 || offset % 30 === 0) && offset !== 0) {
-                // Seleccionar un Local. Damos 70% chance a Premium, 30% a Standard
                 if (Math.random() * 10 < 7 && premiumPool.length > 0) {
                     selectedCampaign = premiumPool[Math.floor(Math.random() * premiumPool.length)];
                 } else if (standardPool.length > 0) {
@@ -2324,24 +2344,17 @@ export async function getVideos(
         };
     });
 
-    // 5. Inyectar el anuncio seleccionado naturalmente en el feed (posición variable según offset)
+    // 5. Inyectar el anuncio seleccionado naturalmente en el feed
     if (adToInject && result.length >= 2) {
-        // En lugar de ponerlo siempre en la posición 4, si es Enterprise y offset 0, en la 1 o 2.
-        const isEnterprise = adToInject.description.includes('Enterprise'); // Hacky check but fine
         let adIndex = 4;
-        if (offset === 0) adIndex = 1; // Inyección inmediata al inicio (posición 2 del feed)
+        if (offset === 0) adIndex = 1;
         else adIndex = Math.min(4, result.length - 1);
         result.splice(adIndex, 0, adToInject as any);
     }
 
     // --- LIVE CARD INJECTION LOGIC ---
     try {
-        const { data: liveUsers } = await supabaseAdmin
-            .from('app_users')
-            .select('name, handle, profile_image, is_live, live_url')
-            .eq('is_live', true)
-            .limit(10);
-            
+        const liveUsers = resLiveUsers.data;
         if (liveUsers && liveUsers.length > 0) {
             const randomLiveUser = liveUsers[Math.floor(Math.random() * liveUsers.length)];
             const liveCard = {

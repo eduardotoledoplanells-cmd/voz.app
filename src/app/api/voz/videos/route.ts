@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getVideos, getVideosByUser, addVideo, deleteVideo, VideoPost, supabaseAdmin } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { logSystemAlert } from '@/lib/alerts';
@@ -198,23 +198,25 @@ export async function GET(request: NextRequest) {
                 : await getVideos(viewerHandle, limit, offset, sessionSeed, recentlySeen, telemetryOut);
 
             const totalLatency = Math.round(performance.now() - requestStart);
-            await feedTelemetry.recordEventAsync({
-                request_id: requestId,
-                timestamp_utc: new Date().toISOString(),
-                user_uuid: userIdentifier,
-                experiment_id: EXPERIMENT_ID,
-                variant: assignedVariant,
-                total_latency_ms: totalLatency,
-                q1_latency_ms: telemetryOut.q1 || 0,
-                q2_latency_ms: telemetryOut.q2 || 0,
-                q3_latency_ms: telemetryOut.q3 || 0,
-                q4_latency_ms: null,
-                q5_latency_ms: null,
-                fallback_fired: false,
-                status_code: 200,
-                timeout: false,
-                db_total_latency_ms: telemetryOut.dbTotal || 0,
-                candidates_count: Array.isArray(videos) ? videos.length : 0
+            after(async () => {
+                await feedTelemetry.recordEventAsync({
+                    request_id: requestId,
+                    timestamp_utc: new Date().toISOString(),
+                    user_uuid: userIdentifier,
+                    experiment_id: EXPERIMENT_ID,
+                    variant: assignedVariant,
+                    total_latency_ms: totalLatency,
+                    q1_latency_ms: telemetryOut.q1 || 0,
+                    q2_latency_ms: telemetryOut.q2 || 0,
+                    q3_latency_ms: telemetryOut.q3 || 0,
+                    q4_latency_ms: null,
+                    q5_latency_ms: null,
+                    fallback_fired: false,
+                    status_code: 200,
+                    timeout: false,
+                    db_total_latency_ms: telemetryOut.dbTotal || 0,
+                    candidates_count: Array.isArray(videos) ? videos.length : 0
+                });
             });
         }
 
@@ -223,21 +225,23 @@ export async function GET(request: NextRequest) {
         return corsHeaders(res);
     } catch (error) {
         const totalLatency = Math.round(performance.now() - requestStart);
-        await feedTelemetry.recordEventAsync({
-            request_id: requestId,
-            timestamp_utc: new Date().toISOString(),
-            user_uuid: userIdentifier,
-            experiment_id: EXPERIMENT_ID,
-            variant: assignedVariant,
-            total_latency_ms: totalLatency,
-            q1_latency_ms: 0,
-            q2_latency_ms: 0,
-            q3_latency_ms: 0,
-            q4_latency_ms: null,
-            q5_latency_ms: null,
-            fallback_fired: false,
-            status_code: 500,
-            timeout: totalLatency >= 3000
+        after(async () => {
+            await feedTelemetry.recordEventAsync({
+                request_id: requestId,
+                timestamp_utc: new Date().toISOString(),
+                user_uuid: userIdentifier,
+                experiment_id: EXPERIMENT_ID,
+                variant: assignedVariant,
+                total_latency_ms: totalLatency,
+                q1_latency_ms: 0,
+                q2_latency_ms: 0,
+                q3_latency_ms: 0,
+                q4_latency_ms: null,
+                q5_latency_ms: null,
+                fallback_fired: false,
+                status_code: 500,
+                timeout: totalLatency >= 3000
+            });
         });
 
         console.error("Error fetching videos:", error);
