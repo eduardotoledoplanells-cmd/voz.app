@@ -129,7 +129,10 @@ export async function GET(request: Request) {
             const settingKey = typeToSetting[n.type];
             if (settingKey) {
                 // Fallback: si es undefined o null (usuarios antiguos), asume true
-                const val = settings[settingKey];
+                let val = settings[settingKey];
+                if (val === undefined && settingKey === 'notify_follows' && settings.notify_followers !== undefined) {
+                    val = settings.notify_followers;
+                }
                 if (val === false) return false;
             }
             const cleanRec = (n.recipientId || '').replace(/^@/, '').toLowerCase();
@@ -201,7 +204,10 @@ export async function POST(request: Request) {
         // Fallback: si es undefined o null (usuarios antiguos), asume true
         let isEnabled = true;
         if (settingKey) {
-            const val = settings[settingKey];
+            let val = settings[settingKey];
+            if (val === undefined && settingKey === 'notify_follows' && settings.notify_followers !== undefined) {
+                val = settings.notify_followers;
+            }
             if (val === false) isEnabled = false;
         }
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
@@ -191,7 +191,12 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
 
     // Nuevos estados
     const [showNotificationSettings, setShowNotificationSettings] = useState(false);
-    const [isEditingNotifications, setIsEditingNotifications] = useState(false);
+    const notificationSettingsRef = useRef<any>(profile.notificationSettings || profile.notification_settings || {});
+    
+    // Mantener la ref sincronizada si profile cambia externamente
+    useEffect(() => {
+        notificationSettingsRef.current = profile.notificationSettings || profile.notification_settings || {};
+    }, [profile.notificationSettings, profile.notification_settings]);
     
     const [showPrivacySettings, setShowPrivacySettings] = useState(false);
     const [isEditingPrivacy, setIsEditingPrivacy] = useState(false);
@@ -375,15 +380,19 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
     };
 
     const toggleNotificationSetting = async (key: string) => {
-        const currentSettings = profile.notificationSettings || profile.notification_settings || {};
-        let currentValue = currentSettings[key];
+        // Usar siempre el estado más reciente de la ref para evitar condiciones de carrera si se toca rápido
+        const previousSettings = { ...(notificationSettingsRef.current || {}) };
+        let currentValue = previousSettings[key];
         if (currentValue === undefined) currentValue = true;
         
-        const newSettings = { ...currentSettings, [key]: !currentValue };
+        const newSettings = { ...previousSettings, [key]: !currentValue };
+        notificationSettingsRef.current = newSettings;
+
+        // Actualización optimista inmediata en la UI
         updateUser({ ...profile, notificationSettings: newSettings, notification_settings: newSettings });
         
         try {
-            await fetch('/api/voz/users/update', {
+            const res = await fetch('/api/voz/users/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -392,8 +401,26 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                     notificationSettings: newSettings
                 })
             });
+
+            if (!res.ok) {
+                // Revertir ante fallo del servidor
+                notificationSettingsRef.current = previousSettings;
+                updateUser({ ...profile, notificationSettings: previousSettings, notification_settings: previousSettings });
+                alert("No se pudo guardar la preferencia de notificaciones. Por favor, inténtalo de nuevo.");
+            } else {
+                const data = await res.json();
+                if (!data.success) {
+                    notificationSettingsRef.current = previousSettings;
+                    updateUser({ ...profile, notificationSettings: previousSettings, notification_settings: previousSettings });
+                    alert(data.error || "No se pudo guardar la preferencia de notificaciones.");
+                }
+            }
         } catch (e) {
-            console.error("Error", e);
+            console.error("Error al sincronizar notificaciones:", e);
+            // Revertir ante error de red
+            notificationSettingsRef.current = previousSettings;
+            updateUser({ ...profile, notificationSettings: previousSettings, notification_settings: previousSettings });
+            alert("Error de conexión. No se pudo conectar con el servidor para guardar las preferencias de notificaciones.");
         }
     };
 
@@ -937,11 +964,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                             <h3 style={{ color: 'white', margin: 0 }}>Notificaciones</h3>
                             <button onClick={() => setShowNotificationSettings(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', backgroundColor: '#111' }}>
+                        <div style={{ padding: '15px 20px', backgroundColor: '#111' }}>
                             <span style={{ color: 'gray', fontSize: '0.9rem' }}>Personaliza cómo quieres recibir avisos</span>
-                            <button onClick={() => setIsEditingNotifications(!isEditingNotifications)} style={{ backgroundColor: isEditingNotifications ? '#8E2DE2' : 'rgba(255,255,255,0.1)', color: 'white', padding: '5px 15px', borderRadius: '15px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                {isEditingNotifications ? "Listo" : "Editar"}
-                            </button>
                         </div>
                         <div style={{ padding: '0 20px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                             {[
@@ -951,7 +975,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 { key: 'notify_donations', label: 'Donaciones recibidas', icon: '🎁' },
                                 { key: 'notify_gifts', label: 'Regalos y detalles', icon: '❤️' },
                                 { key: 'notify_likes', label: 'Likes en mis vídeos', icon: '❤️' },
-                                { key: 'notify_followers', label: 'Nuevos seguidores', icon: '✔️' },
+                                { key: 'notify_follows', label: 'Nuevos seguidores', icon: '✔️' },
                                 { key: 'notify_live', label: 'Directos de creadores que sigues', icon: '▶️' },
                                 { key: 'notify_balance', label: 'Estado de transacciones', icon: '💰' },
                                 { key: 'notify_strikes', label: 'Avisos de moderación / Strikes', icon: '🛡️' },
@@ -961,17 +985,18 @@ export default function ProfileSettingsModal({ isOpen, onClose, profile, onLogou
                                 if (isEnabled === undefined) isEnabled = true;
                                 return (
                                     <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #222' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', flex: 1, opacity: isEditingNotifications ? 1 : 0.6 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                                             <div style={{ width: '36px', height: '36px', borderRadius: '18px', backgroundColor: 'rgba(142, 45, 226, 0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '12px' }}>{item.icon}</div>
                                             <span style={{ color: 'white', fontSize: '0.9rem' }}>{item.label}</span>
                                         </div>
-                                        {isEditingNotifications ? (
-                                            <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                                                <input type="checkbox" checked={isEnabled} onChange={() => toggleNotificationSetting(item.key)} style={{ accentColor: '#8E2DE2', width: '20px', height: '20px' }} />
-                                            </label>
-                                        ) : (
-                                            <span style={{ color: isEnabled ? '#4CD964' : 'gray', fontSize: '0.8rem', fontWeight: 'bold' }}>{isEnabled ? "Activado" : "Desactivado"}</span>
-                                        )}
+                                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={isEnabled} 
+                                                onChange={() => toggleNotificationSetting(item.key)} 
+                                                style={{ accentColor: '#8E2DE2', width: '20px', height: '20px', cursor: 'pointer' }} 
+                                            />
+                                        </label>
                                     </div>
                                 );
                             })}

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 
@@ -64,9 +66,34 @@ export default function CookiePolicyPage() {
                         <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#FFFFFF', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px', marginBottom: '16px' }}>
                             3. Gestión de Preferencias
                         </h2>
-                        <p>
+                        <p style={{ marginBottom: '16px' }}>
                             Puedes bloquear o eliminar las cookies instaladas en tu equipo mediante la configuración de las opciones de tu navegador web. Ten en cuenta que si deshabilitas las cookies técnicas necesarias, la sesión de usuario y la pasarela de pagos no podrán funcionar.
                         </p>
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (typeof window !== 'undefined') {
+                                        window.dispatchEvent(new CustomEvent('open-cookie-settings'));
+                                    }
+                                }}
+                                style={{
+                                    backgroundColor: '#8E2DE2',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <span>🍪</span> Configurar preferencias de cookies ahora
+                            </button>
+                        </div>
                     </section>
                 </div>
 

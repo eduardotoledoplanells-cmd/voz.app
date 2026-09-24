@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from '@/context/AuthContext';
 import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
 import PushNotificationManager from '@/app/components/PushNotificationManager';
+import CookieConsentBanner from '@/app/components/CookieConsentBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -54,6 +55,7 @@ export default function RootLayout({
         <GlobalErrorBoundary>
           <AuthProvider>
             <PushNotificationManager />
+            <CookieConsentBanner />
             {children}
           </AuthProvider>
         </GlobalErrorBoundary>

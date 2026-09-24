@@ -65,6 +65,8 @@ export interface AppUser {
     country_id?: number;
     region_id?: number;
     municipality_id?: number;
+    birth_date?: string;
+    birthDate?: string;
 }
 
 // In some parts of the admin it's referred to as Creator
@@ -253,7 +255,9 @@ export async function getAppUsers(): Promise<AppUser[]> {
         interests: u.interests,
         country_id: u.country_id,
         region_id: u.region_id,
-        municipality_id: u.municipality_id
+        municipality_id: u.municipality_id,
+        birth_date: u.birth_date,
+        birthDate: u.birth_date
     }));
 }
 
@@ -298,7 +302,9 @@ export async function getUserById(id: string): Promise<AppUser | null> {
         interests: u.interests,
         country_id: u.country_id,
         region_id: u.region_id,
-        municipality_id: u.municipality_id
+        municipality_id: u.municipality_id,
+        birth_date: u.birth_date,
+        birthDate: u.birth_date
     } as any;
 }
 
@@ -346,7 +352,9 @@ export async function getUserByHandle(handle: string): Promise<AppUser | null> {
         interests: u.interests,
         country_id: u.country_id,
         region_id: u.region_id,
-        municipality_id: u.municipality_id
+        municipality_id: u.municipality_id,
+        birth_date: u.birth_date,
+        birthDate: u.birth_date
     } as any;
 }
 
@@ -391,7 +399,9 @@ export async function getUserByEmail(email: string): Promise<AppUser | null> {
         interests: u.interests,
         country_id: u.country_id,
         region_id: u.region_id,
-        municipality_id: u.municipality_id
+        municipality_id: u.municipality_id,
+        birth_date: u.birth_date,
+        birthDate: u.birth_date
     } as any;
 }
 
@@ -594,8 +604,12 @@ export async function updateAppUser(id: string, updates: Partial<AppUser>): Prom
         if (current) oldHandle = current.handle;
     }
 
-    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id', 'last_logout', 'flag'];
+    const allowedKeys = ['name', 'real_name', 'dni', 'iban', 'payment_info', 'handle', 'email', 'status', 'wallet_balance', 'bio', 'profile_image', 'profile_color', 'is_creator', 'password', 'reset_pin', 'strikes', 'phone', 'earnings_balance', 'notification_settings', 'privacy_settings', 'push_token', 'is_live', 'live_url', 'country', 'region', 'interests', 'live_url_kick', 'live_url_twitch', 'live_url_youtube', 'country_id', 'region_id', 'municipality_id', 'last_logout', 'flag', 'birth_date'];
     const dbUpdates: any = {};
+
+    if (updates.birth_date !== undefined || (updates as any).birthDate !== undefined) {
+        dbUpdates.birth_date = updates.birth_date || (updates as any).birthDate;
+    }
 
     // Map fields
     if (updates.name !== undefined) dbUpdates.name = updates.name;
@@ -835,6 +849,7 @@ export async function addAppUser(user: AppUser): Promise<AppUser | null> {
         country_id: cid,
         region_id: rid,
         municipality_id: mid,
+        birth_date: user.birth_date || user.birthDate || null,
         notification_settings: {
             notify_follows: true,
             notify_gifts: true,
@@ -1538,7 +1553,11 @@ export function isNotificationCategoryEnabled(type: string, settings: any): bool
 
     if (settingsKey) {
         // Fallback: si es undefined o null (usuarios antiguos), asume true
-        const value = settings[settingsKey];
+        let value = settings[settingsKey];
+        // Retrocompatibilidad: soporte para notify_followers guardado previamente
+        if (value === undefined && settingsKey === 'notify_follows' && settings.notify_followers !== undefined) {
+            value = settings.notify_followers;
+        }
         if (value === false) return false;
     }
     return true;

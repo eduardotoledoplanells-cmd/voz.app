@@ -43,6 +43,26 @@ export async function sendNativePush(
     }
 
     try {
+        // Mapeo dinámico de icono nativo de Android según categoría de notificación
+        const notifType = (dataPayload?.type || '').toLowerCase();
+        let androidIcon = 'ic_stat_default';
+
+        if (['pm', 'dm', 'message', 'chat'].includes(notifType)) {
+            androidIcon = 'ic_stat_message';
+        } else if (['donation', 'balance', 'billing', 'withdrawal', 'payout'].includes(notifType)) {
+            androidIcon = 'ic_stat_coin';
+        } else if (['gift', 'detail'].includes(notifType)) {
+            androidIcon = 'ic_stat_gift';
+        } else if (['follow'].includes(notifType)) {
+            androidIcon = 'ic_stat_follow';
+        } else if (['live', 'live_alert', 'on_air'].includes(notifType)) {
+            androidIcon = 'ic_stat_live';
+        } else if (['comment', 'reply', 'like'].includes(notifType)) {
+            androidIcon = 'ic_stat_comment';
+        } else {
+            androidIcon = 'ic_stat_default';
+        }
+
         const message: admin.messaging.Message = {
             token: fcmToken,
             notification: {
@@ -58,7 +78,8 @@ export async function sendNativePush(
                     defaultVibrateTimings: true,
                     visibility: "public",
                     priority: "max",
-                    color: "#8E2DE2"
+                    color: "#8E2DE2",
+                    icon: androidIcon
                 }
             },
             apns: {

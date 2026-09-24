@@ -25,6 +25,7 @@ export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [birthDate, setBirthDate] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [marketingConsent, setMarketingConsent] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
@@ -125,6 +126,33 @@ export default function RegisterPage() {
             return;
         }
 
+        if (!birthDate) {
+            setError('Debes introducir tu fecha de nacimiento.');
+            setLoading(false);
+            return;
+        }
+
+        // Validación de mayoría de edad (18 años)
+        const birthDateObj = new Date(birthDate);
+        if (isNaN(birthDateObj.getTime())) {
+            setError('La fecha de nacimiento no es válida.');
+            setLoading(false);
+            return;
+        }
+
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
+        const monthDiff = today.getMonth() - birthDateObj.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+            calculatedAge--;
+        }
+
+        if (calculatedAge < 18) {
+            setError('Debes ser mayor de 18 años para registrarte en LYVO. El acceso a menores de edad no está permitido.');
+            setLoading(false);
+            return;
+        }
+
         if (!countryId || !regionId || !municipalityId) {
             setError('Debes seleccionar tu ubicación completa (País, Comunidad y Municipio).');
             setLoading(false);
@@ -146,6 +174,7 @@ export default function RegisterPage() {
                     username: name,
                     email,
                     password,
+                    birth_date: birthDate,
                     country_id: parseInt(countryId),
                     region_id: parseInt(regionId),
                     municipality_id: parseInt(municipalityId),
@@ -322,6 +351,21 @@ export default function RegisterPage() {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Fecha de Nacimiento (Mínimo 18 años)</label>
+                        <input
+                            type="date"
+                            value={birthDate}
+                            onChange={(e) => setBirthDate(e.target.value)}
+                            required
+                            className={styles.input}
+                            max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                        />
+                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                            Debes tener al menos 18 años para crear una cuenta en LYVO.
+                        </p>
                     </div>
 
                     <div className={styles.formGroup}>

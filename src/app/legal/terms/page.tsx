@@ -49,10 +49,10 @@ export default function TermsPage() {
                             2. Requisitos de Registro y Edad Mínima
                         </h2>
                         <p style={{ marginBottom: '12px' }}>
-                            Para utilizar los servicios de LYVO, el usuario debe tener al menos <strong>16 años de edad</strong> (edad legal mínima para el consentimiento de servicios digitales en España conforme al artículo 7 de la <strong>Ley Orgánica 3/2018 - LOPDGDD</strong> y el RGPD).
+                            Para utilizar los servicios de LYVO y registrar una cuenta, el usuario debe tener al menos <strong>18 años de edad</strong> (mayoría de edad legal con plena capacidad de obrar). Queda expresamente prohibido el registro, acceso o uso de la plataforma a personas menores de 18 años.
                         </p>
                         <p style={{ marginBottom: '12px' }}>
-                            Para participar en los programas de <strong>Monetización y Cobro de Ganancias (Payouts)</strong>, el usuario debe ser <strong>mayor de edad (18 años)</strong> o contar con plena capacidad de obrar según la legislación aplicable en su país de residencia fiscal. LYVO y sus proveedores bancarios autorizados se reservan el derecho de exigir verificación de identidad documental (KYC) en cualquier momento.
+                            Para participar en los programas de <strong>Monetización y Cobro de Ganancias (Payouts)</strong>, el usuario debe igualmente ser <strong>mayor de edad (18 años)</strong> y contar con plena capacidad jurídica y tributaria según la legislación de su país de residencia fiscal. LYVO y sus proveedores bancarios autorizados se reservan el derecho de exigir verificación de identidad documental (KYC) y comprobación de edad en cualquier momento.
                         </p>
                     </section>
 

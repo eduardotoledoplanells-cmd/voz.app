@@ -424,6 +424,31 @@ export default async function LandingPage() {
                                 <li><Link href="/legal/terms">Términos de servicio</Link></li>
                                 <li><Link href="/legal/privacy">Política de privacidad</Link></li>
                                 <li><Link href="/legal/cookies">Cookies</Link></li>
+                                <li>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new CustomEvent('open-cookie-settings'));
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: 0,
+                                            margin: 0,
+                                            color: 'inherit',
+                                            font: 'inherit',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            opacity: 0.8
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}
+                                    >
+                                        Preferencias de cookies
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                         <div>

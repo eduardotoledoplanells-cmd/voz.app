@@ -15,8 +15,52 @@ export async function POST(request: NextRequest) {
         const userLanguage = language || 'es';
 
         if (action === 'register') {
+            const rawBirthDate = body.birth_date || body.birthDate || body.dob;
             if (!email || !password || !username) {
-                return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+                return NextResponse.json({ error: "Faltan campos obligatorios" }, { status: 400 });
+            }
+
+            if (!rawBirthDate) {
+                return NextResponse.json({ error: "La fecha de nacimiento es obligatoria" }, { status: 400 });
+            }
+
+            // Validar formato y edad mínima (18 años)
+            let birthDateObj: Date;
+            let formattedBirthDate: string = '';
+
+            if (typeof rawBirthDate === 'string' && rawBirthDate.includes('/')) {
+                // Formato DD/MM/YYYY
+                const parts = rawBirthDate.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const year = parseInt(parts[2], 10);
+                    birthDateObj = new Date(year, month, day);
+                    formattedBirthDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                } else {
+                    return NextResponse.json({ error: "Formato de fecha de nacimiento inválido" }, { status: 400 });
+                }
+            } else {
+                // Formato YYYY-MM-DD
+                birthDateObj = new Date(rawBirthDate);
+                formattedBirthDate = typeof rawBirthDate === 'string' ? rawBirthDate.split('T')[0] : '';
+            }
+
+            if (isNaN(birthDateObj.getTime())) {
+                return NextResponse.json({ error: "Fecha de nacimiento inválida" }, { status: 400 });
+            }
+
+            const today = new Date();
+            let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
+            const monthDiff = today.getMonth() - birthDateObj.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+                calculatedAge--;
+            }
+
+            if (calculatedAge < 18) {
+                return NextResponse.json({ 
+                    error: "Debes tener al menos 18 años para registrarte en LYVO. El acceso a menores de edad está restringido." 
+                }, { status: 400 });
             }
 
             // 0. Verificar si el email o teléfono están en la lista negra (baneado)
@@ -174,6 +218,8 @@ export async function POST(request: NextRequest) {
                 region_id: safeRid || undefined,
                 municipality_id: safeMid || undefined,
                 interests: Array.isArray(body.interests) ? body.interests : [],
+                birth_date: formattedBirthDate,
+                birthDate: formattedBirthDate,
                 privacySettings: defaultPrivacySettings
             };
 
@@ -193,6 +239,7 @@ export async function POST(request: NextRequest) {
                     country_id: safeCid,
                     region_id: safeRid,
                     municipality_id: safeMid,
+                    birth_date: formattedBirthDate,
                     privacy_settings: defaultPrivacySettings
                 }]);
                 if (dbError) {
