@@ -52,7 +52,8 @@ export async function POST(request: Request) {
             const command = new PutObjectCommand({
                 Bucket: R2_BUCKET_NAME,
                 Key: finalPath,
-                ContentType: fileType
+                ContentType: fileType,
+                CacheControl: 'public, max-age=31536000, immutable'
             });
             
             signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });

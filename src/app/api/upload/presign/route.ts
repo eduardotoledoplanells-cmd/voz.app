@@ -38,6 +38,7 @@ export async function POST(request: Request) {
         Bucket: R2_BUCKET_NAME,
         Key: key,
         ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable',
       });
       presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
 
